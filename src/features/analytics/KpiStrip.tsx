@@ -45,6 +45,14 @@ const kpiConfig = [
     glowColor: "rgba(34,211,238,0.12)",
     borderColor: "rgba(34,211,238,0.18)",
   },
+  {
+    id: "kpi-focus",
+    label: "Focus Score",
+    icon: "🎯",
+    accentColor: "#a855f7",
+    glowColor: "rgba(168,85,247,0.12)",
+    borderColor: "rgba(168,85,247,0.18)",
+  },
 ];
 
 export async function KpiStrip({
@@ -71,6 +79,21 @@ export async function KpiStrip({
     );
     return sum + secondsToHours(secs);
   }, 0);
+  
+  const totalStudySeconds = totalHours * 3600;
+
+  const { data: distractions } = await supabase
+    .from("browser_events")
+    .select("duration_seconds")
+    .eq("user_id", userId)
+    .gte("timestamp", `${todayStr}T00:00:00`)
+    .is("deleted_at", null);
+
+  const totalDistractionSeconds = distractions?.reduce((sum, d) => sum + (d.duration_seconds || 10), 0) ?? 0;
+  
+  const focusScore = totalStudySeconds > 0 
+    ? Math.max(0, ((totalStudySeconds - totalDistractionSeconds) / totalStudySeconds) * 100)
+    : 100;
 
   const { data: tasks } = await supabase
     .from("tasks")
@@ -132,10 +155,16 @@ export async function KpiStrip({
       sub: totalRevisionsDue === 0 ? "None due today" : `${totalRevisionsDue - completedRevisions} remaining`,
       progress: totalRevisionsDue > 0 ? (completedRevisions / totalRevisionsDue) * 100 : 100,
     },
+    {
+      ...kpiConfig[4],
+      value: totalStudySeconds > 0 ? `${focusScore.toFixed(0)}%` : "—",
+      sub: totalDistractionSeconds > 0 ? `${Math.floor(totalDistractionSeconds/60)}m distracted` : "100% focused",
+      progress: focusScore,
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" role="list" aria-label="Today's KPIs">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4" role="list" aria-label="Today's KPIs">
       {kpis.map((kpi) => (
         <div
           key={kpi.id}
@@ -149,7 +178,7 @@ export async function KpiStrip({
         >
           {/* Progress bar at bottom */}
           <div
-            className="absolute bottom-0 left-0 h-[2px] rounded-full transition-all duration-700"
+            className="absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-700"
             style={{
               width: `${kpi.progress}%`,
               background: `linear-gradient(90deg, ${kpi.accentColor}88, ${kpi.accentColor})`,

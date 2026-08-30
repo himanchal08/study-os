@@ -50,6 +50,19 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   const isRunning = !!session;
   const isPaused = pausedAtMs !== null;
 
+  // Sync state to localStorage for the browser extension
+  useEffect(() => {
+    try {
+      localStorage.setItem("study_os_timer_state", JSON.stringify({
+        isRunning,
+        isPaused,
+        session_id: session?.id || null
+      }));
+    } catch {
+      // ignore
+    }
+  }, [isRunning, isPaused, session?.id]);
+
   // Start the segment monotonic reference when we begin running.
   useEffect(() => {
     if (isRunning && !isPaused) {
@@ -122,7 +135,10 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
 
     // Total pause seconds = however long was accumulated while paused
     // We track this via totalPauseSec which we update on each resume.
-    const finalPauseSec = totalPauseSec;
+    let finalPauseSec = totalPauseSec;
+    if (isPaused && pausedAtMs !== null) {
+      finalPauseSec += Math.floor((Date.now() - pausedAtMs) / 1000);
+    }
 
     const result = await stopSession({
       sessionId: session.id,
@@ -247,7 +263,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
           ) : (
             <select
               value={activityType}
-              onChange={(e) => setActivityType(e.target.value as any)}
+              onChange={(e) => setActivityType(e.target.value as Tables<"study_sessions">["activity_type"])}
               disabled={isRunning || loading}
               className="text-xs bg-transparent text-neutral-300 outline-none hover:text-neutral-200 cursor-pointer appearance-none pr-4"
               style={{

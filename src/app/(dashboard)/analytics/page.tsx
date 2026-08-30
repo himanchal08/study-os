@@ -95,6 +95,27 @@ export default async function AnalyticsPage() {
     last7.push({ date: DAY_LABELS[d.getDay()], hours, target, hitTarget: hours >= target, allTasksDone });
   }
 
+  // Distraction Telemetry (last 30 days)
+  const { data: distractionsRaw } = await supabase
+    .from("browser_events")
+    .select("domain, duration_seconds")
+    .eq("user_id", user.id)
+    .gte("timestamp", thirtyDaysAgo);
+
+  const domainDistractions = new Map<string, number>();
+  let totalDistractionSecs = 0;
+  (distractionsRaw ?? []).forEach(d => {
+    const domain = d.domain;
+    const dur = d.duration_seconds ?? 10;
+    domainDistractions.set(domain, (domainDistractions.get(domain) ?? 0) + dur);
+    totalDistractionSecs += dur;
+  });
+  
+  const topDistractions = Array.from(domainDistractions.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([domain, secs]) => ({ domain, secs }));
+
   // Subject allocation donut
   const subjectMap = new Map<string, { name: string; color: string; seconds: number }>();
   sessions.forEach((s) => {
@@ -200,11 +221,48 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Time of day */}
-      <div className="glass rounded-2xl p-5">
-        <h2 className="text-sm font-semibold mb-1" style={{ color: "rgba(232,232,240,0.85)" }}>Time-of-Day Study Breakdown</h2>
-        <p className="text-xs mb-5" style={{ color: "rgba(232,232,240,0.35)" }}>When you study most — last 30 days</p>
-        <TimeOfDayChart data={todData} />
+      {/* Time of day & Distractions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div className="glass rounded-2xl p-5">
+          <h2 className="text-sm font-semibold mb-1" style={{ color: "rgba(232,232,240,0.85)" }}>Time-of-Day Study Breakdown</h2>
+          <p className="text-xs mb-5" style={{ color: "rgba(232,232,240,0.35)" }}>When you study most — last 30 days</p>
+          <TimeOfDayChart data={todData} />
+        </div>
+
+        <div className="glass rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-semibold" style={{ color: "rgba(232,232,240,0.85)" }}>Focus & Distractions</h2>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>Top distraction sites — last 30 days</p>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-bold tabular-nums" style={{ color: "#ef4444" }}>
+                {formatMins(totalDistractionSecs / 60)}
+              </span>
+              <p className="text-[10px] uppercase tracking-wider text-neutral-500">lost focus</p>
+            </div>
+          </div>
+          
+          {topDistractions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 border border-dashed border-neutral-800 rounded-xl">
+              <p className="text-2xl mb-2">🎯</p>
+              <p className="text-sm text-neutral-500 font-medium">100% Focused</p>
+              <p className="text-xs text-neutral-600 mt-1">No distractions logged</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mt-6">
+              {topDistractions.map((d, i) => (
+                <div key={d.domain} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-neutral-600">{i + 1}.</span>
+                    <span className="text-sm font-medium text-neutral-300">{d.domain}</span>
+                  </div>
+                  <span className="text-sm font-mono text-neutral-400">{formatMins(d.secs / 60)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer note */}
