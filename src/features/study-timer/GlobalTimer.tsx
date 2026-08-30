@@ -163,6 +163,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
 
   return (
     <div 
+      id="global-timer-card"
       className="h-14 border-b shrink-0 flex items-center justify-between px-6 transition-all"
       style={{ 
         background: isRunning ? "rgba(232,232,240,0.02)" : "var(--surface)",

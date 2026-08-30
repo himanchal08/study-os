@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { NavLinks } from "./NavLinks";
+import { TourButton } from "./TourButton";
 
 interface SidebarProps {
   userEmail: string;
@@ -47,6 +48,10 @@ export function Sidebar({ userEmail }: SidebarProps) {
       <Suspense fallback={<NavLinksSkeleton />}>
         <NavLinks />
       </Suspense>
+
+      <div className="px-3 py-3">
+        <TourButton />
+      </div>
 
       {/* User chip */}
       <div

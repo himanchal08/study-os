@@ -123,7 +123,7 @@ export default async function HomePage() {
     <div className="space-y-8 animate-fade-in pb-12">
 
       {/* Daily Target Bar — Phase 23.4 */}
-      <section aria-label="Daily study target">
+      <section id="tour-daily-target" aria-label="Daily study target">
         <div className="rounded-2xl p-5" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -155,7 +155,7 @@ export default async function HomePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* 2. Today's Tasks */}
-        <section aria-label="Today's Tasks">
+        <section id="tour-today-tasks" aria-label="Today's Tasks">
           <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Today&apos;s Tasks</h2>
           {todayTasks.length === 0 ? (
             <div className="rounded-xl p-6 text-center border border-neutral-900 bg-black/40">
@@ -171,7 +171,7 @@ export default async function HomePage() {
         </section>
 
         {/* 3. Revision Queue */}
-        <section aria-label="Revisions due today">
+        <section id="tour-revision-queue" aria-label="Revisions due today">
           <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Revision Queue</h2>
           <RevisionQueue
             userId={user.id}
@@ -194,7 +194,7 @@ export default async function HomePage() {
       </section>
 
       {/* 5. Today's Analytics (KPIs) */}
-      <section aria-label="Today's overview">
+      <section id="tour-analytics-kpi" aria-label="Today's overview">
         <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Today&apos;s Analytics</h2>
         <KpiStrip
           userId={user.id}
