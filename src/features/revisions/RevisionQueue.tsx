@@ -40,7 +40,7 @@ export function RevisionQueue({ revisions }: RevisionQueueProps) {
   };
 
   return (
-    <div className="glass rounded-2xl p-5 h-full">
+    <div className="glass rounded-2xl p-5 h-full w-full min-w-0">
       <div className="flex items-center justify-between mb-4">
         <h2
           className="text-xs font-semibold uppercase tracking-wider"

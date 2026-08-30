@@ -153,7 +153,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
         {/* 2. Today's Tasks */}
         <section id="tour-today-tasks" aria-label="Today's Tasks">
           <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Today&apos;s Tasks</h2>
@@ -162,7 +162,7 @@ export default async function HomePage() {
               <p className="text-sm text-neutral-400">No tasks planned for today.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               {todayTasks.map(task => (
                 <TaskCard key={task.id} task={task} userId={user.id} />
               ))}
