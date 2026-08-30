@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { dayBoundaryAwareDate } from "@/lib/calculations";
 import { LogMockForm } from "@/features/mocks/LogMockForm";
 
@@ -59,9 +60,18 @@ export default async function MocksPage() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      <div>
-        <h1 className="text-xl font-semibold text-neutral-100 tracking-tight mb-1">Mock Tests</h1>
-        <p className="text-sm text-neutral-500">Log and track your full-length mock test performance.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-neutral-100 tracking-tight mb-1">Mock Tests</h1>
+          <p className="text-sm text-neutral-500">Log and track your full-length mock test performance.</p>
+        </div>
+        <Link 
+          href="/mocks/analytics"
+          className="text-xs px-3 py-1.5 rounded-lg border font-medium hover:bg-white hover:text-black transition-colors"
+          style={{ borderColor: "#262626", color: "#ededed" }}
+        >
+          View Analytics
+        </Link>
       </div>
 
       {/* Summary strip */}
