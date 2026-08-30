@@ -56,7 +56,8 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       localStorage.setItem("study_os_timer_state", JSON.stringify({
         isRunning,
         isPaused,
-        session_id: session?.id || null
+        session_id: session?.id || null,
+        activity_type: session?.activity_type || null
       }));
     } catch {
       // ignore
