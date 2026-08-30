@@ -12,14 +12,15 @@ export function Sidebar({ userEmail }: SidebarProps) {
       className="w-56 shrink-0 flex flex-col border-r h-full"
       style={{
         background: "var(--surface)",
-        borderColor: "var(--border-subtle)",
+        borderColor: "var(--border)",
       }}
     >
+      {/* Logo */}
       <div
         className="px-5 py-5 flex items-center gap-3 border-b"
         style={{ borderColor: "var(--border-subtle)" }}
       >
-        <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center shrink-0 shadow-md">
           <svg
             width="16"
             height="16"
@@ -35,20 +36,29 @@ export function Sidebar({ userEmail }: SidebarProps) {
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
           </svg>
         </div>
-        <span className="font-bold text-sm gradient-text">Study OS</span>
+        <div>
+          <span className="font-bold text-sm gradient-text block leading-tight">Study OS</span>
+          <span className="text-[10px] leading-tight" style={{ color: "rgba(232,232,240,0.3)" }}>
+            Banking · SSC
+          </span>
+        </div>
       </div>
 
       <Suspense fallback={<NavLinksSkeleton />}>
         <NavLinks />
       </Suspense>
 
+      {/* User chip */}
       <div
-        className="px-3 py-3 border-t"
+        className="px-3 py-4 border-t"
         style={{ borderColor: "var(--border-subtle)" }}
       >
         <div
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-          style={{ background: "rgba(255,255,255,0.03)" }}
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.05)",
+          }}
         >
           <div
             className="w-7 h-7 rounded-full gradient-brand flex items-center justify-center text-xs font-bold text-white shrink-0"
@@ -56,12 +66,14 @@ export function Sidebar({ userEmail }: SidebarProps) {
           >
             {userEmail.charAt(0).toUpperCase()}
           </div>
-          <span
-            className="text-xs truncate"
-            style={{ color: "rgba(226,226,240,0.5)" }}
-          >
-            {userEmail}
-          </span>
+          <div className="min-w-0">
+            <span
+              className="text-[11px] truncate block"
+              style={{ color: "rgba(232,232,240,0.45)" }}
+            >
+              {userEmail}
+            </span>
+          </div>
         </div>
       </div>
     </nav>
@@ -78,19 +90,14 @@ function NavLinksSkeleton() {
     >
       {items.map((_, i) => (
         <li key={i}>
-          <div
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-            style={{ height: "40px" }}
-          >
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ height: "40px" }}>
+            <div style={{ background: "rgba(255,255,255,0.05)", width: 18, height: 18, borderRadius: 4 }} />
             <div
-              className="w-4.5 h-4.5 rounded"
-              style={{ background: "rgba(255,255,255,0.06)", width: 18, height: 18 }}
-            />
-            <div
-              className="h-3 rounded"
               style={{
-                background: "rgba(255,255,255,0.06)",
-                width: `${60 + (i % 3) * 16}px`,
+                background: "rgba(255,255,255,0.05)",
+                height: 10,
+                borderRadius: 4,
+                width: `${56 + (i % 3) * 18}px`,
               }}
             />
           </div>

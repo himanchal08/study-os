@@ -1,10 +1,258 @@
-﻿import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'Analytics' };
-export default function AnalyticsPage() {
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import {
+  dayBoundaryAwareDate,
+  studyDurationSeconds,
+  secondsToHours,
+  groupSessionsByDay,
+  timeOfDayBucket,
+  buildHeatmapData,
+} from "@/lib/calculations";
+import type { Tables } from "@/types/database";
+import { StudyTimeChart } from "@/features/analytics/StudyTimeChart";
+import { SubjectAllocationChart } from "@/features/analytics/SubjectAllocationChart";
+import { TimeOfDayChart } from "@/features/analytics/TimeOfDayChart";
+import { HeatmapGrid } from "@/features/analytics/HeatmapGrid";
+
+export const metadata: Metadata = { title: "Analytics" };
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const TOD_CONFIG = [
+  { bucket: "early_morning", label: "Early Morning", emoji: "🌅", color: "#fbbf24" },
+  { bucket: "morning",       label: "Morning",       emoji: "☀️",  color: "#34d399" },
+  { bucket: "afternoon",     label: "Afternoon",     emoji: "🌤",  color: "#818cf8" },
+  { bucket: "evening",       label: "Evening",       emoji: "🌇",  color: "#fb7185" },
+  { bucket: "night",         label: "Night",         emoji: "🌙",  color: "#a78bfa" },
+  { bucket: "late_night",    label: "Late Night",    emoji: "🦉",  color: "#22d3ee" },
+];
+
+export default async function AnalyticsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("daily_target_hours, day_boundary_offset_minutes, timezone")
+    .eq("user_id", user.id)
+    .single();
+
+  const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
+  const timezone  = profile?.timezone ?? "Asia/Kolkata";
+  const target    = profile?.daily_target_hours ?? 8;
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const todayStr = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
+
+  type SessionRow = Pick<Tables<"study_sessions">, "start_timestamp" | "end_timestamp" | "pause_duration_seconds" | "subject_id"> & {
+    subjects: { id: string; name: string; color: string } | null;
+  };
+
+  const { data: rawSessions } = await supabase
+    .from("study_sessions")
+    .select("start_timestamp, end_timestamp, pause_duration_seconds, subject_id, subjects(id, name, color)")
+    .eq("user_id", user.id)
+    .gte("start_timestamp", thirtyDaysAgo)
+    .is("deleted_at", null);
+
+  const sessions = (rawSessions ?? []) as unknown as SessionRow[];
+
+  const { data: batches } = await supabase
+    .from("question_batches")
+    .select("attempted, correct, logged_at")
+    .eq("user_id", user.id)
+    .gte("logged_at", thirtyDaysAgo)
+    .is("deleted_at", null);
+
+  // 7-day bar chart data
+  const dailyMap = groupSessionsByDay(sessions, offsetMin, timezone);
+  const last7: Array<{ date: string; hours: number; target: number; hitTarget: boolean }> = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const key = dayBoundaryAwareDate(d.getTime(), offsetMin, timezone);
+    const hours = dailyMap.get(key) ?? 0;
+    last7.push({ date: DAY_LABELS[d.getDay()], hours, target, hitTarget: hours >= target });
+  }
+
+  // Subject allocation donut
+  const subjectMap = new Map<string, { name: string; color: string; seconds: number }>();
+  sessions.forEach((s) => {
+    if (!s.end_timestamp || !s.subject_id) return;
+    const secs = Math.max(0,
+      (new Date(s.end_timestamp).getTime() - new Date(s.start_timestamp).getTime()) / 1000
+      - s.pause_duration_seconds
+    );
+    const sub = s.subjects as { id: string; name: string; color: string } | null;
+    if (!subjectMap.has(s.subject_id)) {
+      subjectMap.set(s.subject_id, { name: sub?.name ?? "Unknown", color: sub?.color ?? "#818cf8", seconds: 0 });
+    }
+    subjectMap.get(s.subject_id)!.seconds += secs;
+  });
+  const subjectSlices = Array.from(subjectMap.values())
+    .map((v) => ({ name: v.name, hours: secondsToHours(v.seconds), color: v.color }))
+    .sort((a, b) => b.hours - a.hours)
+    .slice(0, 8);
+
+  // Time-of-day breakdown
+  const todMap = new Map<string, number>();
+  TOD_CONFIG.forEach((c) => todMap.set(c.bucket, 0));
+  sessions.forEach((s) => {
+    if (!s.end_timestamp) return;
+    const bucket = timeOfDayBucket(new Date(s.start_timestamp).getTime(), timezone);
+    const secs = studyDurationSeconds(s.start_timestamp, s.end_timestamp, s.pause_duration_seconds);
+    todMap.set(bucket, (todMap.get(bucket) ?? 0) + secs);
+  });
+  const todData = TOD_CONFIG.map((c) => ({ ...c, hours: secondsToHours(todMap.get(c.bucket) ?? 0) }));
+
+  // Summary stats
+  const totalHours7 = last7.reduce((s, d) => s + d.hours, 0);
+  const daysStudied7 = last7.filter((d) => d.hours > 0).length;
+  const avgBlockSec = sessions.length > 0
+    ? sessions.reduce((s, sess) => s + studyDurationSeconds(sess.start_timestamp, sess.end_timestamp, sess.pause_duration_seconds), 0) / sessions.length
+    : 0;
+  const totalAttempted30 = batches?.reduce((s, b) => s + b.attempted, 0) ?? 0;
+  const totalCorrect30   = batches?.reduce((s, b) => s + b.correct, 0)   ?? 0;
+  const accuracy30 = totalAttempted30 > 0 ? (totalCorrect30 / totalAttempted30) * 100 : null;
+  const qPerHour = totalHours7 > 0 ? totalAttempted30 / totalHours7 : null;
+
+  const summaryCards = [
+    { label: "Hours This Week",    value: `${totalHours7.toFixed(1)}h`,                      sub: `${daysStudied7}/7 days active`,           color: "#818cf8" },
+    { label: "30-Day Accuracy",    value: accuracy30 !== null ? `${accuracy30.toFixed(0)}%` : "—", sub: `${totalAttempted30} questions`,     color: "#fbbf24" },
+    { label: "Questions / Hour",   value: qPerHour !== null ? `${qPerHour.toFixed(0)}` : "—", sub: "active practice rate",                  color: "#34d399" },
+    { label: "Avg Session",        value: avgBlockSec > 0 ? formatMins(avgBlockSec / 60) : "—", sub: `across ${sessions.length} sessions`, color: "#22d3ee" },
+  ];
+
+  // 52-week heatmap — start date = 364 days ago (52 full weeks)
+  const heatmapEnd = todayStr;
+  const heatStartDate = new Date(Date.now() - 363 * 86400000);
+  const heatmapStart = dayBoundaryAwareDate(heatStartDate.getTime(), offsetMin, timezone);
+
+  // Fetch sessions for the full 52-week window (may be wider than 30 days)
+  const { data: heatSessions } = await supabase
+    .from("study_sessions")
+    .select("start_timestamp, end_timestamp, pause_duration_seconds")
+    .eq("user_id", user.id)
+    .gte("start_timestamp", heatStartDate.toISOString())
+    .is("deleted_at", null);
+
+  const knownDates = new Set(
+    (heatSessions ?? []).map((s) =>
+      dayBoundaryAwareDate(new Date(s.start_timestamp).getTime(), offsetMin, timezone)
+    )
+  );
+
+  const heatCells = buildHeatmapData({
+    startDate: heatmapStart,
+    endDate: heatmapEnd,
+    sessions: heatSessions ?? [],
+    metric: "hours",
+    dayBoundaryOffsetMin: offsetMin,
+    timezone,
+    knownDates,
+  });
+
   return (
-    <div className='animate-fade-in'>
-      <h1 className='text-xl font-bold gradient-text mb-2'>Analytics</h1>
-      <p className='text-sm' style={{ color: 'rgba(226,226,240,0.45)' }}>Coming in a future phase.</p>
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-xl font-bold gradient-text">Study Time Analytics</h1>
+        <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.4)" }}>
+          30-day rolling view · times adjusted to your day boundary offset
+        </p>
+      </div>
+
+      {/* 52-week activity heatmap */}
+      <div className="glass rounded-2xl p-5 overflow-x-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-semibold" style={{ color: "rgba(232,232,240,0.85)" }}>Activity Heatmap</h2>
+            <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>52 weeks · all 7 days · study hours</p>
+          </div>
+        </div>
+        <HeatmapGrid cells={heatCells} metric="hours" weeks={52} />
+      </div>
+
+      {/* Summary stat row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {summaryCards.map((card, i) => (
+          <div
+            key={i}
+            className="rounded-2xl p-4 relative overflow-hidden"
+            style={{
+              background: `linear-gradient(135deg, #0f0f1a 0%, ${card.color}0f 100%)`,
+              border: `1px solid ${card.color}22`,
+            }}
+          >
+            <p className="text-[11px] uppercase tracking-wider font-medium mb-1" style={{ color: "rgba(232,232,240,0.38)" }}>
+              {card.label}
+            </p>
+            <p className="text-2xl font-bold tabular-nums" style={{ color: card.color }}>{card.value}</p>
+            <p className="text-[11px] mt-1" style={{ color: "rgba(232,232,240,0.3)" }}>{card.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 glass rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-semibold" style={{ color: "rgba(232,232,240,0.85)" }}>Daily Study Hours</h2>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>
+                Last 7 days · <span style={{ color: "#34d399" }}>■</span> target hit · <span style={{ color: "#818cf8" }}>■</span> partial
+              </p>
+            </div>
+            <span
+              className="text-xs px-2.5 py-1 rounded-full font-medium"
+              style={{ background: "rgba(251,191,36,0.08)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.18)" }}
+            >
+              {target}h target
+            </span>
+          </div>
+          <StudyTimeChart data={last7} targetHours={target} />
+        </div>
+
+        <div className="glass rounded-2xl p-5">
+          <h2 className="text-sm font-semibold mb-1" style={{ color: "rgba(232,232,240,0.85)" }}>Subject Allocation</h2>
+          <p className="text-xs mb-4" style={{ color: "rgba(232,232,240,0.35)" }}>30 days</p>
+          <SubjectAllocationChart data={subjectSlices} />
+        </div>
+      </div>
+
+      {/* Time of day */}
+      <div className="glass rounded-2xl p-5">
+        <h2 className="text-sm font-semibold mb-1" style={{ color: "rgba(232,232,240,0.85)" }}>Time-of-Day Study Breakdown</h2>
+        <p className="text-xs mb-5" style={{ color: "rgba(232,232,240,0.35)" }}>When you study most — last 30 days</p>
+        <TimeOfDayChart data={todData} />
+      </div>
+
+      {/* Footer note */}
+      <div
+        className="rounded-2xl p-4 flex items-center justify-between"
+        style={{
+          background: "linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(139,92,246,0.03) 100%)",
+          border: "1px solid rgba(99,102,241,0.12)",
+        }}
+      >
+        <p className="text-xs" style={{ color: "rgba(232,232,240,0.5)" }}>
+          Today is <span style={{ color: "#818cf8" }}>{todayStr}</span> · Live KPIs on Home dashboard
+        </p>
+        <a
+          href="/"
+          className="text-xs px-3 py-1.5 rounded-xl font-semibold transition-all hover:opacity-80"
+          style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.2)" }}
+        >
+          Home ↗
+        </a>
+      </div>
     </div>
   );
+}
+
+function formatMins(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }

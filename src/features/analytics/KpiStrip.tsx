@@ -12,6 +12,41 @@ interface KpiStripProps {
   timezone: string;
 }
 
+const kpiConfig = [
+  {
+    id: "kpi-study-hours",
+    label: "Study Hours",
+    icon: "⏱",
+    accentColor: "#818cf8",
+    glowColor: "rgba(99,102,241,0.15)",
+    borderColor: "rgba(99,102,241,0.2)",
+  },
+  {
+    id: "kpi-tasks",
+    label: "Tasks Done",
+    icon: "✓",
+    accentColor: "#34d399",
+    glowColor: "rgba(52,211,153,0.12)",
+    borderColor: "rgba(52,211,153,0.18)",
+  },
+  {
+    id: "kpi-accuracy",
+    label: "Accuracy",
+    icon: "◎",
+    accentColor: "#fbbf24",
+    glowColor: "rgba(251,191,36,0.12)",
+    borderColor: "rgba(251,191,36,0.18)",
+  },
+  {
+    id: "kpi-revisions",
+    label: "Revisions",
+    icon: "↺",
+    accentColor: "#22d3ee",
+    glowColor: "rgba(34,211,238,0.12)",
+    borderColor: "rgba(34,211,238,0.18)",
+  },
+];
+
 export async function KpiStrip({
   userId,
   dailyTargetHours,
@@ -72,36 +107,30 @@ export async function KpiStrip({
 
   const kpis = [
     {
-      id: "kpi-study-hours",
-      label: "Study Hours",
+      ...kpiConfig[0],
       value: `${totalHours.toFixed(1)}h`,
-      sub: `/ ${dailyTargetHours}h target`,
+      sub: `of ${dailyTargetHours}h target`,
       progress: progressPct,
-      color: "#6366f1",
     },
     {
-      id: "kpi-tasks",
-      label: "Tasks",
+      ...kpiConfig[1],
       value: `${completedTasks}/${totalTasks}`,
-      sub: totalTasks === 0 ? "No tasks today" : `${Math.round(totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0)}% done`,
+      sub: totalTasks === 0
+        ? "No tasks today"
+        : `${Math.round(totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0)}% complete`,
       progress: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
-      color: "#22c55e",
     },
     {
-      id: "kpi-accuracy",
-      label: "Accuracy",
+      ...kpiConfig[2],
       value: todayAccuracy !== null ? `${todayAccuracy.toFixed(0)}%` : "—",
       sub: totalAttempted > 0 ? `${totalAttempted} attempted` : "No questions yet",
       progress: todayAccuracy ?? 0,
-      color: "#f59e0b",
     },
     {
-      id: "kpi-revisions",
-      label: "Revisions",
+      ...kpiConfig[3],
       value: `${completedRevisions}/${totalRevisionsDue}`,
-      sub: totalRevisionsDue === 0 ? "None due" : `${totalRevisionsDue - completedRevisions} remaining`,
+      sub: totalRevisionsDue === 0 ? "None due today" : `${totalRevisionsDue - completedRevisions} remaining`,
       progress: totalRevisionsDue > 0 ? (completedRevisions / totalRevisionsDue) * 100 : 100,
-      color: "#06b6d4",
     },
   ];
 
@@ -111,30 +140,48 @@ export async function KpiStrip({
         <div
           key={kpi.id}
           id={kpi.id}
-          className="glass rounded-2xl p-4 relative overflow-hidden"
+          className="rounded-2xl p-4 relative overflow-hidden"
           role="listitem"
+          style={{
+            background: `linear-gradient(135deg, #0f0f1a 0%, ${kpi.glowColor} 100%)`,
+            border: `1px solid ${kpi.borderColor}`,
+            boxShadow: `0 4px 24px -4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)`,
+          }}
         >
+          {/* Progress bar at bottom */}
           <div
-            className="absolute bottom-0 left-0 h-0.5 rounded-b-2xl transition-all duration-500"
+            className="absolute bottom-0 left-0 h-[2px] rounded-full transition-all duration-700"
             style={{
               width: `${kpi.progress}%`,
-              background: kpi.color,
-              opacity: 0.7,
+              background: `linear-gradient(90deg, ${kpi.accentColor}88, ${kpi.accentColor})`,
             }}
             aria-hidden="true"
           />
 
-          <p className="text-xs font-medium mb-2" style={{ color: "rgba(226,226,240,0.45)" }}>
+          {/* Icon chip */}
+          <div
+            className="inline-flex items-center justify-center w-8 h-8 rounded-lg mb-3 text-base font-bold"
+            style={{
+              background: `${kpi.accentColor}18`,
+              color: kpi.accentColor,
+              border: `1px solid ${kpi.accentColor}30`,
+            }}
+            aria-hidden="true"
+          >
+            {kpi.icon}
+          </div>
+
+          <p className="text-[11px] font-medium uppercase tracking-wider mb-1" style={{ color: "rgba(232,232,240,0.4)" }}>
             {kpi.label}
           </p>
           <p
-            className="text-2xl font-bold tabular-nums"
-            style={{ color: "var(--foreground)" }}
+            className="text-2xl font-bold tabular-nums leading-none"
+            style={{ color: kpi.accentColor }}
             aria-label={`${kpi.label}: ${kpi.value}`}
           >
             {kpi.value}
           </p>
-          <p className="text-xs mt-1" style={{ color: "rgba(226,226,240,0.35)" }}>
+          <p className="text-[11px] mt-1.5" style={{ color: "rgba(232,232,240,0.35)" }}>
             {kpi.sub}
           </p>
         </div>
