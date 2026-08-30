@@ -5,14 +5,6 @@ interface SidebarProps {
   userEmail: string;
 }
 
-/**
- * Sidebar — Server Component.
- *
- * All static chrome (logo, user chip) renders on the server.
- * Only <NavLinks> is "use client" — it reads usePathname() and useLinkStatus()
- * to highlight the active route. It's wrapped in <Suspense> because usePathname
- * suspends on dynamic routes that aren't covered by generateStaticParams.
- */
 export function Sidebar({ userEmail }: SidebarProps) {
   return (
     <nav
@@ -23,7 +15,6 @@ export function Sidebar({ userEmail }: SidebarProps) {
         borderColor: "var(--border-subtle)",
       }}
     >
-      {/* Logo — static, renders on server */}
       <div
         className="px-5 py-5 flex items-center gap-3 border-b"
         style={{ borderColor: "var(--border-subtle)" }}
@@ -47,17 +38,10 @@ export function Sidebar({ userEmail }: SidebarProps) {
         <span className="font-bold text-sm gradient-text">Study OS</span>
       </div>
 
-      {/*
-       * NavLinks — "use client" because it needs usePathname & useLinkStatus.
-       * Wrapped in <Suspense> per Next.js 16 docs: usePathname() may suspend
-       * on dynamic routes not covered by generateStaticParams.
-       * Fallback renders the same skeleton so layout doesn't shift.
-       */}
       <Suspense fallback={<NavLinksSkeleton />}>
         <NavLinks />
       </Suspense>
 
-      {/* User chip — static, renders on server */}
       <div
         className="px-3 py-3 border-t"
         style={{ borderColor: "var(--border-subtle)" }}
@@ -84,7 +68,6 @@ export function Sidebar({ userEmail }: SidebarProps) {
   );
 }
 
-/** Skeleton fallback — mirrors NavLinks structure to prevent layout shift */
 function NavLinksSkeleton() {
   const items = Array.from({ length: 9 });
   return (

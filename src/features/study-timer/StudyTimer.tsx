@@ -10,42 +10,26 @@ interface StudyTimerProps {
   activeSession: Tables<"study_sessions"> | null;
 }
 
-/**
- * StudyTimer — wall-clock-based elapsed display.
- *
- * Architecture to satisfy React Compiler lint rules:
- *  - No setState inside useEffect (rule: react-hooks/set-state-in-effect)
- *  - No ref.current reads during render (rule: react-hooks/refs)
- *
- * Pattern:
- *  - sessionStartMs + pausedAtMs + totalPauseSeconds are normal state.
- *  - setInterval bumps `tick` (just a counter) to trigger re-renders.
- *  - elapsed is computed at render time from state values only (no refs).
- */
 export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
   const [session, setSession] = useState(activeSession);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Wall-clock anchor — set when session starts, never changes mid-session
   const [sessionStartMs, setSessionStartMs] = useState<number | null>(
     activeSession?.start_timestamp
       ? new Date(activeSession.start_timestamp).getTime()
       : null
   );
 
-  // Pause state — both stored as state so they can be read during render
   const [pausedAtMs, setPausedAtMs] = useState<number | null>(null);
   const [totalPauseSec, setTotalPauseSec] = useState(0);
 
-  // Tick counter — setInterval bumps this to trigger re-renders (only touches state inside interval)
   const [, setTick] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isRunning = !!session;
   const isPaused = pausedAtMs !== null;
 
-  // Start/stop the 1-second ticker interval
   useEffect(() => {
     if (!isRunning || isPaused) {
       if (intervalRef.current) {
@@ -65,7 +49,6 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
     };
   }, [isRunning, isPaused]);
 
-  // Compute elapsed from pure state values (no ref reads during render)
   const nowMs = new Date().getTime();
   const netElapsed =
     sessionStartMs !== null
@@ -90,13 +73,11 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
 
   const handlePause = useCallback(() => {
     if (isPaused) {
-      // Resume — accumulate pause duration into state
       const pausedMs = pausedAtMs ?? new Date().getTime();
       const addedPause = Math.floor((new Date().getTime() - pausedMs) / 1000);
       setTotalPauseSec((prev) => prev + addedPause);
       setPausedAtMs(null);
     } else {
-      // Pause — record pause start time
       setPausedAtMs(new Date().getTime());
     }
   }, [isPaused, pausedAtMs]);
@@ -106,7 +87,6 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
     setLoading(true);
     setError(null);
 
-    // Compute final pause seconds (include current pause if still paused)
     const additionalPause =
       isPaused && pausedAtMs
         ? Math.floor((new Date().getTime() - pausedAtMs) / 1000)
@@ -135,7 +115,6 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
       role="region"
       aria-label="Study timer"
     >
-      {/* Ambient glow when running */}
       {isRunning && !isPaused && (
         <div
           className="absolute inset-0 pointer-events-none"
@@ -155,7 +134,6 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
           Study Timer
         </h2>
 
-        {/* Timer display */}
         <div className="text-center py-6">
           <div
             className="text-7xl font-mono font-bold tabular-nums tracking-tight transition-all"
@@ -195,7 +173,6 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
           )}
         </div>
 
-        {/* Error */}
         {error && (
           <p
             role="alert"
@@ -206,7 +183,6 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
           </p>
         )}
 
-        {/* Controls */}
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {!isRunning ? (
             <button
@@ -259,7 +235,6 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
   );
 }
 
-/** Format seconds as HH:MM:SS */
 function formatElapsed(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);

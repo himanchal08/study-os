@@ -6,15 +6,6 @@ interface TopBarProps {
   userId: string;
 }
 
-/**
- * TopBar — Server Component.
- *
- * Sign-out uses a <form action={signOut}> with a Server Action so no
- * useRouter or client-side Supabase client is needed here.
- *
- * The "today" date is computed server-side and passed to the component
- * via normal props from the layout — no client hooks required.
- */
 export function TopBar({ profile }: TopBarProps) {
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
@@ -32,7 +23,6 @@ export function TopBar({ profile }: TopBarProps) {
         borderColor: "var(--border-subtle)",
       }}
     >
-      {/* Date + daily target badge */}
       <div className="flex items-center gap-4">
         <p className="text-sm" style={{ color: "rgba(226,226,240,0.5)" }}>
           {today}
@@ -49,9 +39,7 @@ export function TopBar({ profile }: TopBarProps) {
         </span>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-3">
-        {/* Skip to main content — accessibility */}
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 text-xs px-3 py-1.5 rounded-lg"
@@ -60,7 +48,6 @@ export function TopBar({ profile }: TopBarProps) {
           Skip to main content
         </a>
 
-        {/* Sign out — Server Action via form, no useRouter */}
         <form action={signOut}>
           <button
             id="sign-out-btn"

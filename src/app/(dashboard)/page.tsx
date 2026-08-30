@@ -16,14 +16,12 @@ export default async function HomePage() {
 
   if (!user) return null;
 
-  // Fetch profile for day-boundary settings
   const { data: profile } = await supabase
     .from("profiles")
     .select("daily_target_hours, day_boundary_offset_minutes, timezone")
     .eq("user_id", user.id)
     .single();
 
-  // Fetch active session (if any)
   const { data: activeSession } = await supabase
     .from("study_sessions")
     .select("*")
@@ -31,7 +29,6 @@ export default async function HomePage() {
     .is("end_timestamp", null)
     .maybeSingle();
 
-  // Fetch today's revisions due
   const today = new Date().toISOString().split("T")[0];
   const { data: revisionsDue } = await supabase
     .from("revisions")
@@ -44,7 +41,6 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* KPI Strip */}
       <section aria-label="Today's overview">
         <KpiStrip
           userId={user.id}
@@ -54,9 +50,7 @@ export default async function HomePage() {
         />
       </section>
 
-      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Study Timer — takes 2/3 */}
         <div className="lg:col-span-2">
           <section aria-label="Study timer">
             <StudyTimer
@@ -66,7 +60,6 @@ export default async function HomePage() {
           </section>
         </div>
 
-        {/* Revision queue — 1/3 */}
         <div>
           <section aria-label="Revisions due today">
             <RevisionQueue

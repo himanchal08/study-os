@@ -25,8 +25,6 @@ export function RevisionQueue({ revisions }: RevisionQueueProps) {
     setCompleting((prev) => new Set(prev).add(revisionId));
     startTransition(async () => {
       await completeRevision(revisionId);
-      // revalidatePath in the server action triggers a server-side re-render;
-      // the component will receive updated revisions props automatically.
       setCompleting((prev) => {
         const next = new Set(prev);
         next.delete(revisionId);
@@ -89,9 +87,8 @@ export function RevisionQueue({ revisions }: RevisionQueueProps) {
                 opacity: completing.has(rev.id) ? 0.5 : 1,
               }}
             >
-              {/* Subject color dot */}
               <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
+                className="w-2 h-2 rounded-full shrink-0"
                 style={{
                   background: rev.topics?.subjects?.color ?? "#6366f1",
                 }}
@@ -114,12 +111,11 @@ export function RevisionQueue({ revisions }: RevisionQueueProps) {
                 </p>
               </div>
 
-              {/* Complete — Server Action via startTransition */}
               <button
                 onClick={() => handleComplete(rev.id)}
                 disabled={completing.has(rev.id)}
                 aria-label={`Mark ${rev.topics?.name ?? "revision"} as complete`}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:opacity-80 flex-shrink-0 disabled:opacity-40"
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:opacity-80 shrink-0 disabled:opacity-40"
                 style={{
                   background: "rgba(34,197,94,0.12)",
                   border: "1px solid rgba(34,197,94,0.25)",

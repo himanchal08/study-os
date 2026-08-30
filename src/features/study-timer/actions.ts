@@ -7,11 +7,6 @@ import type { Tables } from "@/types/database";
 
 export type ActiveSession = Tables<"study_sessions">;
 
-/**
- * Start a new study session.
- * Enforces single-active-session invariant — Supabase DB also enforces via
- * partial unique index, but we check here for a friendlier error message.
- */
 export async function startSession(params: {
   userId: string;
   subjectId?: string | null;
@@ -33,7 +28,6 @@ export async function startSession(params: {
     clientGeneratedId = randomUUID(),
   } = params;
 
-  // Check for existing open session
   const { data: existing } = await supabase
     .from("study_sessions")
     .select("id, start_timestamp")
@@ -71,9 +65,6 @@ export async function startSession(params: {
   return { session: data };
 }
 
-/**
- * Stop the active study session.
- */
 export async function stopSession(params: {
   sessionId: string;
   userId: string;
@@ -89,7 +80,7 @@ export async function stopSession(params: {
       pause_duration_seconds: pauseDurationSeconds,
     })
     .eq("id", sessionId)
-    .eq("user_id", userId) // RLS + ownership double-check
+    .eq("user_id", userId)
     .select()
     .single();
 

@@ -88,11 +88,6 @@ const navItems = [
   },
 ] as const;
 
-/**
- * Pending indicator — shown inside each <Link> when prefetch hasn't resolved.
- * Uses useLinkStatus (Next.js 16) — must be a descendant of <Link>.
- * Fixed-size dot so it never causes layout shift.
- */
 function NavPendingDot() {
   const { pending } = useLinkStatus();
   return (
@@ -107,14 +102,6 @@ function NavPendingDot() {
   );
 }
 
-/**
- * NavLinks — isolated "use client" component.
- *
- * Kept small on purpose: only this component re-renders on navigation.
- * The parent <Sidebar> (Server Component) renders everything else.
- * Wrapped in <Suspense> by Sidebar because usePathname() suspends on
- * routes with dynamic params that aren't covered by generateStaticParams.
- */
 export function NavLinks() {
   const pathname = usePathname();
 
@@ -146,7 +133,6 @@ export function NavLinks() {
                 {item.icon}
               </span>
               {item.label}
-              {/* useLinkStatus pending indicator — inside Link per docs */}
               <NavPendingDot />
             </Link>
           </li>

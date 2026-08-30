@@ -18,11 +18,8 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // After redirect() throws, user is guaranteed non-null here.
-  // Cast to satisfy TypeScript (redirect() throws NEXT_REDIRECT, never returns).
   const safeUser = user!;
 
-  // Fetch user profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
@@ -31,10 +28,8 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>
-      {/* Sidebar */}
       <Sidebar userEmail={safeUser.email ?? ""} />
 
-      {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar
           profile={profile as Tables<"profiles"> | null}

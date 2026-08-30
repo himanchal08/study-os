@@ -8,10 +8,6 @@ export type AuthState = {
   message?: string;
 } | null;
 
-/**
- * Server Action: sign in with email + password.
- * On success, redirect() is called server-side — no useRouter needed.
- */
 export async function signIn(
   _prev: AuthState,
   formData: FormData
@@ -30,14 +26,9 @@ export async function signIn(
     return { error: error.message };
   }
 
-  // Server-side redirect — the client never needs to call router.push()
   redirect("/");
 }
 
-/**
- * Server Action: create account with email + password.
- * Returns a message (check email) or error.
- */
 export async function signUp(
   _prev: AuthState,
   formData: FormData
@@ -57,7 +48,6 @@ export async function signUp(
     email,
     password,
     options: {
-      // Auth callback URL: handled by src/app/auth/callback/route.ts
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/auth/callback`,
     },
   });
@@ -69,7 +59,6 @@ export async function signUp(
   return { message: "Check your email for a confirmation link." };
 }
 
-/** Sign out Server Action (also used by TopBar) */
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

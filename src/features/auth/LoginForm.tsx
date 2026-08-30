@@ -73,7 +73,6 @@ export function LoginForm() {
         />
       </div>
 
-      {/* Error from server action */}
       {state?.error && (
         <p
           id="auth-error"
@@ -85,7 +84,6 @@ export function LoginForm() {
         </p>
       )}
 
-      {/* Success message (sign-up: check email) */}
       {state?.message && (
         <p
           role="status"

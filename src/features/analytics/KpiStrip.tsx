@@ -21,7 +21,6 @@ export async function KpiStrip({
   const supabase = await createClient();
   const todayStr = dayBoundaryAwareDate(new Date().getTime(), dayBoundaryOffsetMin, timezone);
 
-  // Fetch today's sessions
   const { data: sessions } = await supabase
     .from("study_sessions")
     .select("start_timestamp, end_timestamp, pause_duration_seconds")
@@ -29,7 +28,6 @@ export async function KpiStrip({
     .gte("start_timestamp", `${todayStr}T00:00:00`)
     .is("deleted_at", null);
 
-  // Compute total study hours today (day-boundary-aware)
   const totalHours = (sessions ?? []).reduce((sum, s) => {
     const secs = studyDurationSeconds(
       s.start_timestamp,
@@ -39,7 +37,6 @@ export async function KpiStrip({
     return sum + secondsToHours(secs);
   }, 0);
 
-  // Fetch today's tasks
   const { data: tasks } = await supabase
     .from("tasks")
     .select("status")
@@ -50,7 +47,6 @@ export async function KpiStrip({
   const totalTasks = tasks?.length ?? 0;
   const completedTasks = tasks?.filter((t) => t.status === "completed").length ?? 0;
 
-  // Fetch today's question batches
   const { data: batches } = await supabase
     .from("question_batches")
     .select("attempted, correct")
@@ -63,7 +59,6 @@ export async function KpiStrip({
   const todayAccuracy =
     totalAttempted > 0 ? (totalCorrect / totalAttempted) * 100 : null;
 
-  // Fetch revisions due/completed today
   const { data: revisions } = await supabase
     .from("revisions")
     .select("completed_at")
@@ -119,7 +114,6 @@ export async function KpiStrip({
           className="glass rounded-2xl p-4 relative overflow-hidden"
           role="listitem"
         >
-          {/* Progress bar (bottom) */}
           <div
             className="absolute bottom-0 left-0 h-0.5 rounded-b-2xl transition-all duration-500"
             style={{
