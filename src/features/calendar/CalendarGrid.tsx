@@ -60,6 +60,16 @@ export function CalendarGrid({ tasks }: CalendarGridProps) {
           {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
         </h2>
         <div className="flex items-center gap-2">
+          <button 
+            onClick={async () => {
+              const res = await fetch("/api/calendar/sync", { method: "POST" });
+              if (res.ok) alert("Synced successfully!");
+              else alert("Failed to sync. Make sure Google Calendar is connected in Settings.");
+            }}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/10 transition-colors"
+          >
+            Sync to Google
+          </button>
           <button onClick={goToday} className="px-3 py-1.5 text-xs font-medium rounded-lg text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors">
             Today
           </button>

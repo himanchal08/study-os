@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState } from "react";
+import Link from "next/link";
 import { signIn, signUp } from "./actions";
 import type { AuthState } from "./actions";
 
@@ -50,13 +51,20 @@ export function LoginForm() {
       </div>
 
       <div>
-        <label
-          htmlFor="password"
-          className="block text-xs font-medium mb-1.5"
-          style={{ color: "rgba(226,226,240,0.7)" }}
-        >
-          Password
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label
+            htmlFor="password"
+            className="block text-xs font-medium"
+            style={{ color: "rgba(226,226,240,0.7)" }}
+          >
+            Password
+          </label>
+          {!isSignUp && (
+            <Link href="/forgot-password" className="text-[10px] text-neutral-500 hover:text-neutral-300 transition-colors">
+              Forgot password?
+            </Link>
+          )}
+        </div>
         <input
           id="password"
           name="password"

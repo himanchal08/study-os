@@ -1,0 +1,24 @@
+import { NextResponse } from "next/server";
+import { google } from "googleapis";
+
+export async function GET() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/calendar/callback`;
+
+  if (!clientId || !clientSecret) {
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/settings?error=missing_google_credentials`);
+  }
+
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+
+  const scopes = ["https://www.googleapis.com/auth/calendar.events"];
+
+  const url = oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: scopes,
+    prompt: "consent", // Force to get refresh token
+  });
+
+  return NextResponse.redirect(url);
+}

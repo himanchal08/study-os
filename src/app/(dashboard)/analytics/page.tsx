@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import {
   dayBoundaryAwareDate,
@@ -13,7 +14,7 @@ import { StudyTimeChart } from "@/features/analytics/StudyTimeChart";
 import { SubjectAllocationChart } from "@/features/analytics/SubjectAllocationChart";
 import { TimeOfDayChart } from "@/features/analytics/TimeOfDayChart";
 import { HeatmapGrid } from "@/features/analytics/HeatmapGrid";
-import Link from "next/link";
+import { TaskPlanningAnalytics } from "@/features/analytics/TaskPlanningAnalytics";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -205,6 +206,9 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* Charts row */}
+      {/* Task & Planning Analytics (Phase 14) */}
+      <TaskPlanningAnalytics />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 glass rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
