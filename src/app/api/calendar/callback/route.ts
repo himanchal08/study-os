@@ -41,7 +41,7 @@ export async function GET(request: Request) {
         .eq("user_id", user.id);
         
       if (dbError) {
-        return NextResponse.redirect(`${appUrl}/settings?error=db_update_failed`);
+        return NextResponse.redirect(`${appUrl}/settings?error=db_update_failed&msg=${encodeURIComponent(dbError.message)}`);
       }
 
       return NextResponse.redirect(`${appUrl}/settings?success=calendar_connected`);
