@@ -6,7 +6,8 @@ import { GoogleCalendarPanel } from './GoogleCalendarPanel';
 
 export const metadata: Metadata = { title: 'Settings' };
 
-export default async function SettingsPage() {
+export default async function SettingsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -28,6 +29,17 @@ export default async function SettingsPage() {
           Configure your exam targets, study goals, and preferences.
         </p>
       </div>
+
+      {searchParams?.error && (
+        <div className="mb-6 p-4 rounded-lg bg-red-950 border border-red-900 text-red-200 text-sm">
+          Error: {searchParams.error} {searchParams.msg ? `(${searchParams.msg})` : ''}
+        </div>
+      )}
+      {searchParams?.success && (
+        <div className="mb-6 p-4 rounded-lg bg-green-950 border border-green-900 text-green-200 text-sm">
+          Success! Connected.
+        </div>
+      )}
 
       <SettingsForm
         initialProfile={{
