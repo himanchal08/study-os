@@ -17,6 +17,7 @@ export default async function RecordsPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
+  const now = new Date(); // stable reference — avoids react-hooks/purity lint on Date.now()
 
   // 1. Highest Mock Score
   const { data: mocks } = await supabase
@@ -113,47 +114,76 @@ export default async function RecordsPage() {
     }
   }
 
+  // 5. Full Session Log — last 90 days
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 86400000).toISOString();
+  const { data: sessionLog } = await supabase
+    .from("study_sessions")
+    .select("id, start_timestamp, end_timestamp, pause_duration_seconds, activity_type, notes, subjects(name, color), topics(name)")
+    .eq("user_id", user.id)
+    .not("end_timestamp", "is", null)
+    .is("deleted_at", null)
+    .gte("start_timestamp", ninetyDaysAgo)
+    .order("start_timestamp", { ascending: false })
+    .limit(200);
+
+  // Typed session entry — avoids no-explicit-any
+  type SessionEntry = {
+    id: string;
+    start_timestamp: string;
+    end_timestamp: string;
+    pause_duration_seconds: number | null;
+    activity_type: string;
+    notes: string | null;
+    subjects: { name: string; color: string | null } | null;
+    topics: { name: string } | null;
+  };
+
+  // Group by day
+  const allSessions = (sessionLog ?? []) as SessionEntry[];
+  const grouped = new Map<string, SessionEntry[]>();
+  allSessions.forEach((s) => {
+    const dateKey = dayBoundaryAwareDate(new Date(s.start_timestamp).getTime(), offsetMin, timezone);
+    if (!grouped.has(dateKey)) grouped.set(dateKey, []);
+    grouped.get(dateKey)!.push(s);
+  });
+  const groupedDays = Array.from(grouped.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+
+  function formatDuration(startTs: string, endTs: string, pauseSec: number | null): string {
+    const secs = Math.max(0,
+      (new Date(endTs).getTime() - new Date(startTs).getTime()) / 1000 - (pauseSec ?? 0)
+    );
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  function formatTime(ts: string): string {
+    return new Date(ts).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  }
+
+  const ACTIVITY_COLORS: Record<string, string> = {
+    practice: "#818cf8", lecture: "#22d3ee", revision: "#34d399",
+    mock: "#f59e0b", reading: "#a78bfa", other: "#52525b",
+  };
+
+  const todayStr = dayBoundaryAwareDate(now.getTime(), offsetMin, timezone);
+
   const records = [
-    {
-      title: "Best Study Streak",
-      value: bestStreak > 0 ? `${bestStreak} Days` : "—",
-      sub: "consecutive days studying",
-      icon: "🔥",
-      color: "#f59e0b",
-    },
-    {
-      title: "Highest Mock Score",
-      value: bestMock ? `${bestMock.score}/${bestMock.maximum_marks}` : "—",
-      sub: bestMock ? `${bestMock.name} (${bestMock.stage})` : "no mocks logged",
-      icon: "🏆",
-      color: "#818cf8",
-    },
-    {
-      title: "Most Practice Qs",
-      value: bestQuestionVolume > 0 ? bestQuestionVolume : "—",
-      sub: bestQuestionVolume > 0 ? `on ${bestQuestionDate}` : "no questions logged",
-      icon: "⚡",
-      color: "#10b981",
-    },
-    {
-      title: "Task Master",
-      value: bestTasksCompleted > 0 ? bestTasksCompleted : "—",
-      sub: bestTasksCompleted > 0 ? `tasks on ${bestTasksDate}` : "no tasks completed",
-      icon: "✅",
-      color: "#38bdf8",
-    },
+    { title: "Best Study Streak", value: bestStreak > 0 ? `${bestStreak} Days` : "—", sub: "consecutive days", icon: "🔥", color: "#f59e0b" },
+    { title: "Highest Mock Score", value: bestMock ? `${bestMock.score}/${bestMock.maximum_marks}` : "—", sub: bestMock ? `${bestMock.name}` : "no mocks logged", icon: "🏆", color: "#818cf8" },
+    { title: "Most Practice Qs", value: bestQuestionVolume > 0 ? bestQuestionVolume : "—", sub: bestQuestionVolume > 0 ? `on ${bestQuestionDate}` : "no questions logged", icon: "⚡", color: "#10b981" },
+    { title: "Task Master Day", value: bestTasksCompleted > 0 ? bestTasksCompleted : "—", sub: bestTasksCompleted > 0 ? `tasks on ${bestTasksDate}` : "no tasks completed", icon: "✅", color: "#38bdf8" },
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="max-w-5xl mx-auto space-y-10 animate-fade-in pb-20">
       <header>
-        <h1 className="text-2xl font-bold gradient-text mb-2">Personal Records</h1>
-        <p className="text-sm" style={{ color: "rgba(226,226,240,0.6)" }}>
-          Your all-time best milestones and achievements.
-        </p>
+        <h1 className="text-xl font-semibold text-neutral-100 tracking-tight mb-1">Records & Session Log</h1>
+        <p className="text-sm text-neutral-500">Personal bests + complete session history for the last 90 days.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Personal Bests */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {records.map((r, i) => (
           <div key={i} className="glass rounded-xl p-5 flex flex-col justify-between" style={{ minHeight: "140px" }}>
             <div className="flex items-center gap-2 mb-3">
@@ -174,15 +204,91 @@ export default async function RecordsPage() {
         ))}
       </div>
 
-      <div className="glass rounded-xl p-6 flex flex-col md:flex-row items-center gap-6 mt-8 opacity-80">
-        <div className="text-4xl">👑</div>
-        <div>
-          <h3 className="text-sm font-bold text-white mb-1">More milestones coming soon</h3>
-          <p className="text-xs text-neutral-400 max-w-lg">
-            As you log more data, this page will expand to include fastest mocks, best sectional scores, and first safety-target crossings. Keep studying!
-          </p>
-        </div>
-      </div>
+      {/* Full Session Log */}
+      <section>
+        <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider mb-4">
+          Session Log — Last 90 Days
+          <span className="ml-2 text-neutral-600 font-normal normal-case">({allSessions.length} sessions)</span>
+        </h2>
+
+        {groupedDays.length === 0 ? (
+          <div className="rounded-xl p-8 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+            <p className="text-sm text-neutral-500">No completed sessions in the last 90 days.</p>
+            <p className="text-xs text-neutral-600 mt-1">Start a study session and stop it — it will appear here.</p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {groupedDays.map(([date, daySessions]) => {
+              const dayTotal = daySessions.reduce((sum, s) => {
+                const secs = Math.max(0,
+                  (new Date(s.end_timestamp).getTime() - new Date(s.start_timestamp).getTime()) / 1000
+                  - (s.pause_duration_seconds ?? 0)
+                );
+                return sum + secs;
+              }, 0);
+              const dayHours = dayTotal / 3600;
+              const dateObj = new Date(date);
+              const isToday = date === todayStr;
+
+              return (
+                <div key={date}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-neutral-300">
+                        {isToday ? "Today" : dateObj.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+                      </p>
+                      <span className="text-[10px] text-neutral-600">{daySessions.length} session{daySessions.length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <span className="text-xs font-semibold tabular-nums" style={{ color: dayHours >= 6 ? "#34d399" : dayHours >= 3 ? "#818cf8" : "#52525b" }}>
+                      {dayHours.toFixed(1)}h
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {daySessions.map((s) => {
+                      const subjectColor = s.subjects?.color ?? "#52525b";
+                      const subjectName = s.subjects?.name ?? null;
+                      const topicName = s.topics?.name ?? null;
+                      const actColor = ACTIVITY_COLORS[s.activity_type] ?? "#52525b";
+
+                      return (
+                        <div
+                          key={s.id}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                          style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderLeftWidth: "3px", borderLeftColor: subjectColor }}
+                        >
+                          <span className="text-[10px] text-neutral-600 tabular-nums shrink-0 w-12">
+                            {formatTime(s.start_timestamp)}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {subjectName && <span className="text-xs font-medium" style={{ color: subjectColor }}>{subjectName}</span>}
+                              {topicName && (
+                                <>
+                                  <span className="text-neutral-700 text-[10px]">→</span>
+                                  <span className="text-xs text-neutral-400">{topicName}</span>
+                                </>
+                              )}
+                              {!subjectName && !topicName && <span className="text-xs text-neutral-600 italic">No tag</span>}
+                            </div>
+                            {s.notes && <p className="text-[10px] text-neutral-600 truncate mt-0.5">{s.notes}</p>}
+                          </div>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium shrink-0" style={{ background: `${actColor}18`, color: actColor }}>
+                            {s.activity_type}
+                          </span>
+                          <span className="text-xs font-semibold tabular-nums text-neutral-400 shrink-0">
+                            {formatDuration(s.start_timestamp, s.end_timestamp, s.pause_duration_seconds)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

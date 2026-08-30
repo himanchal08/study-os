@@ -61,3 +61,38 @@ export async function updateTopicStatus(id: string, status: "not_started" | "lea
 
   revalidatePath("/syllabus");
 }
+
+export async function updateSubjectColor(subjectId: string, color: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("subjects")
+    .update({ color, updated_at: new Date().toISOString() })
+    .eq("id", subjectId)
+    .eq("user_id", user.id);
+  revalidatePath("/syllabus");
+}
+
+export async function deleteSubject(subjectId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  // Soft-delete subject and all its topics
+  const now = new Date().toISOString();
+  await supabase.from("topics").update({ archived_at: now }).eq("subject_id", subjectId).eq("user_id", user.id);
+  await supabase.from("subjects").update({ deleted_at: now }).eq("id", subjectId).eq("user_id", user.id);
+  revalidatePath("/syllabus");
+}
+
+export async function archiveTopic(topicId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("topics")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", topicId)
+    .eq("user_id", user.id);
+  revalidatePath("/syllabus");
+}

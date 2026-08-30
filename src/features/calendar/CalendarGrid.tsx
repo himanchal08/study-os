@@ -4,9 +4,10 @@ import { useState } from "react";
 
 interface CalendarGridProps {
   tasks: Array<{ id: string; title: string; status: string; planned_date: string | null; due_date: string | null }>;
+  sessions?: Array<{ id: string; start_timestamp: string; end_timestamp: string | null; pause_duration_seconds: number | null; activity_type: string; subjects: { name: string; color: string | null } | null; topics: { name: string } | null }>;
 }
 
-export function CalendarGrid({ tasks }: CalendarGridProps) {
+export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const year = currentDate.getFullYear();
@@ -47,6 +48,25 @@ export function CalendarGrid({ tasks }: CalendarGridProps) {
   const getTasksForDate = (dateStr: string) => {
     return tasks.filter(t => t.planned_date === dateStr || t.due_date === dateStr);
   };
+
+  const getSessionsForDate = (dateStr: string) => {
+    return sessions.filter(s => {
+      if (!s.end_timestamp) return false;
+      const d = new Date(s.start_timestamp);
+      return toDateString(d) === dateStr;
+    });
+  };
+
+  function sessionDuration(s: typeof sessions[0]): string {
+    if (!s.end_timestamp) return "";
+    const secs = Math.max(0,
+      (new Date(s.end_timestamp).getTime() - new Date(s.start_timestamp).getTime()) / 1000
+      - (s.pause_duration_seconds ?? 0)
+    );
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    return h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ""}` : `${m}m`;
+  }
 
   const goPrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const goNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
@@ -103,7 +123,7 @@ export function CalendarGrid({ tasks }: CalendarGridProps) {
           return (
             <div 
               key={idx} 
-              className={`min-h-[100px] p-2 flex flex-col ${cell.isCurrentMonth ? "bg-[#0a0a0a]" : "bg-[#0f0f0f]"}`}
+              className={`min-h-25 p-2 flex flex-col ${cell.isCurrentMonth ? "bg-[#0a0a0a]" : "bg-[#0f0f0f]"}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${
@@ -120,7 +140,7 @@ export function CalendarGrid({ tasks }: CalendarGridProps) {
                 )}
               </div>
               
-              <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                 {cellTasks.map(t => (
                   <div 
                     key={t.id} 
@@ -135,6 +155,23 @@ export function CalendarGrid({ tasks }: CalendarGridProps) {
                     {t.title}
                   </div>
                 ))}
+
+                {/* Session blocks */}
+                {getSessionsForDate(dateStr).map(s => {
+                  const color = s.subjects?.color ?? "#52525b";
+                  const label = s.subjects?.name ?? s.topics?.name ?? s.activity_type;
+                  const dur = sessionDuration(s);
+                  return (
+                    <div
+                      key={s.id}
+                      className="text-[9px] truncate px-1.5 py-0.5 rounded flex items-center gap-1"
+                      style={{ background: `${color}18`, borderLeft: `2px solid ${color}`, color: `${color}cc` }}
+                      title={`${label} — ${dur}`}
+                    >
+                      ⏱ {dur}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

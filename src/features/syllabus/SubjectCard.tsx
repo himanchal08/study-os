@@ -1,7 +1,7 @@
 "use client";
 
-import { useTransition, useState } from "react";
-import { updateTopicStatus } from "@/app/(dashboard)/syllabus/actions";
+import { useTransition, useState, useRef, useTransition as useT } from "react";
+import { updateTopicStatus, updateSubjectColor, deleteSubject, archiveTopic } from "@/app/(dashboard)/syllabus/actions";
 
 type TopicStatus = "not_started" | "learning" | "learned" | "revising" | "strong" | "weak";
 
@@ -32,6 +32,7 @@ const STATUS_ORDER: TopicStatus[] = ["not_started", "learning", "learned", "revi
 
 function TopicRow({ topic }: { topic: Topic }) {
   const [isPending, startTransition] = useTransition();
+  const [archived, setArchived] = useState(false);
   const [status, setStatus] = useState<TopicStatus>(topic.status);
   const cfg = STATUS_CONFIG[status];
 
@@ -42,19 +43,31 @@ function TopicRow({ topic }: { topic: Topic }) {
     startTransition(() => updateTopicStatus(topic.id, next));
   };
 
+  if (archived) return null;
+
   return (
-    <div className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg group hover:bg-white/[0.02] transition-colors">
+    <div className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg group hover:bg-white/2 transition-colors">
       <span className="text-sm text-neutral-300 truncate">{topic.name}</span>
-      <button
-        type="button"
-        onClick={cycleStatus}
-        disabled={isPending}
-        className="text-[10px] px-2 py-1 rounded-full shrink-0 font-medium transition-all hover:opacity-80 active:scale-95 disabled:opacity-40"
-        style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}33` }}
-        title="Click to change status"
-      >
-        {cfg.label}
-      </button>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          onClick={cycleStatus}
+          disabled={isPending}
+          className="text-[10px] px-2 py-1 rounded-full font-medium transition-all hover:opacity-80 active:scale-95 disabled:opacity-40"
+          style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}33` }}
+          title="Click to cycle status"
+        >
+          {cfg.label}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setArchived(true); startTransition(() => archiveTopic(topic.id)); }}
+          className="opacity-0 group-hover:opacity-100 text-[10px] text-neutral-700 hover:text-rose-400 transition-all px-1"
+          title="Archive topic"
+        >
+          ✕
+        </button>
+      </div>
     </div>
   );
 }
@@ -65,31 +78,74 @@ interface SubjectCardProps {
 
 export function SubjectCard({ subject }: SubjectCardProps) {
   const [expanded, setExpanded] = useState(true);
+  const [color, setColor] = useState(subject.color ?? "#6366f1");
+  const [deleted, setDeleted] = useState(false);
+  const [, startColorTransition] = useTransition();
+  const [, startDeleteTransition] = useTransition();
+  const colorRef = useRef<HTMLInputElement>(null);
   const done = subject.topics.filter(t => ["learned", "strong"].includes(t.status)).length;
   const total = subject.topics.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
+  if (deleted) return null;
+
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
       {/* Header */}
-      <button
-        type="button"
-        onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
-      >
-        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: subject.color ?? "#555" }} />
-        <span className="text-sm font-medium text-neutral-200 flex-1 truncate">{subject.name}</span>
-        <span className="text-[10px] text-neutral-600 shrink-0">{done}/{total} done</span>
-        {total > 0 && (
-          <div className="w-16 h-1 rounded-full overflow-hidden shrink-0" style={{ background: "#1a1a1a" }}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${pct}%`, background: subject.color ?? "#555" }}
-            />
-          </div>
-        )}
-        <span className="text-neutral-600 text-xs shrink-0">{expanded ? "▲" : "▼"}</span>
-      </button>
+      <div className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/2 transition-colors group">
+        {/* Color swatch — click to open color picker */}
+        <button
+          type="button"
+          onClick={() => colorRef.current?.click()}
+          className="w-3 h-3 rounded-full shrink-0 hover:ring-2 hover:ring-white/20 transition-all"
+          style={{ background: color }}
+          title="Click to change color"
+        />
+        <input
+          ref={colorRef}
+          type="color"
+          value={color}
+          onChange={e => {
+            const c = e.target.value;
+            setColor(c);
+            startColorTransition(() => updateSubjectColor(subject.id, c));
+          }}
+          className="sr-only"
+          aria-label="Subject color"
+        />
+
+        <button
+          type="button"
+          onClick={() => setExpanded(e => !e)}
+          className="flex-1 flex items-center gap-3 text-left min-w-0"
+        >
+          <span className="text-sm font-medium text-neutral-200 flex-1 truncate">{subject.name}</span>
+          <span className="text-[10px] text-neutral-600 shrink-0">{done}/{total} done</span>
+          {total > 0 && (
+            <div className="w-16 h-1 rounded-full overflow-hidden shrink-0" style={{ background: "#1a1a1a" }}>
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${pct}%`, background: color }}
+              />
+            </div>
+          )}
+          <span className="text-neutral-600 text-xs shrink-0">{expanded ? "▲" : "▼"}</span>
+        </button>
+
+        {/* Delete button — visible on hover */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!confirm(`Delete subject "${subject.name}" and all its topics? This cannot be undone.`)) return;
+            setDeleted(true);
+            startDeleteTransition(() => deleteSubject(subject.id));
+          }}
+          className="opacity-0 group-hover:opacity-100 text-xs text-neutral-700 hover:text-rose-400 transition-all px-1 shrink-0"
+          title="Delete subject"
+        >
+          ✕
+        </button>
+      </div>
 
       {/* Topics */}
       {expanded && (
