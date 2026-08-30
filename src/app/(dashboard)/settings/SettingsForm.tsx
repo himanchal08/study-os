@@ -60,7 +60,7 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
         </div>
 
         <p className={FIELD.hint} style={{ marginTop: 0 }}>
-          Select the exams you're currently targeting. This controls which subjects and syllabus branches are shown to you.
+          Select the exams you&apos;re currently targeting. This controls which subjects and syllabus branches are shown to you.
         </p>
 
         <div className="grid grid-cols-2 gap-2 mt-1">

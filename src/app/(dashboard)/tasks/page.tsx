@@ -50,8 +50,8 @@ export default async function TasksPage() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-bold gradient-text">Daily Planner & To-Do</h1>
-          <p className="text-xs mt-0.5" style={{ color: "rgba(226,226,240,0.5)" }}>
+          <h1 className="text-xl font-semibold text-neutral-100 tracking-tight mb-1">Daily Planner</h1>
+          <p className="text-xs mt-0.5 text-neutral-500">
             Plan today and tomorrow, set targets, and track execution accountability.
           </p>
         </div>
@@ -68,10 +68,10 @@ export default async function TasksPage() {
         </div>
 
         <div>
-          <div className="glass rounded-2xl p-5 sticky top-6">
-            <h2 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "rgba(226,226,240,0.5)" }}>
+          <div className="rounded-xl p-5 sticky top-6" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">
               + Plan New Task
-            </h2>
+            </p>
             <TaskForm
               subjects={subjects ?? []}
               topics={topics ?? []}
