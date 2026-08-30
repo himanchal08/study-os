@@ -22,44 +22,59 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
   
   const [notes, setNotes] = useState<string>(activeSession?.notes ?? "");
 
-  const [sessionStartMs, setSessionStartMs] = useState<number | null>(() => {
-    if (!activeSession?.start_timestamp) return null;
-    const ms = new Date(activeSession.start_timestamp).getTime();
-    return Math.min(ms, Date.now());
+  // Wall-clock ms when the current running segment started (not the session start timestamp).
+  // This is reset on every resume so we can accumulate clean elapsed time.
+  const segmentStartMonoRef = useRef<number | null>(null);
+  const segmentStartWallRef = useRef<number | null>(null);
+
+  // Elapsed seconds at the end of the PREVIOUS running segment (before the last pause).
+  const [accumulatedSec, setAccumulatedSec] = useState<number>(() => {
+    if (!activeSession?.start_timestamp) return 0;
+    const sessionMs = new Date(activeSession.start_timestamp).getTime();
+    const elapsed = Math.max(0, Math.floor((Date.now() - sessionMs) / 1000) - (activeSession.pause_duration_seconds ?? 0));
+    return elapsed;
   });
 
   const [pausedAtMs, setPausedAtMs] = useState<number | null>(null);
-  const [totalPauseSec, setTotalPauseSec] = useState(0);
+  const [totalPauseSec, setTotalPauseSec] = useState(activeSession?.pause_duration_seconds ?? 0);
 
-  const [, setTick] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Displayed elapsed seconds — derived purely from monotonic clock to prevent drift.
+  const [displayedSec, setDisplayedSec] = useState(accumulatedSec);
+  const rafRef = useRef<number | null>(null);
 
   const isRunning = !!session;
   const isPaused = pausedAtMs !== null;
 
+  // Start the segment monotonic reference when we begin running.
   useEffect(() => {
-    if (!isRunning || isPaused) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+    if (isRunning && !isPaused) {
+      segmentStartMonoRef.current = performance.now();
+      segmentStartWallRef.current = Date.now();
+
+      const tick = () => {
+        if (segmentStartMonoRef.current === null) return;
+        const monoElapsed = (performance.now() - segmentStartMonoRef.current) / 1000;
+        setDisplayedSec(Math.floor(accumulatedSec + monoElapsed));
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } else {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
       }
-      return;
+      segmentStartMonoRef.current = null;
     }
-    intervalRef.current = setInterval(() => {
-      setTick((t) => t + 1);
-    }, 1000);
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, isPaused]);
 
-  const nowMs = new Date().getTime();
-  const netElapsed = sessionStartMs !== null
-    ? Math.max(0, Math.floor((nowMs - sessionStartMs) / 1000) - totalPauseSec)
-    : 0;
+  const netElapsed = displayedSec;
 
   const handleStart = useCallback(async () => {
     setLoading(true);
@@ -74,34 +89,34 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
       setError(result.error);
     } else if ("session" in result && result.session) {
       setSession(result.session);
-      setSessionStartMs(Date.now());
+      setAccumulatedSec(0);
+      setDisplayedSec(0);
       setTotalPauseSec(0);
       setPausedAtMs(null);
     }
     setLoading(false);
-  }, [userId, selectedSubject, notes]);
+  }, [userId, selectedSubject, notes, activityType]);
 
   const handlePauseToggle = useCallback(() => {
     if (isPaused) {
-      // Resume
-      const additionalPause = Math.floor((new Date().getTime() - pausedAtMs) / 1000);
-      setTotalPauseSec((prev) => prev + additionalPause);
+      // Resume: snapshot how many seconds we had at pause and start a fresh monotonic segment
       setPausedAtMs(null);
+      // accumulatedSec is already frozen at the value when we paused
     } else {
-      // Pause
-      setPausedAtMs(new Date().getTime());
+      // Pause: freeze accumulatedSec at the current displayed value
+      setAccumulatedSec(displayedSec);
+      setPausedAtMs(Date.now());
     }
-  }, [isPaused, pausedAtMs]);
+  }, [isPaused, displayedSec]);
 
   const handleStop = useCallback(async () => {
     if (!session) return;
     setLoading(true);
     setError(null);
 
-    const additionalPause = isPaused && pausedAtMs
-      ? Math.floor((new Date().getTime() - pausedAtMs) / 1000)
-      : 0;
-    const finalPauseSec = totalPauseSec + additionalPause;
+    // Total pause seconds = however long was accumulated while paused
+    // We track this via totalPauseSec which we update on each resume.
+    const finalPauseSec = totalPauseSec;
 
     const result = await stopSession({
       sessionId: session.id,
@@ -113,7 +128,8 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
       setError(result.error);
     } else {
       setSession(null);
-      setSessionStartMs(null);
+      setAccumulatedSec(0);
+      setDisplayedSec(0);
       setTotalPauseSec(0);
       setPausedAtMs(null);
       setNotes("");

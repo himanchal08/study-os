@@ -104,7 +104,15 @@ export default async function MocksPage() {
                 <div key={m.id} className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-neutral-200 truncate">{m.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-neutral-200 truncate">{m.name}</p>
+                        <Link
+                          href={`/mocks/${m.id}`}
+                          className="text-[10px] text-neutral-500 hover:text-neutral-300 transition-colors shrink-0"
+                        >
+                          View →
+                        </Link>
+                      </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: examStyle.bg, color: examStyle.text }}>
                           {m.exam_type}

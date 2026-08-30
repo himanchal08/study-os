@@ -16,6 +16,7 @@ interface DailyBarData {
   hours: number;
   target: number;
   hitTarget: boolean;
+  allTasksDone?: boolean;
 }
 
 interface StudyTimeChartProps {
@@ -50,7 +51,22 @@ export function StudyTimeChart({ data, targetHours }: StudyTimeChartProps) {
       <BarChart data={data} barSize={20} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
         <XAxis
           dataKey="date"
-          tick={{ fill: "rgba(232,232,240,0.35)", fontSize: 11 }}
+          tick={(props: any) => {
+            const { x, y, payload } = props;
+            const dataItem = data.find(d => d.date === payload.value);
+            return (
+              <g transform={`translate(${x},${y})`}>
+                <text x={0} y={0} dy={16} textAnchor="middle" fill="rgba(232,232,240,0.35)" fontSize={11}>
+                  {payload.value}
+                </text>
+                {dataItem?.allTasksDone && (
+                  <text x={0} y={0} dy={28} textAnchor="middle" fontSize={10}>
+                    ✨
+                  </text>
+                )}
+              </g>
+            );
+          }}
           axisLine={false}
           tickLine={false}
         />

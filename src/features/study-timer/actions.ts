@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
-import type { Tables } from "@/types/database";
+import type { Tables, Database } from "@/types/database";
 
 export type ActiveSession = Tables<"study_sessions">;
 
@@ -89,6 +89,53 @@ export async function stopSession(params: {
 
   if (error) {
     return { error: error.message };
+  }
+
+  // Auto-Revision Engine
+  // If the session was tagged with a topic, spawn the spaced-repetition cycles automatically.
+  if (data && data.topic_id) {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    const nextMonth = new Date(today);
+    nextMonth.setDate(nextMonth.getDate() + 30);
+
+    const toDateString = (d: Date) => d.toISOString().split("T")[0];
+
+    // We use upsert if there's a unique constraint, but since we don't have the exact constraint name,
+    // we just insert. The DB might throw on duplicate, which we can silently catch.
+    const revisionsToInsert: Database["public"]["Tables"]["revisions"]["Insert"][] = [
+      {
+        user_id: userId,
+        topic_id: data.topic_id,
+        source_session_id: data.id,
+        cycle_type: "daily",
+        due_date: toDateString(tomorrow),
+        client_generated_id: randomUUID(),
+      },
+      {
+        user_id: userId,
+        topic_id: data.topic_id,
+        source_session_id: data.id,
+        cycle_type: "weekly",
+        due_date: toDateString(nextWeek),
+        client_generated_id: randomUUID(),
+      },
+      {
+        user_id: userId,
+        topic_id: data.topic_id,
+        source_session_id: data.id,
+        cycle_type: "monthly",
+        due_date: toDateString(nextMonth),
+        client_generated_id: randomUUID(),
+      }
+    ];
+
+    await supabase.from("revisions").insert(revisionsToInsert);
   }
 
   revalidatePath("/");

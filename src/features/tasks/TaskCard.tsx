@@ -169,12 +169,7 @@ export function TaskCard({ task, userId }: TaskCardProps) {
               </>
             )}
 
-            {task.estimated_minutes && (
-              <>
-                <span>•</span>
-                <span>⏱ {task.estimated_minutes}m</span>
-              </>
-            )}
+
 
             {task.due_date && (
               <>

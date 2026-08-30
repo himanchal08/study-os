@@ -7,13 +7,11 @@ import {
   secondsToHours,
   groupSessionsByDay,
   timeOfDayBucket,
-  buildHeatmapData,
 } from "@/lib/calculations";
 import type { Tables } from "@/types/database";
 import { StudyTimeChart } from "@/features/analytics/StudyTimeChart";
 import { SubjectAllocationChart } from "@/features/analytics/SubjectAllocationChart";
 import { TimeOfDayChart } from "@/features/analytics/TimeOfDayChart";
-import { HeatmapGrid } from "@/features/analytics/HeatmapGrid";
 import { TaskPlanningAnalytics } from "@/features/analytics/TaskPlanningAnalytics";
 
 export const metadata: Metadata = { title: "Analytics" };
@@ -58,9 +56,26 @@ export default async function AnalyticsPage() {
     .select("start_timestamp, end_timestamp, pause_duration_seconds, subject_id, subjects(id, name, color)")
     .eq("user_id", user.id)
     .gte("start_timestamp", thirtyDaysAgo)
+  const sessions = (rawSessions ?? []) as unknown as SessionRow[];
+
+  // Fetch tasks for the last 7 days to show daily completion indicators
+  const sevenDaysAgo = new Date(now - 7 * 86400000).toISOString();
+  const { data: rawTasks } = await supabase
+    .from("tasks")
+    .select("status, planned_date")
+    .eq("user_id", user.id)
+    .gte("planned_date", sevenDaysAgo.split("T")[0])
     .is("deleted_at", null);
 
-  const sessions = (rawSessions ?? []) as unknown as SessionRow[];
+  const tasksMap = new Map<string, { total: number; completed: number }>();
+  (rawTasks ?? []).forEach(t => {
+    if (!t.planned_date) return;
+    const date = t.planned_date;
+    if (!tasksMap.has(date)) tasksMap.set(date, { total: 0, completed: 0 });
+    const item = tasksMap.get(date)!;
+    item.total++;
+    if (t.status === "completed") item.completed++;
+  });
 
   const { data: batches } = await supabase
     .from("question_batches")
@@ -69,14 +84,15 @@ export default async function AnalyticsPage() {
     .gte("logged_at", thirtyDaysAgo)
     .is("deleted_at", null);
 
-  // 7-day bar chart data
   const dailyMap = groupSessionsByDay(sessions, offsetMin, timezone);
-  const last7: Array<{ date: string; hours: number; target: number; hitTarget: boolean }> = [];
+  const last7: Array<{ date: string; hours: number; target: number; hitTarget: boolean; allTasksDone: boolean }> = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now - i * 86400000);
     const key = dayBoundaryAwareDate(d.getTime(), offsetMin, timezone);
     const hours = dailyMap.get(key) ?? 0;
-    last7.push({ date: DAY_LABELS[d.getDay()], hours, target, hitTarget: hours >= target });
+    const tasksForDay = tasksMap.get(key);
+    const allTasksDone = tasksForDay ? tasksForDay.total > 0 && tasksForDay.completed === tasksForDay.total : false;
+    last7.push({ date: DAY_LABELS[d.getDay()], hours, target, hitTarget: hours >= target, allTasksDone });
   }
 
   // Subject allocation donut
@@ -127,64 +143,8 @@ export default async function AnalyticsPage() {
     { label: "Avg Session",        value: avgBlockSec > 0 ? formatMins(avgBlockSec / 60) : "—", sub: `across ${sessions.length} sessions`, color: "#22d3ee" },
   ];
 
-  // 52-week heatmap — start date = 364 days ago (52 full weeks)
-  const heatmapEnd = todayStr;
-  const heatStartDate = new Date(now - 363 * 86400000);
-  const heatmapStart = dayBoundaryAwareDate(heatStartDate.getTime(), offsetMin, timezone);
-
-  // Fetch sessions for the full 52-week window (may be wider than 30 days)
-  const { data: heatSessions } = await supabase
-    .from("study_sessions")
-    .select("start_timestamp, end_timestamp, pause_duration_seconds")
-    .eq("user_id", user.id)
-    .gte("start_timestamp", heatStartDate.toISOString())
-    .is("deleted_at", null);
-
-  const knownDates = new Set(
-    (heatSessions ?? []).map((s) =>
-      dayBoundaryAwareDate(new Date(s.start_timestamp).getTime(), offsetMin, timezone)
-    )
-  );
-
-  const heatCells = buildHeatmapData({
-    startDate: heatmapStart,
-    endDate: heatmapEnd,
-    sessions: heatSessions ?? [],
-    metric: "hours",
-    dayBoundaryOffsetMin: offsetMin,
-    timezone,
-    knownDates,
-  });
-
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-bold gradient-text">Study Time Analytics</h1>
-          <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.4)" }}>
-            30-day rolling view · times adjusted to your day boundary offset
-          </p>
-        </div>
-        <Link 
-          href="/analytics/subjects"
-          className="text-xs px-3 py-1.5 rounded-lg border font-medium hover:bg-white hover:text-black transition-colors shrink-0"
-          style={{ borderColor: "rgba(232,232,240,0.15)", color: "rgba(232,232,240,0.85)" }}
-        >
-          Subject Performance
-        </Link>
-      </div>
-
-      {/* 52-week activity heatmap */}
-      <div className="glass rounded-2xl p-5 overflow-x-auto">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-semibold" style={{ color: "rgba(232,232,240,0.85)" }}>Activity Heatmap</h2>
-            <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>52 weeks · all 7 days · study hours</p>
-          </div>
-        </div>
-        <HeatmapGrid cells={heatCells} metric="hours" weeks={52} />
-      </div>
-
+    <div className="space-y-6 animate-fade-in pb-12">
       {/* Summary stat row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card, i) => (
@@ -208,14 +168,19 @@ export default async function AnalyticsPage() {
       {/* Charts row */}
       {/* Task & Planning Analytics (Phase 14) */}
       <TaskPlanningAnalytics />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <div className="lg:col-span-2 glass rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-semibold" style={{ color: "rgba(232,232,240,0.85)" }}>Daily Study Hours</h2>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>
-                Last 7 days · <span style={{ color: "#34d399" }}>■</span> target hit · <span style={{ color: "#ededed" }}>■</span> partial
+              <p className="text-xs mt-0.5 flex items-center gap-2" style={{ color: "rgba(232,232,240,0.35)" }}>
+                <span>Last 7 days</span>
+                <span>·</span>
+                <span className="flex items-center gap-1"><span style={{ color: "#34d399" }}>■</span> target hit</span>
+                <span>·</span>
+                <span className="flex items-center gap-1"><span style={{ color: "#ededed" }}>■</span> partial</span>
+                <span>·</span>
+                <span className="flex items-center gap-1">✨ tasks done</span>
               </p>
             </div>
             <span

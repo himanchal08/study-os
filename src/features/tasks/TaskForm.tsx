@@ -24,7 +24,6 @@ interface TaskFormProps {
 
 const INITIAL_STATE: TaskActionState = null;
 
-const QUICK_MINUTES = [15, 30, 45, 60, 90, 120];
 
 export function TaskForm({
   subjects,
@@ -33,7 +32,7 @@ export function TaskForm({
   onSuccess,
 }: TaskFormProps) {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [estimatedMinutes, setEstimatedMinutes] = useState<number | "">("");
+
   const [state, formAction, pending] = useActionState(createTask, INITIAL_STATE);
 
   const filteredTopics = selectedSubject
@@ -151,51 +150,7 @@ export function TaskForm({
         </div>
       </div>
 
-      <div>
-        <label
-          htmlFor="task-est-minutes"
-          className="block text-xs font-semibold uppercase tracking-wider mb-1.5"
-          style={{ color: "rgba(226,226,240,0.6)" }}
-        >
-          Estimated Time (Minutes)
-        </label>
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          {QUICK_MINUTES.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setEstimatedMinutes(m)}
-              className="text-xs px-2.5 py-1 rounded-lg transition-all"
-              style={{
-                background:
-                  estimatedMinutes === m
-                    ? "rgba(99,102,241,0.25)"
-                    : "rgba(255,255,255,0.04)",
-                color: estimatedMinutes === m ? "#818cf8" : "rgba(226,226,240,0.6)",
-                border:
-                  estimatedMinutes === m
-                    ? "1px solid rgba(99,102,241,0.4)"
-                    : "1px solid var(--border-subtle)",
-              }}
-            >
-              {m}m
-            </button>
-          ))}
-        </div>
-        <input
-          id="task-est-minutes"
-          name="estimated_minutes"
-          type="number"
-          min="1"
-          max="720"
-          value={estimatedMinutes}
-          onChange={(e) =>
-            setEstimatedMinutes(e.target.value === "" ? "" : parseInt(e.target.value, 10))
-          }
-          placeholder="e.g. 45"
-          className="input-premium"
-        />
-      </div>
+
 
       <div>
         <label

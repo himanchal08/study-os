@@ -80,10 +80,6 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
   ).length;
   const postRate = postponementRate(totalPostponedToday, totalPlannedToday);
 
-  const totalEstimatedMins = todayTasks.reduce(
-    (acc, t) => acc + (t.estimated_minutes ?? 0),
-    0
-  );
 
   return (
     <div className="space-y-5">
@@ -113,17 +109,7 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
           </p>
         </div>
 
-        <div className="glass rounded-2xl p-3.5">
-          <p className="text-[11px] font-medium" style={{ color: "rgba(226,226,240,0.45)" }}>
-            Est. Study Time
-          </p>
-          <p className="text-xl font-bold mt-1 tabular-nums" style={{ color: "#818cf8" }}>
-            {(totalEstimatedMins / 60).toFixed(1)}h
-          </p>
-          <p className="text-[11px] mt-0.5" style={{ color: "rgba(226,226,240,0.35)" }}>
-            {totalEstimatedMins} minutes planned
-          </p>
-        </div>
+
 
         <div className="glass rounded-2xl p-3.5">
           <p className="text-[11px] font-medium" style={{ color: "rgba(226,226,240,0.45)" }}>

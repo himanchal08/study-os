@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { dayBoundaryAwareDate } from "@/lib/calculations";
 import { RevisionCard } from "@/features/revisions/RevisionCard";
-import { ScheduleRevisionForm } from "@/features/revisions/ScheduleRevisionForm";
 import type { Tables } from "@/types/database";
 
 type RevisionRow = Pick<
@@ -134,18 +133,6 @@ export default async function RevisionsPage() {
               })}
             </>
           )}
-        </div>
-
-        {/* Schedule form */}
-        <div>
-          <div className="rounded-xl p-5 sticky top-6" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Schedule Revision</p>
-            <ScheduleRevisionForm
-              topics={(topics ?? []).map(t => ({ id: t.id, name: t.name, subject_id: t.subject_id }))}
-              subjects={subjects ?? []}
-              defaultDate={todayStr}
-            />
-          </div>
         </div>
       </div>
     </div>

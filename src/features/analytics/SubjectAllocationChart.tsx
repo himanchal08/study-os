@@ -1,6 +1,14 @@
 "use client";
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 
 interface SubjectSlice {
   name: string;
@@ -50,34 +58,23 @@ export function SubjectAllocationChart({ data }: { data: SubjectSlice[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={200}>
-      <PieChart>
-        <Pie
-          data={enriched}
-          dataKey="hours"
-          nameKey="name"
-          cx="40%"
-          cy="50%"
-          innerRadius={55}
-          outerRadius={80}
-          paddingAngle={3}
-          strokeWidth={0}
-        >
+      <BarChart layout="vertical" data={enriched} margin={{ top: 0, right: 20, left: -10, bottom: 0 }}>
+        <XAxis type="number" hide />
+        <YAxis
+          dataKey="name"
+          type="category"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: "rgba(232,232,240,0.55)", fontSize: 11 }}
+          width={80}
+        />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+        <Bar dataKey="hours" radius={[0, 4, 4, 0]} barSize={16}>
           {enriched.map((entry, index) => (
             <Cell key={index} fill={entry.color} />
           ))}
-        </Pie>
-        <Tooltip content={<CustomTooltip />} />
-        <Legend
-          layout="vertical"
-          align="right"
-          verticalAlign="middle"
-          iconType="circle"
-          iconSize={8}
-          formatter={(value) => (
-            <span style={{ color: "rgba(232,232,240,0.55)", fontSize: 11 }}>{value}</span>
-          )}
-        />
-      </PieChart>
+        </Bar>
+      </BarChart>
     </ResponsiveContainer>
   );
 }
