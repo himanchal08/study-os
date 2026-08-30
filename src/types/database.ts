@@ -886,6 +886,13 @@ export type Database = {
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
+      error_category_enum:
+        | "concept"
+        | "calculation"
+        | "reading"
+        | "silly"
+        | "time"
+        | "other";
       exam_type_enum: "banking" | "ssc" | "other";
       source_client_enum: "web" | "extension" | "android" | "import";
       activity_type_enum: "lecture" | "practice" | "revision" | "mock" | "reading" | "other";

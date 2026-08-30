@@ -37,6 +37,16 @@ const navItems = [
     ),
   },
   {
+    href: "/vault",
+    label: "Vault",
+    accent: "#a855f7",        // purple — error storage
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>
+      </svg>
+    ),
+  },
+  {
     href: "/revisions",
     label: "Revisions",
     accent: "#22d3ee",        // cyan — revision cadence
