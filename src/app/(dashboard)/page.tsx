@@ -39,6 +39,13 @@ export default async function HomePage() {
     .order("due_date", { ascending: true })
     .limit(10);
 
+  const { data: subjects } = await supabase
+    .from("subjects")
+    .select("id, name, color")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .order("name", { ascending: true });
+
   return (
     <div className="space-y-6 animate-fade-in">
       <section aria-label="Today's overview">
@@ -56,6 +63,7 @@ export default async function HomePage() {
             <StudyTimer
               userId={user.id}
               activeSession={activeSession}
+              subjects={subjects ?? []}
             />
           </section>
         </div>

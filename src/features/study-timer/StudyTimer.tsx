@@ -8,12 +8,14 @@ import type { Tables } from "@/types/database";
 interface StudyTimerProps {
   userId: string;
   activeSession: Tables<"study_sessions"> | null;
+  subjects: Array<{ id: string; name: string; color: string | null }>;
 }
 
-export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
+export function StudyTimer({ userId, activeSession, subjects }: StudyTimerProps) {
   const [session, setSession] = useState(activeSession);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<string>(activeSession?.subject_id ?? "");
 
   const [sessionStartMs, setSessionStartMs] = useState<number | null>(
     activeSession?.start_timestamp
@@ -58,7 +60,10 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
   const handleStart = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await startSession({ userId });
+    const result = await startSession({ 
+      userId,
+      subjectId: selectedSubject || null
+    });
     if ("error" in result && result.error) {
       setError(result.error);
     } else if ("session" in result && result.session) {
@@ -127,12 +132,31 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
       )}
 
       <div className="relative">
-        <h2
-          className="text-xs font-semibold uppercase tracking-wider mb-4"
-          style={{ color: "rgba(226,226,240,0.4)" }}
-        >
-          Study Timer
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2
+            className="text-xs font-semibold uppercase tracking-wider"
+            style={{ color: "rgba(226,226,240,0.4)" }}
+          >
+            Study Timer
+          </h2>
+          {isRunning ? (
+            <span className="text-xs font-medium px-2 py-1 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-300">
+              {subjects.find(s => s.id === selectedSubject)?.name || "Uncategorized"}
+            </span>
+          ) : (
+            <select
+              value={selectedSubject}
+              onChange={(e) => setSelectedSubject(e.target.value)}
+              disabled={isRunning}
+              className="text-xs px-2 py-1 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-300 outline-none focus:border-neutral-700"
+            >
+              <option value="">No Subject</option>
+              {subjects.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
 
         <div className="text-center py-6">
           <div
