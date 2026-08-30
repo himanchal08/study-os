@@ -33,6 +33,8 @@ export async function POST() {
   const calendar = google.calendar({ version: "v3", auth: oauth2Client });
   const tasksApi = google.tasks({ version: "v1", auth: oauth2Client });
   const tz = profile.timezone || "Asia/Kolkata";
+  const offset = (profile.day_boundary_offset_minutes || 0) * 60000;
+  const nowWithOffset = new Date(Date.now() + offset);
 
   // ── 1. Sync today's tasks as all-day events & Google Tasks ───────────────
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -41,13 +43,18 @@ export async function POST() {
     month: "2-digit",
     day: "2-digit",
   });
-  const today = formatter.format(new Date());
-  const { data: tasks } = await supabase
+  const today = formatter.format(nowWithOffset);
+  const { data: tasks, error: tasksError } = await supabase
     .from("tasks")
     .select("id, title, planned_date, status, google_event_id, google_task_id")
     .eq("user_id", user.id)
     .eq("planned_date", today)
     .is("deleted_at", null);
+
+  if (tasksError) {
+    const fs = require('fs');
+    fs.appendFileSync('sync-error.log', `Tasks Query Error: ${JSON.stringify(tasksError)}\n`);
+  }
 
   // ── 2. Sync recent study sessions as timed events ────────────────────────
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
