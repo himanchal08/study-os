@@ -1,13 +1,3 @@
-/**
- * Auto-generated Supabase database types.
- *
- * ⚠️  This file is a stub — regenerate it with:
- *   npx supabase gen types typescript --project-id <your-project-id> > src/types/database.ts
- *
- * After every migration that adds a materially important column, regenerate
- * and commit the updated types (per LLM rules §2).
- */
-
 export type Json =
   | string
   | number
@@ -870,6 +860,28 @@ export type Database = {
         };
         Relationships: [];
       };
+      task_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          task_id: string;
+          event_type: string;
+          notes: string | null;
+          occurred_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          event_type: string;
+          notes?: string | null;
+          occurred_at?: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -877,6 +889,7 @@ export type Database = {
       exam_type_enum: "banking" | "ssc" | "other";
       source_client_enum: "web" | "extension" | "android" | "import";
       activity_type_enum: "lecture" | "practice" | "revision" | "mock" | "reading" | "other";
+      task_status_enum: "pending" | "in_progress" | "completed" | "postponed" | "cancelled";
     };
     CompositeTypes: Record<string, never>;
   };

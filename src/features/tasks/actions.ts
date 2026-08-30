@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { validateTask } from "@/lib/calculations";
-import type { Database, Tables } from "@/types/database";
+import type { Database } from "@/types/database";
 
 export type TaskStatus = Database["public"]["Enums"]["task_status_enum"];
 
@@ -135,7 +135,7 @@ export async function updateTaskStatus(
 
   if (!user) return { error: "Unauthorized" };
 
-  const updatePayload: Partial<Tables<"tasks">> = {
+  const updatePayload: Database["public"]["Tables"]["tasks"]["Update"] = {
     status,
   };
 
