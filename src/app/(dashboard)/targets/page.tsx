@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { addExam, addHistoricalCutoff, deleteExam, deleteCutoff } from "./actions";
+import { addExam, addHistoricalCutoff } from "./actions";
 
 export const metadata: Metadata = { title: "Exams & Targets" };
 

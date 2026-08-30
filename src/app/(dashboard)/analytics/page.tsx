@@ -23,7 +23,7 @@ const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const TOD_CONFIG = [
   { bucket: "early_morning", label: "Early Morning", emoji: "🌅", color: "#fbbf24" },
   { bucket: "morning",       label: "Morning",       emoji: "☀️",  color: "#34d399" },
-  { bucket: "afternoon",     label: "Afternoon",     emoji: "🌤",  color: "#818cf8" },
+  { bucket: "afternoon",     label: "Afternoon",     emoji: "🌤",  color: "#ededed" },
   { bucket: "evening",       label: "Evening",       emoji: "🌇",  color: "#fb7185" },
   { bucket: "night",         label: "Night",         emoji: "🌙",  color: "#a78bfa" },
   { bucket: "late_night",    label: "Late Night",    emoji: "🦉",  color: "#22d3ee" },
@@ -89,7 +89,7 @@ export default async function AnalyticsPage() {
     );
     const sub = s.subjects as { id: string; name: string; color: string } | null;
     if (!subjectMap.has(s.subject_id)) {
-      subjectMap.set(s.subject_id, { name: sub?.name ?? "Unknown", color: sub?.color ?? "#818cf8", seconds: 0 });
+      subjectMap.set(s.subject_id, { name: sub?.name ?? "Unknown", color: sub?.color ?? "#ededed", seconds: 0 });
     }
     subjectMap.get(s.subject_id)!.seconds += secs;
   });
@@ -121,7 +121,7 @@ export default async function AnalyticsPage() {
   const qPerHour = totalHours7 > 0 ? totalAttempted30 / totalHours7 : null;
 
   const summaryCards = [
-    { label: "Hours This Week",    value: `${totalHours7.toFixed(1)}h`,                      sub: `${daysStudied7}/7 days active`,           color: "#818cf8" },
+    { label: "Hours This Week",    value: `${totalHours7.toFixed(1)}h`,                      sub: `${daysStudied7}/7 days active`,           color: "#ededed" },
     { label: "30-Day Accuracy",    value: accuracy30 !== null ? `${accuracy30.toFixed(0)}%` : "—", sub: `${totalAttempted30} questions`,     color: "#fbbf24" },
     { label: "Questions / Hour",   value: qPerHour !== null ? `${qPerHour.toFixed(0)}` : "—", sub: "active practice rate",                  color: "#34d399" },
     { label: "Avg Session",        value: avgBlockSec > 0 ? formatMins(avgBlockSec / 60) : "—", sub: `across ${sessions.length} sessions`, color: "#22d3ee" },
@@ -215,7 +215,7 @@ export default async function AnalyticsPage() {
             <div>
               <h2 className="text-sm font-semibold" style={{ color: "rgba(232,232,240,0.85)" }}>Daily Study Hours</h2>
               <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>
-                Last 7 days · <span style={{ color: "#34d399" }}>■</span> target hit · <span style={{ color: "#818cf8" }}>■</span> partial
+                Last 7 days · <span style={{ color: "#34d399" }}>■</span> target hit · <span style={{ color: "#ededed" }}>■</span> partial
               </p>
             </div>
             <span
@@ -251,7 +251,7 @@ export default async function AnalyticsPage() {
         }}
       >
         <p className="text-xs" style={{ color: "rgba(232,232,240,0.5)" }}>
-          Today is <span style={{ color: "#818cf8" }}>{todayStr}</span> · Live KPIs on Home dashboard
+          Today is <span style={{ color: "#ededed" }}>{todayStr}</span> · Live KPIs on Home dashboard
         </p>
         <Link
           href="/"

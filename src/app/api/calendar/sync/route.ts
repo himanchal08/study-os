@@ -67,7 +67,7 @@ export async function POST() {
     }
 
     return NextResponse.json({ success: true, message: `Synced ${tasks.length} tasks to Google Calendar` });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Calendar sync error:", err);
     return NextResponse.json({ error: "Failed to sync to Google Calendar" }, { status: 500 });
   }

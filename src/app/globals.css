@@ -223,7 +223,7 @@ body {
 }
 
 /* Section accent bars — left border stripe per feature area */
-.accent-brand   { border-left: 2px solid #6366f1; }
+.accent-brand   { border-left: 2px solid #ededed; }
 .accent-teal    { border-left: 2px solid #06b6d4; }
 .accent-emerald { border-left: 2px solid #10b981; }
 .accent-amber   { border-left: 2px solid #f59e0b; }

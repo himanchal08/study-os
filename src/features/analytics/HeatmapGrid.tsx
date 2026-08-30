@@ -222,7 +222,7 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
             ? <span style={{ color: "rgba(232,232,240,0.4)" }}>no data</span>
             : tooltip.cell.isAnnotated
             ? <span style={{ color: "#fbbf24" }}>{tooltip.cell.annotationTag ?? "annotated"}</span>
-            : <span style={{ color: "#818cf8" }}>{formatValue(tooltip.cell.value, metric)} {METRIC_LABELS[metric]}</span>
+            : <span style={{ color: "#ededed" }}>{formatValue(tooltip.cell.value, metric)} {METRIC_LABELS[metric]}</span>
           }
         </div>
       )}

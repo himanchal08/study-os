@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { classifyMockPerformance, type MockClassification } from "@/lib/calculations/mocks";
+import { classifyMockPerformance } from "@/lib/calculations/mocks";
 
 export const metadata: Metadata = { title: "Mock Analytics" };
 

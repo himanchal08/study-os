@@ -17,7 +17,7 @@ const kpiConfig = [
     id: "kpi-study-hours",
     label: "Study Hours",
     icon: "⏱",
-    accentColor: "#818cf8",
+    accentColor: "#ededed",
     glowColor: "rgba(99,102,241,0.15)",
     borderColor: "rgba(99,102,241,0.2)",
   },

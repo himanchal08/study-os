@@ -39,7 +39,7 @@ function CustomTooltip({ active, payload, label }: {
       }}
     >
       <p className="font-semibold mb-0.5">{label}</p>
-      <p style={{ color: "#818cf8" }}>{payload[0]?.value?.toFixed(1)}h studied</p>
+      <p style={{ color: "#ededed" }}>{payload[0]?.value?.toFixed(1)}h studied</p>
     </div>
   );
 }
@@ -71,7 +71,7 @@ export function StudyTimeChart({ data, targetHours }: StudyTimeChartProps) {
           {data.map((entry, index) => (
             <Cell
               key={index}
-              fill={entry.hitTarget ? "#34d399" : entry.hours > 0 ? "#818cf8" : "rgba(255,255,255,0.05)"}
+              fill={entry.hitTarget ? "#34d399" : entry.hours > 0 ? "#ededed" : "rgba(255,255,255,0.05)"}
             />
           ))}
         </Bar>

@@ -30,9 +30,9 @@ export function TopBar({ profile }: TopBarProps) {
         <span
           className="text-xs px-2 py-1 rounded-full"
           style={{
-            background: "rgba(99,102,241,0.12)",
-            color: "#818cf8",
-            border: "1px solid rgba(99,102,241,0.2)",
+            background: "rgba(255,255,255,0.08)",
+            color: "#ededed",
+            border: "1px solid rgba(255,255,255,0.15)",
           }}
         >
           Target: {dailyTarget}h
@@ -43,7 +43,7 @@ export function TopBar({ profile }: TopBarProps) {
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 text-xs px-3 py-1.5 rounded-lg"
-          style={{ background: "#6366f1", color: "#fff" }}
+          style={{ background: "#ededed", color: "#000" }}
         >
           Skip to main content
         </a>

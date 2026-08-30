@@ -120,7 +120,7 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.08) 0%, transparent 70%)",
+              "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 70%)",
           }}
           aria-hidden="true"
         />
@@ -141,7 +141,7 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
               color: isRunning
                 ? isPaused
                   ? "#f59e0b"
-                  : "#818cf8"
+                  : "#ededed"
                 : "rgba(226,226,240,0.25)",
               fontFamily: "var(--font-mono)",
             }}
@@ -189,13 +189,7 @@ export function StudyTimer({ userId, activeSession }: StudyTimerProps) {
               id="start-session-btn"
               onClick={handleStart}
               disabled={loading}
-              className="px-8 py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
-              style={{
-                background:
-                  "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                color: "#fff",
-                boxShadow: "0 0 20px rgba(99,102,241,0.35)",
-              }}
+              className="btn-premium px-8 py-3 text-base"
             >
               {loading ? "Starting..." : "▶ Start Study"}
             </button>
