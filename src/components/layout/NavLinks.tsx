@@ -117,6 +117,16 @@ const navItems = [
     ),
   },
   {
+    href: "/records",
+    label: "Records",
+    accent: "#f59e0b",        // amber — personal bests
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 15l-3 4-2-1-2 5 7-2 7 2-2-5-2 1-3-4z"/><circle cx="12" cy="8" r="5"/>
+      </svg>
+    ),
+  },
+  {
     href: "/settings",
     label: "Settings",
     accent: "rgba(232,232,240,0.6)",  // neutral — system settings

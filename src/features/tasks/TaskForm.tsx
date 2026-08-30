@@ -62,12 +62,7 @@ export function TaskForm({
           type="text"
           required
           placeholder="e.g. Percentage Level 2 Practice (50 Qs)"
-          className="w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid var(--border)",
-            color: "var(--foreground)",
-          }}
+          className="input-premium"
         />
       </div>
 
@@ -85,12 +80,7 @@ export function TaskForm({
             name="subject_id"
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            style={{
-              background: "rgba(30,30,40,0.95)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
+            className="input-premium appearance-none"
           >
             <option value="">No specific subject</option>
             {subjects.map((sub) => (
@@ -112,12 +102,7 @@ export function TaskForm({
           <select
             id="task-topic"
             name="topic_id"
-            className="w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            style={{
-              background: "rgba(30,30,40,0.95)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
+            className="input-premium appearance-none"
           >
             <option value="">No specific topic</option>
             {filteredTopics.map((top) => (
@@ -144,12 +129,7 @@ export function TaskForm({
             type="date"
             required
             defaultValue={defaultDate}
-            className="w-full px-3.5 py-2 rounded-xl text-sm transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
+            className="input-premium"
           />
         </div>
 
@@ -166,12 +146,7 @@ export function TaskForm({
             name="due_date"
             type="date"
             min={defaultDate}
-            className="w-full px-3.5 py-2 rounded-xl text-sm transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
+            className="input-premium"
           />
         </div>
       </div>
@@ -218,12 +193,7 @@ export function TaskForm({
             setEstimatedMinutes(e.target.value === "" ? "" : parseInt(e.target.value, 10))
           }
           placeholder="e.g. 45"
-          className="w-full px-3.5 py-2 rounded-xl text-sm transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid var(--border)",
-            color: "var(--foreground)",
-          }}
+          className="input-premium"
         />
       </div>
 
@@ -239,12 +209,7 @@ export function TaskForm({
           id="task-recurrence"
           name="recurrence_pattern"
           defaultValue="none"
-          className="w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          style={{
-            background: "rgba(30,30,40,0.95)",
-            border: "1px solid var(--border)",
-            color: "var(--foreground)",
-          }}
+          className="input-premium appearance-none"
         >
           <option value="none">One-time task</option>
           <option value="daily">Daily (Generate next 7 days)</option>
@@ -277,11 +242,7 @@ export function TaskForm({
         id="create-task-submit"
         type="submit"
         disabled={pending}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-        style={{
-          background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-          color: "#fff",
-        }}
+        className="btn-premium w-full"
       >
         {pending ? "Adding task..." : "+ Add Task"}
       </button>

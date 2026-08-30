@@ -178,6 +178,50 @@ body {
   color: #ededed;
 }
 
+/* Premium Inputs (from Login screen) */
+.input-premium {
+  width: 100%;
+  padding: 0.625rem 0.875rem; /* py-2.5 px-3.5 */
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem; /* text-sm */
+  transition: all 0.2s;
+  outline: none;
+  background: #171717;
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+.input-premium:focus {
+  outline: 1px solid white;
+  outline-offset: 0;
+}
+
+/* Premium Primary Button (from Login screen) */
+.btn-premium {
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  background: #ededed;
+  color: #0a0a0a;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.btn-premium:hover:not(:disabled) {
+  background: #d4d4d8;
+}
+.btn-premium:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.btn-premium:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Section accent bars — left border stripe per feature area */
 .accent-brand   { border-left: 2px solid #6366f1; }
 .accent-teal    { border-left: 2px solid #06b6d4; }

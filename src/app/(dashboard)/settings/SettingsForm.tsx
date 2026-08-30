@@ -14,11 +14,10 @@ interface SettingsFormProps {
 }
 
 const FIELD = {
-  input: "w-full px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-1 focus:ring-white/30 placeholder:text-neutral-600",
-  select: "w-full px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-1 focus:ring-white/30 appearance-none",
+  input: "input-premium placeholder:text-neutral-600",
+  select: "input-premium appearance-none",
   label: "block text-xs font-medium text-neutral-400 mb-1.5 uppercase tracking-wider",
   hint: "text-xs text-neutral-600 mt-1.5 leading-relaxed",
-  style: { background: "#111111", border: "1px solid #262626", color: "#ededed" },
   section: "rounded-xl p-5 space-y-5",
   sectionStyle: { background: "#0a0a0a", border: "1px solid #1a1a1a" },
 };
@@ -47,7 +46,6 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
             defaultValue={initialProfile.full_name ?? ""}
             placeholder="e.g. Himanchal"
             className={FIELD.input}
-            style={FIELD.style}
           />
         </div>
       </section>
@@ -118,7 +116,6 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
             max="24"
             defaultValue={initialProfile.daily_target_hours}
             className={FIELD.input}
-            style={FIELD.style}
             required
           />
           <p className={FIELD.hint}>
@@ -135,7 +132,6 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
             name="day_boundary_offset_minutes"
             defaultValue={initialProfile.day_boundary_offset_minutes}
             className={FIELD.select}
-            style={FIELD.style}
           >
             <option value="0">12:00 AM — Midnight</option>
             <option value="120">2:00 AM</option>
@@ -156,7 +152,6 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
             name="timezone"
             defaultValue={initialProfile.timezone || "Asia/Kolkata"}
             className={FIELD.select}
-            style={FIELD.style}
           >
             <option value="Asia/Kolkata">India — IST (UTC +5:30)</option>
             <option value="UTC">UTC</option>
@@ -183,8 +178,7 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-40"
-          style={{ background: "#ededed", color: "#0a0a0a" }}
+          className="btn-premium px-5"
         >
           {isPending ? "Saving…" : "Save Settings"}
         </button>
