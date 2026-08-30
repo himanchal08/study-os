@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useTransition } from "react";
 import type { Tables } from "@/types/database";
 import { format } from "date-fns";
+import { deleteStudySession } from "./actions";
 
 type SessionRow = Pick<Tables<"study_sessions">, "id" | "start_timestamp" | "end_timestamp" | "activity_type" | "notes" | "pause_duration_seconds"> & {
   subjects: { name: string; color: string | null } | null;
@@ -14,9 +15,18 @@ interface WeeklyTimesheetProps {
 }
 
 export function WeeklyTimesheet({ sessions }: WeeklyTimesheetProps) {
-  // We'll build a simplified daily list view for "Recent Activity" 
-  // similar to Toggl's list, since a full 24h absolute positioned grid is complex for a quick MVP.
-  // We can group by day, showing blocks of time.
+  const [isPending, startTransition] = useTransition();
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this study session? This action cannot be undone.")) {
+      startTransition(async () => {
+        const res = await deleteStudySession(id);
+        if (res.error) {
+          alert("Failed to delete: " + res.error);
+        }
+      });
+    }
+  };
 
   const grouped = useMemo(() => {
     const groups: Record<string, SessionRow[]> = {};
@@ -119,6 +129,16 @@ export function WeeklyTimesheet({ sessions }: WeeklyTimesheetProps) {
                       <div className="text-sm font-mono font-medium tabular-nums text-neutral-300 w-20 text-right">
                         {durationStr}
                       </div>
+                      <button 
+                        onClick={() => handleDelete(session.id)}
+                        disabled={isPending}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/10 text-neutral-500 hover:text-red-400 rounded transition-all"
+                        title="Delete session"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 );

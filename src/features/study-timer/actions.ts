@@ -141,3 +141,25 @@ export async function stopSession(params: {
   revalidatePath("/");
   return { session: data };
 }
+
+export async function deleteStudySession(sessionId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const { error } = await supabase
+    .from("study_sessions")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", sessionId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  return { success: true };
+}

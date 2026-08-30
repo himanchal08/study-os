@@ -153,30 +153,32 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 2. Today's Tasks */}
-      <section aria-label="Today's Tasks">
-        <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Today&apos;s Tasks</h2>
-        {todayTasks.length === 0 ? (
-          <div className="rounded-xl p-6 text-center border border-neutral-900 bg-black/40">
-            <p className="text-sm text-neutral-400">No tasks planned for today.</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {todayTasks.map(task => (
-              <TaskCard key={task.id} task={task} userId={user.id} />
-            ))}
-          </div>
-        )}
-      </section>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* 2. Today's Tasks */}
+        <section aria-label="Today's Tasks">
+          <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Today&apos;s Tasks</h2>
+          {todayTasks.length === 0 ? (
+            <div className="rounded-xl p-6 text-center border border-neutral-900 bg-black/40">
+              <p className="text-sm text-neutral-400">No tasks planned for today.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {todayTasks.map(task => (
+                <TaskCard key={task.id} task={task} userId={user.id} />
+              ))}
+            </div>
+          )}
+        </section>
 
-      {/* 3. Revision Queue */}
-      <section aria-label="Revisions due today">
-        <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Revision Queue</h2>
-        <RevisionQueue
-          userId={user.id}
-          revisions={revisionsDue ?? []}
-        />
-      </section>
+        {/* 3. Revision Queue */}
+        <section aria-label="Revisions due today">
+          <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Revision Queue</h2>
+          <RevisionQueue
+            userId={user.id}
+            revisions={revisionsDue ?? []}
+          />
+        </section>
+      </div>
 
       {/* 4. Heatmap */}
       <section aria-label="Activity Heatmap">
