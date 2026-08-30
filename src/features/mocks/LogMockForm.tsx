@@ -101,10 +101,14 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Duration (min)</label>
+          <label className={labelCls}>Actual Duration (min)</label>
           <input name="actual_duration_minutes" type="number" placeholder="60" className={inputCls} style={inputStyle} required />
+        </div>
+        <div>
+          <label className={labelCls}>Recommended Duration (min)</label>
+          <input name="recommended_duration_minutes" type="number" placeholder="60 — enables ⚠️ flags" className={inputCls} style={inputStyle} />
         </div>
         <div>
           <label className={labelCls}>Percentile</label>

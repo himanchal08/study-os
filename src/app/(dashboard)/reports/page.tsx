@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { dayBoundaryAwareDate, secondsToHours, studyDurationSeconds } from "@/lib/calculations";
+import Link from "next/link";
 
 export const metadata: Metadata = { title: "Weekly Report" };
 
@@ -52,7 +53,13 @@ const ADEQUATE_TIME_PCT = 5;   // > 5% of weekly time = adequately studied
 const OVER_STUDIED_PCT = 15;   // > 15% = over-studied
 const STRONG_ACCURACY = 75;    // >= 75% accuracy = strong
 
-export default async function ReportsPage() {
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
+  const { period } = await searchParams;
+  const lookbackDays = period === "90" ? 90 : 30;
   const supabase = await createClient();
   const {
     data: { user },
@@ -69,7 +76,8 @@ export default async function ReportsPage() {
   const timezone = profile?.timezone ?? "Asia/Kolkata";
 
   const now = Date.now();
-  const thirtyDaysAgo = new Date(now - 30 * 86400000).toISOString();
+  const lookbackMs = lookbackDays * 86400000;
+  const periodStart = new Date(now - lookbackMs).toISOString();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 
   // Fetch sessions with topic + subject info
@@ -77,7 +85,7 @@ export default async function ReportsPage() {
     .from("study_sessions")
     .select("start_timestamp, end_timestamp, pause_duration_seconds, topic_id, topics(name, subjects(name, color))")
     .eq("user_id", user.id)
-    .gte("start_timestamp", thirtyDaysAgo)
+    .gte("start_timestamp", periodStart)
     .is("deleted_at", null)
     .not("end_timestamp", "is", null);
 
@@ -86,8 +94,28 @@ export default async function ReportsPage() {
     .from("question_batches")
     .select("attempted, correct, topic_id")
     .eq("user_id", user.id)
-    .gte("logged_at", thirtyDaysAgo)
+    .gte("logged_at", periodStart)
     .is("deleted_at", null);
+
+  // Fetch mock sections for cross-correlation (Phase 22.3)
+  const { data: rawMockSections } = await supabase
+    .from("mock_sections")
+    .select("name, attempted, correct, mock_id, mocks!inner(mock_date)")
+    .eq("user_id", user.id)
+    .gte("mocks.mock_date", periodStart.split("T")[0]);
+
+  // Build a map of topic name → mock section accuracy
+  // (since mock_sections don't have topic_id, match by name similarity — exact match on name)
+  type MockAccData = { attempted: number; correct: number; count: number };
+  const mockSectionAccMap = new Map<string, MockAccData>();
+  (rawMockSections ?? []).forEach((ms: any) => {
+    const key = ms.name.toLowerCase().trim();
+    if (!mockSectionAccMap.has(key)) mockSectionAccMap.set(key, { attempted: 0, correct: 0, count: 0 });
+    const d = mockSectionAccMap.get(key)!;
+    d.attempted += ms.attempted;
+    d.correct += ms.correct;
+    d.count++;
+  });
 
   // Aggregate time per topic
   type TopicInfo = { name: string; subjectName: string; subjectColor: string; seconds: number };
@@ -202,20 +230,87 @@ export default async function ReportsPage() {
 
   const totalHours = secondsToHours(totalSeconds);
 
+  // ── Narrative Summary (deterministic string — no LLMs) ──────────────────
+  function buildNarrative(): string {
+    if (diagnoses.length === 0) return "";
+
+    const weakUnder = groupedByState.weak_under_studied;
+    const weakAdequate = groupedByState.weak_adequately_studied;
+    const strongOver = groupedByState.strong_over_studied;
+    const strongOk = groupedByState.strong_appropriately_studied;
+
+    const parts: string[] = [];
+
+    parts.push(`You studied ${totalHours.toFixed(1)}h across ${diagnoses.length} topic${diagnoses.length !== 1 ? "s" : ""} in the last 30 days.`);
+
+    if (weakUnder.length > 0) {
+      const names = weakUnder.slice(0, 2).map(d => d.topicName).join(", ");
+      const more = weakUnder.length > 2 ? ` and ${weakUnder.length - 2} more` : "";
+      parts.push(`${weakUnder.length} topic${weakUnder.length !== 1 ? "s are" : " is"} weak and under-studied (${names}${more}) — these need more time immediately.`);
+    }
+
+    if (weakAdequate.length > 0) {
+      const names = weakAdequate.slice(0, 2).map(d => d.topicName).join(", ");
+      parts.push(`${weakAdequate.length} topic${weakAdequate.length !== 1 ? "s are" : " is"} weak despite adequate time (${names}) — your approach on these needs investigation, not more hours.`);
+    }
+
+    if (strongOver.length > 0) {
+      const names = strongOver.slice(0, 2).map(d => d.topicName).join(", ");
+      parts.push(`You are over-investing in ${names} — these are strong. Redirect those hours to your weak areas.`);
+    }
+
+    if (weakUnder.length === 0 && weakAdequate.length === 0 && strongOk.length > 0) {
+      parts.push(`All studied topics are either on track or strong. Maintain current pacing.`);
+    }
+
+    return parts.join(" ");
+  }
+
+  const narrative = buildNarrative();
+
   return (
     <div className="space-y-8 animate-fade-in pb-12">
-      <div>
-        <h1 className="text-xl font-semibold text-neutral-100 tracking-tight mb-1">
-          Weekly Diagnosis Report
-        </h1>
-        <p className="text-sm text-neutral-500">
-          Based on 30 days of data · {todayStr} · {totalHours.toFixed(1)}h total study time analyzed
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-semibold text-neutral-100 tracking-tight mb-1">
+            Diagnosis Report
+          </h1>
+          <p className="text-sm text-neutral-500">
+            Based on {lookbackDays} days of data · {todayStr} · {totalHours.toFixed(1)}h analyzed
+          </p>
+        </div>
+        {/* Period toggle */}
+        <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+          {[{label: "30 Days", value: "30"}, {label: "90 Days", value: "90"}].map(opt => (
+            <Link
+              key={opt.value}
+              href={`/reports${opt.value !== "30" ? `?period=${opt.value}` : ""}`}
+              className="text-xs px-3 py-1.5 rounded-md font-medium transition-all"
+              style={{
+                background: (period === opt.value || (!period && opt.value === "30")) ? "#262626" : "transparent",
+                color: (period === opt.value || (!period && opt.value === "30")) ? "#ededed" : "#525252",
+              }}
+            >
+              {opt.label}
+            </Link>
+          ))}
+        </div>
       </div>
+
+      {/* Executive Narrative */}
+      {narrative && (
+        <div
+          className="rounded-xl p-5 border-l-4"
+          style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderLeftColor: groupedByState.weak_under_studied.length > 0 ? "#ef4444" : groupedByState.strong_appropriately_studied.length > 0 ? "#34d399" : "#f59e0b" }}
+        >
+          <p className="text-[10px] uppercase tracking-widest text-neutral-600 mb-2 font-semibold">Executive Summary</p>
+          <p className="text-sm leading-relaxed" style={{ color: "rgba(232,232,240,0.8)" }}>{narrative}</p>
+        </div>
+      )}
 
       {diagnoses.length === 0 ? (
         <div className="rounded-xl p-10 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-          <p className="text-sm text-neutral-400">No study sessions with topics found in the last 30 days.</p>
+          <p className="text-sm text-neutral-400">No study sessions with topics found in the last {lookbackDays} days.</p>
           <p className="text-xs text-neutral-600 mt-1">Tag your timer sessions with a topic to enable diagnosis.</p>
         </div>
       ) : (
@@ -279,6 +374,21 @@ export default async function ReportsPage() {
                                 <p className="text-[10px] text-neutral-600">{d.attempted} qs</p>
                               </div>
                             )}
+                            {/* Mock section accuracy cross-correlation */}
+                            {(() => {
+                              const key = d.topicName.toLowerCase().trim();
+                              const mockData = mockSectionAccMap.get(key);
+                              if (!mockData || mockData.attempted === 0) return null;
+                              const mockAcc = (mockData.correct / mockData.attempted) * 100;
+                              return (
+                                <div title={`${mockData.count} mock section(s)`}>
+                                  <p className="text-sm font-semibold tabular-nums" style={{ color: mockAcc >= 75 ? "#a78bfa" : "#fb923c" }}>
+                                    {mockAcc.toFixed(0)}%
+                                  </p>
+                                  <p className="text-[10px] text-neutral-600">mock acc</p>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
 

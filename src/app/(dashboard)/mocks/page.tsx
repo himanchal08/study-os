@@ -49,6 +49,22 @@ export default async function MocksPage() {
     .order("mock_date", { ascending: false })
     .limit(50);
 
+  // Fetch section counts per mock for the "flagged" pill
+  const allMockIds = (mocks ?? []).map(m => m.id);
+  const { data: sectionsRaw } = allMockIds.length > 0
+    ? await supabase
+        .from("mock_sections")
+        .select("mock_id, duration_minutes")
+        .in("mock_id", allMockIds)
+        .eq("user_id", user.id)
+    : { data: [] };
+
+  // Count sections with timing data per mock
+  const sectionCountMap = new Map<string, number>();
+  (sectionsRaw ?? []).forEach(s => {
+    sectionCountMap.set(s.mock_id, (sectionCountMap.get(s.mock_id) ?? 0) + 1);
+  });
+
   // Summary stats
   const allMocks = mocks ?? [];
   const avgScore = allMocks.length > 0
@@ -122,6 +138,11 @@ export default async function MocksPage() {
                         )}
                         <span className="text-[10px] text-neutral-600">{m.source}</span>
                         <span className="text-[10px] text-neutral-700">{m.mock_date}</span>
+                        {(sectionCountMap.get(m.id) ?? 0) > 0 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24" }}>
+                            {sectionCountMap.get(m.id)} section{(sectionCountMap.get(m.id) ?? 0) !== 1 ? "s" : ""} logged
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-2 text-xs text-neutral-500">
                         <span>✓ {m.correct}</span>

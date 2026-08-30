@@ -91,8 +91,68 @@ export default async function HomePage() {
     .is("deleted_at", null)
     .order("start_timestamp", { ascending: false });
 
+  // Compute today's study hours for the target bar
+  const todayStartStr = `${todayStr}T00:00:00`;
+  const { data: todaySessions } = await supabase
+    .from("study_sessions")
+    .select("start_timestamp, end_timestamp, pause_duration_seconds")
+    .eq("user_id", user.id)
+    .gte("start_timestamp", todayStartStr)
+    .is("deleted_at", null);
+
+  const todayHours = (todaySessions ?? []).reduce((sum, s) => {
+    if (!s.end_timestamp) return sum;
+    const secs = Math.max(0,
+      (new Date(s.end_timestamp).getTime() - new Date(s.start_timestamp).getTime()) / 1000
+      - (s.pause_duration_seconds ?? 0)
+    );
+    return sum + secs / 3600;
+  }, 0);
+
+  const targetHours = profile?.daily_target_hours ?? 8;
+  const targetPct = Math.min(100, (todayHours / targetHours) * 100);
+  const targetLabel = targetPct >= 100
+    ? "🎯 Daily goal reached!"
+    : targetPct >= 75
+    ? "Almost there — keep going"
+    : targetPct >= 40
+    ? "Good progress today"
+    : "Session not started yet";
+
   return (
     <div className="space-y-8 animate-fade-in pb-12">
+
+      {/* Daily Target Bar — Phase 23.4 */}
+      <section aria-label="Daily study target">
+        <div className="rounded-2xl p-5" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Today&apos;s Target</p>
+              <p className="text-sm text-neutral-600 mt-0.5">{targetLabel}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold tabular-nums" style={{ color: targetPct >= 100 ? "#34d399" : "#ededed" }}>
+                {todayHours.toFixed(1)}<span className="text-base font-normal text-neutral-600">h</span>
+              </p>
+              <p className="text-xs text-neutral-600">of {targetHours}h</p>
+            </div>
+          </div>
+          <div className="w-full rounded-full h-2" style={{ background: "#1a1a1a" }}>
+            <div
+              className="h-2 rounded-full transition-all duration-700"
+              style={{
+                width: `${targetPct}%`,
+                background: targetPct >= 100
+                  ? "linear-gradient(90deg, #34d399, #10b981)"
+                  : targetPct >= 60
+                  ? "linear-gradient(90deg, #818cf8, #a78bfa)"
+                  : "linear-gradient(90deg, #525252, #737373)",
+              }}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* 2. Today's Tasks */}
       <section aria-label="Today's Tasks">
         <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Today&apos;s Tasks</h2>

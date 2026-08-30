@@ -3,22 +3,60 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Adaptive interval table (days until next revision based on recall score)
+const ADAPTIVE_INTERVALS: Record<number, number> = {
+  1: 1,   // Forgot → review tomorrow
+  2: 2,   // Very hard → 2 days
+  3: 7,   // Hard → 1 week (keep default weekly cadence)
+  4: 14,  // Good → 2 weeks
+  5: 21,  // Easy → 3 weeks
+};
+
+function addDays(date: Date, days: number): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
 export async function markRevisionDone(id: string, recallScore: number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
-  const { error } = await supabase
+  const now = new Date();
+
+  // 1. Mark current revision as done
+  const { data: revision, error } = await supabase
     .from("revisions")
     .update({
-      completed_at: new Date().toISOString(),
+      completed_at: now.toISOString(),
       recall_score: recallScore,
-      updated_at: new Date().toISOString(),
+      updated_at: now.toISOString(),
     })
     .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select()
+    .single();
 
   if (error) return { error: error.message };
+
+  // 2. Adaptive Engine: spawn next revision based on recall score
+  // Only for scores 1-4 (score 5 = mastered, no forced follow-up unless it's a cycle)
+  if (revision && recallScore <= 4) {
+    const intervalDays = ADAPTIVE_INTERVALS[recallScore] ?? 7;
+    const nextDueDate = addDays(now, intervalDays);
+
+    await supabase.from("revisions").insert({
+      user_id: user.id,
+      topic_id: revision.topic_id,
+      source_session_id: revision.source_session_id,
+      cycle_type: recallScore <= 2 ? "daily" : recallScore === 3 ? "weekly" : "monthly",
+      due_date: nextDueDate,
+      is_adaptive: true,
+      adaptive_interval_days: intervalDays,
+      grace_window_days: recallScore <= 2 ? 1 : recallScore === 3 ? 2 : 5,
+    });
+  }
 
   revalidatePath("/revisions");
   revalidatePath("/");
@@ -50,3 +88,4 @@ export async function scheduleRevision(prevState: unknown, formData: FormData) {
   revalidatePath("/");
   return { success: true };
 }
+

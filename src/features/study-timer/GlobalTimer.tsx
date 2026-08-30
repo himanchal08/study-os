@@ -8,19 +8,24 @@ interface GlobalTimerProps {
   userId: string;
   activeSession: Tables<"study_sessions"> | null;
   subjects: Array<{ id: string; name: string; color: string | null }>;
+  topics: Array<{ id: string; name: string; subject_id: string }>;
 }
 
-export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProps) {
+export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalTimerProps) {
   const [session, setSession] = useState(activeSession);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [selectedSubject, setSelectedSubject] = useState<string>(activeSession?.subject_id ?? "");
+  const [selectedTopic, setSelectedTopic] = useState<string>(activeSession?.topic_id ?? "");
   const [activityType, setActivityType] = useState<Tables<"study_sessions">["activity_type"]>(
     activeSession?.activity_type ?? "practice"
   );
   
   const [notes, setNotes] = useState<string>(activeSession?.notes ?? "");
+
+  // Topics filtered by selected subject — cascading dropdown
+  const filteredTopics = topics.filter(t => t.subject_id === selectedSubject);
 
   // Wall-clock ms when the current running segment started (not the session start timestamp).
   // This is reset on every resume so we can accumulate clean elapsed time.
@@ -82,6 +87,7 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
     const result = await startSession({ 
       userId,
       subjectId: selectedSubject || null,
+      topicId: selectedTopic || null,
       activityType: activityType,
       notes: notes.trim() || null
     });
@@ -95,7 +101,7 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
       setPausedAtMs(null);
     }
     setLoading(false);
-  }, [userId, selectedSubject, notes, activityType]);
+  }, [userId, selectedSubject, selectedTopic, notes, activityType]);
 
   const handlePauseToggle = useCallback(() => {
     if (isPaused) {
@@ -133,6 +139,7 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
       setTotalPauseSec(0);
       setPausedAtMs(null);
       setNotes("");
+      setSelectedTopic("");
     }
     setLoading(false);
   }, [session, userId, isPaused, pausedAtMs, totalPauseSec]);
@@ -162,8 +169,9 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
 
         <div className="h-4 w-px bg-neutral-800 mx-2" />
 
+        {/* Subject picker */}
         <div className="flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-500">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-500 shrink-0">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
           {isRunning ? (
@@ -173,7 +181,10 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
           ) : (
             <select
               value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
+              onChange={(e) => {
+                setSelectedSubject(e.target.value);
+                setSelectedTopic(""); // reset topic on subject change
+              }}
               disabled={isRunning || loading}
               className="text-xs bg-transparent text-neutral-300 outline-none hover:text-neutral-200 cursor-pointer appearance-none pr-4"
               style={{
@@ -190,6 +201,41 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
             </select>
           )}
         </div>
+
+        {/* Topic picker — cascades from selected subject */}
+        {(selectedSubject || session?.topic_id) && (
+          <>
+            <div className="h-4 w-px bg-neutral-800" />
+            <div className="flex items-center gap-2">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-600 shrink-0">
+                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+              </svg>
+              {isRunning ? (
+                <span className="text-xs text-neutral-400">
+                  {topics.find(t => t.id === session?.topic_id)?.name || "No Topic"}
+                </span>
+              ) : (
+                <select
+                  value={selectedTopic}
+                  onChange={(e) => setSelectedTopic(e.target.value)}
+                  disabled={isRunning || loading}
+                  className="text-xs bg-transparent text-neutral-500 outline-none hover:text-neutral-300 cursor-pointer appearance-none pr-4"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23525252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right center',
+                    backgroundSize: '12px'
+                  }}
+                >
+                  <option value="" className="bg-neutral-900 text-neutral-500">No Topic</option>
+                  {filteredTopics.map(t => (
+                    <option key={t.id} value={t.id} className="bg-neutral-900 text-white">{t.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </>
+        )}
 
         <div className="h-4 w-px bg-neutral-800 mx-2" />
 

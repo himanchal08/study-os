@@ -42,6 +42,14 @@ export default async function DashboardLayout({
     .is("deleted_at", null)
     .order("name", { ascending: true });
 
+  const { data: topics } = await supabase
+    .from("topics")
+    .select("id, name, subject_id")
+    .eq("user_id", safeUser.id)
+    .is("deleted_at", null)
+    .is("archived_at", null)
+    .order("name", { ascending: true });
+
   return (
     <div className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>
       <Sidebar userEmail={safeUser.email ?? ""} />
@@ -54,7 +62,8 @@ export default async function DashboardLayout({
         <GlobalTimer 
           userId={safeUser.id} 
           activeSession={activeSession} 
-          subjects={subjects ?? []} 
+          subjects={subjects ?? []}
+          topics={topics ?? []}
         />
         <main
           id="main-content"

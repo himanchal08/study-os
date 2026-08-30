@@ -24,6 +24,7 @@ export async function logMock(prevState: unknown, formData: FormData) {
     const percentile = formData.get("percentile") ? Number(formData.get("percentile")) : null;
     const rank = formData.get("rank") ? Number(formData.get("rank")) : null;
     const notes = (formData.get("notes") as string)?.trim() || null;
+    const recommendedDuration = formData.get("recommended_duration_minutes") ? Number(formData.get("recommended_duration_minutes")) : null;
 
     if (!name || !source || !mockDate) return { error: "Name, source and date are required." };
     if (isNaN(score) || isNaN(maxMarks) || maxMarks <= 0) return { error: "Invalid marks." };
@@ -42,6 +43,7 @@ export async function logMock(prevState: unknown, formData: FormData) {
       wrong,
       unattempted,
       actual_duration_minutes: duration,
+      recommended_duration_minutes: recommendedDuration,
       percentile,
       rank,
       notes,

@@ -34,7 +34,7 @@ export default async function RevisionsPage() {
   // eslint-disable-next-line react-hooks/purity
   const todayStr = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
 
-  const [{ data: subjectsRaw }, { data: topicsRaw }, { data: revisionsRaw }] = await Promise.all([
+  const [{ data: subjectsRaw }, { data: topicsRaw }, { data: revisionsRaw }, { data: historyRaw }] = await Promise.all([
     supabase.from("subjects").select("id, name, color").order("name"),
     supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("name"),
     supabase
@@ -44,7 +44,39 @@ export default async function RevisionsPage() {
       .lte("due_date", todayStr)
       .order("due_date", { ascending: true })
       .limit(100),
+    // Revision history — last 30 days of completed revisions for the history panel
+    supabase
+      .from("revisions")
+      .select("id, due_date, completed_at, cycle_type, recall_score, topics(name, subjects(name, color))")
+      .eq("user_id", user.id)
+      .not("completed_at", "is", null)
+      .gte("completed_at", new Date(Date.now() - 30 * 86400000).toISOString())
+      .order("completed_at", { ascending: false })
+      .limit(200),
   ]);
+
+  // Group history by topic
+  type HistEntry = { date: string; cycleType: string; recallScore: number | null };
+  type TopicHistory = { topicName: string; subjectName: string; subjectColor: string; entries: HistEntry[] };
+  const historyByTopic = new Map<string, TopicHistory>();
+  (historyRaw ?? []).forEach((r: any) => {
+    const topic = r.topics as { name: string; subjects: { name: string; color: string } | null } | null;
+    const key = topic?.name ?? "Unknown";
+    if (!historyByTopic.has(key)) {
+      historyByTopic.set(key, {
+        topicName: key,
+        subjectName: topic?.subjects?.name ?? "",
+        subjectColor: topic?.subjects?.color ?? "#52525b",
+        entries: [],
+      });
+    }
+    historyByTopic.get(key)!.entries.push({
+      date: r.completed_at ? r.completed_at.split("T")[0] : r.due_date,
+      cycleType: r.cycle_type,
+      recallScore: r.recall_score,
+    });
+  });
+  const historyTopics = Array.from(historyByTopic.values());
 
   const subjects = subjectsRaw ?? [];
   const topics = topicsRaw ?? [];
@@ -135,6 +167,59 @@ export default async function RevisionsPage() {
           )}
         </div>
       </div>
+
+      {/* Revision History — Phase 21.3 */}
+      {historyTopics.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider mb-3">
+            30-Day Revision History
+          </h2>
+          <div className="space-y-2">
+            {historyTopics.map((ht) => {
+              const avgRecall = ht.entries.filter(e => e.recallScore !== null).length > 0
+                ? ht.entries.reduce((s, e) => s + (e.recallScore ?? 0), 0) / ht.entries.filter(e => e.recallScore !== null).length
+                : null;
+              return (
+                <div key={ht.topicName} className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: ht.subjectColor }} />
+                      <span className="text-sm font-medium text-neutral-300 truncate">{ht.topicName}</span>
+                      <span className="text-[10px] text-neutral-600 shrink-0">{ht.subjectName}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 text-xs text-neutral-500">
+                      <span>{ht.entries.length} session{ht.entries.length !== 1 ? "s" : ""}</span>
+                      {avgRecall !== null && (
+                        <span style={{ color: avgRecall >= 4 ? "#34d399" : avgRecall >= 3 ? "#f59e0b" : "#ef4444" }}>
+                          avg {avgRecall.toFixed(1)}/5
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Recall score dot timeline */}
+                  <div className="flex items-center gap-1 flex-wrap mt-1">
+                    {ht.entries.slice(0, 30).map((e, i) => {
+                      const score = e.recallScore;
+                      const dotColor = score === null ? "#262626"
+                        : score <= 2 ? "#ef4444"
+                        : score === 3 ? "#f59e0b"
+                        : "#34d399";
+                      return (
+                        <div
+                          key={i}
+                          className="w-2.5 h-2.5 rounded-full transition-all"
+                          style={{ background: dotColor }}
+                          title={`${e.date} — ${e.cycleType}${score !== null ? ` — ${score}/5` : ""}`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

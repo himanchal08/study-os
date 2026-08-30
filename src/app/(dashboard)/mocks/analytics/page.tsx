@@ -122,7 +122,7 @@ export default async function MockAnalyticsPage() {
             </div>
             <div className="flex items-center gap-4 mt-6 pt-4 border-t" style={{ borderColor: "#1a1a1a" }}>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-[#262626]" /><span className="text-xs text-neutral-500">Score %</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded opacity-50 bg-[#38bdf8]" /><span className="text-xs text-neutral-500">Accuracy %</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded opacity-50 bg-accent-sky" /><span className="text-xs text-neutral-500">Accuracy %</span></div>
               {safetyTargetPct !== null && (
                 <div className="flex items-center gap-1.5"><div className="w-3 border-t-2 border-dashed border-emerald-500/50" /><span className="text-xs text-neutral-500">Safety Target</span></div>
               )}
@@ -150,7 +150,7 @@ export default async function MockAnalyticsPage() {
                   {q.data.length > 0 ? (
                     <div className="space-y-1.5 mt-4">
                       {q.data.map(c => (
-                        <div key={c.mock.id} className="text-xs flex items-center justify-between px-2 py-1.5 rounded bg-white/[0.02]">
+                        <div key={c.mock.id} className="text-xs flex items-center justify-between px-2 py-1.5 rounded bg-white/2">
                           <span className="text-neutral-400 truncate pr-2">{c.mock.name}</span>
                           <span className="text-neutral-600 shrink-0">{c.mock.score} / {c.mock.maximum_marks}</span>
                         </div>
