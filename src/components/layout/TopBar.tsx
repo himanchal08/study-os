@@ -26,7 +26,7 @@ export function TopBar({ profile }: TopBarProps) {
 
   return (
     <header
-      className="h-14 flex items-center justify-between px-6 border-b flex-shrink-0"
+      className="h-14 flex items-center justify-between px-6 border-b shrink-0"
       style={{
         background: "var(--surface)",
         borderColor: "var(--border-subtle)",

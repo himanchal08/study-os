@@ -17,7 +17,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
   return (
     <nav
       aria-label="Main navigation"
-      className="w-56 flex-shrink-0 flex flex-col border-r h-full"
+      className="w-56 shrink-0 flex flex-col border-r h-full"
       style={{
         background: "var(--surface)",
         borderColor: "var(--border-subtle)",
@@ -28,7 +28,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
         className="px-5 py-5 flex items-center gap-3 border-b"
         style={{ borderColor: "var(--border-subtle)" }}
       >
-        <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center shrink-0">
           <svg
             width="16"
             height="16"
@@ -67,7 +67,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
           style={{ background: "rgba(255,255,255,0.03)" }}
         >
           <div
-            className="w-7 h-7 rounded-full gradient-brand flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+            className="w-7 h-7 rounded-full gradient-brand flex items-center justify-center text-xs font-bold text-white shrink-0"
             aria-hidden="true"
           >
             {userEmail.charAt(0).toUpperCase()}
