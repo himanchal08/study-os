@@ -19,6 +19,8 @@ export type Database = {
           day_boundary_offset_minutes: number;
           timezone: string;
           onboarding_complete: boolean;
+          tutorial_completed: boolean;
+          google_refresh_token: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -31,6 +33,8 @@ export type Database = {
           day_boundary_offset_minutes?: number;
           timezone?: string;
           onboarding_complete?: boolean;
+          tutorial_completed?: boolean;
+          google_refresh_token?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -43,6 +47,8 @@ export type Database = {
           day_boundary_offset_minutes?: number;
           timezone?: string;
           onboarding_complete?: boolean;
+          tutorial_completed?: boolean;
+          google_refresh_token?: string | null;
           updated_at?: string;
         };
         Relationships: [];
