@@ -13,6 +13,7 @@ import { StudyTimeChart } from "@/features/analytics/StudyTimeChart";
 import { SubjectAllocationChart } from "@/features/analytics/SubjectAllocationChart";
 import { TimeOfDayChart } from "@/features/analytics/TimeOfDayChart";
 import { HeatmapGrid } from "@/features/analytics/HeatmapGrid";
+import Link from "next/link";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -42,8 +43,10 @@ export default async function AnalyticsPage() {
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
   const target    = profile?.daily_target_hours ?? 8;
 
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const todayStr = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 
   type SessionRow = Pick<Tables<"study_sessions">, "start_timestamp" | "end_timestamp" | "pause_duration_seconds" | "subject_id"> & {
     subjects: { id: string; name: string; color: string } | null;
@@ -69,7 +72,7 @@ export default async function AnalyticsPage() {
   const dailyMap = groupSessionsByDay(sessions, offsetMin, timezone);
   const last7: Array<{ date: string; hours: number; target: number; hitTarget: boolean }> = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
+    const d = new Date(now - i * 86400000);
     const key = dayBoundaryAwareDate(d.getTime(), offsetMin, timezone);
     const hours = dailyMap.get(key) ?? 0;
     last7.push({ date: DAY_LABELS[d.getDay()], hours, target, hitTarget: hours >= target });
@@ -125,7 +128,7 @@ export default async function AnalyticsPage() {
 
   // 52-week heatmap — start date = 364 days ago (52 full weeks)
   const heatmapEnd = todayStr;
-  const heatStartDate = new Date(Date.now() - 363 * 86400000);
+  const heatStartDate = new Date(now - 363 * 86400000);
   const heatmapStart = dayBoundaryAwareDate(heatStartDate.getTime(), offsetMin, timezone);
 
   // Fetch sessions for the full 52-week window (may be wider than 30 days)
@@ -179,8 +182,8 @@ export default async function AnalyticsPage() {
             key={i}
             className="rounded-2xl p-4 relative overflow-hidden"
             style={{
-              background: `linear-gradient(135deg, #0f0f1a 0%, ${card.color}0f 100%)`,
-              border: `1px solid ${card.color}22`,
+              background: "#111111",
+              border: "1px solid var(--border)",
             }}
           >
             <p className="text-[11px] uppercase tracking-wider font-medium mb-1" style={{ color: "rgba(232,232,240,0.38)" }}>
@@ -230,20 +233,20 @@ export default async function AnalyticsPage() {
       <div
         className="rounded-2xl p-4 flex items-center justify-between"
         style={{
-          background: "linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(139,92,246,0.03) 100%)",
-          border: "1px solid rgba(99,102,241,0.12)",
+          background: "#111111",
+          border: "1px solid var(--border)",
         }}
       >
         <p className="text-xs" style={{ color: "rgba(232,232,240,0.5)" }}>
           Today is <span style={{ color: "#818cf8" }}>{todayStr}</span> · Live KPIs on Home dashboard
         </p>
-        <a
+        <Link
           href="/"
           className="text-xs px-3 py-1.5 rounded-xl font-semibold transition-all hover:opacity-80"
-          style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.2)" }}
+          style={{ background: "#ededed", color: "#0a0a0a", border: "1px solid #ededed" }}
         >
           Home ↗
-        </a>
+        </Link>
       </div>
     </div>
   );

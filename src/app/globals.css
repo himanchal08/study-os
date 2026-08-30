@@ -17,34 +17,34 @@
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
 
-  /* Brand — indigo/violet (only used for brand identity, not everywhere) */
-  --color-brand-50:  #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
+  /* Brand — crisp white/monochrome */
+  --color-brand-50:  #fafafa;
+  --color-brand-100: #f4f4f5;
+  --color-brand-200: #e4e4e7;
+  --color-brand-300: #d4d4d8;
+  --color-brand-400: #a1a1aa;
+  --color-brand-500: #71717a;
+  --color-brand-600: #52525b;
+  --color-brand-700: #3f3f46;
+  --color-brand-800: #27272a;
+  --color-brand-900: #18181b;
 
-  /* Semantic accents — each feature area owns one color */
-  --color-success:  #22c55e;   /* tasks / completion */
+  /* Semantic accents — sharp and clear */
+  --color-success:  #10b981;   /* tasks / completion */
   --color-warning:  #f59e0b;   /* accuracy / paused */
   --color-danger:   #ef4444;   /* errors / failed */
-  --color-info:     #06b6d4;   /* revisions / info */
-  --color-accent-violet: #a78bfa; /* analytics headers */
-  --color-accent-rose:   #fb7185; /* mocks / high-stakes */
+  --color-info:     #0ea5e9;   /* revisions / info */
+  --color-accent-violet: #8b5cf6; /* analytics headers */
+  --color-accent-rose:   #f43f5e; /* mocks / high-stakes */
   --color-accent-sky:    #38bdf8; /* reports / insights */
 
   /* Heatmap cell levels */
-  --color-heat-0: #111118;
-  --color-heat-1: #1e1b4b;
-  --color-heat-2: #312e81;
-  --color-heat-3: #3730a3;
-  --color-heat-4: #4f46e5;
-  --color-heat-5: #818cf8;
+  --color-heat-0: #111111;
+  --color-heat-1: #1e1e1e;
+  --color-heat-2: #2d2d2d;
+  --color-heat-3: #404040;
+  --color-heat-4: #525252;
+  --color-heat-5: #737373;
   --color-heat-annotated: #f59e0b;
 
   /* Typography */
@@ -52,36 +52,36 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   /* Radius */
-  --radius-sm:  0.375rem;
-  --radius-md:  0.5rem;
-  --radius-lg:  0.75rem;
-  --radius-xl:  1rem;
-  --radius-2xl: 1.5rem;
+  --radius-sm:  0.25rem;
+  --radius-md:  0.375rem;
+  --radius-lg:  0.5rem;
+  --radius-xl:  0.75rem;
+  --radius-2xl: 1rem;
 
-  /* Shadows */
-  --shadow-glass: 0 4px 32px -2px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
-  --shadow-card:  0 2px 16px rgba(0,0,0,0.5);
-  --shadow-glow-brand:   0 0 24px rgba(99,102,241,0.3);
-  --shadow-glow-success: 0 0 20px rgba(34,197,94,0.25);
-  --shadow-glow-warning: 0 0 20px rgba(245,158,11,0.25);
-  --shadow-glow-info:    0 0 20px rgba(6,182,212,0.25);
+  /* Shadows - Minimalist */
+  --shadow-glass: 0 1px 2px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+  --shadow-card:  0 4px 12px rgba(0,0,0,0.5);
+  --shadow-glow-brand:   0 0 0;
+  --shadow-glow-success: 0 0 0;
+  --shadow-glow-warning: 0 0 0;
+  --shadow-glow-info:    0 0 0;
 }
 
 /* ── CSS Custom Properties ── */
 :root {
-  /* Deep near-black backgrounds — no purple bleed */
-  --background: #08080f;
-  --foreground: #e8e8f0;
+  /* Ultra-dark monochrome backgrounds */
+  --background: #000000;
+  --foreground: #ededed;
 
   /* Surfaces layered from darkest to slightly lighter */
-  --surface:          #0f0f1a;
-  --surface-elevated: #161625;
-  --surface-card:     #1a1a2c;
+  --surface:          #0a0a0a;
+  --surface-elevated: #111111;
+  --surface-card:     #111111;
 
-  /* Borders: white-glass, NOT indigo-tinted */
-  --border:        rgba(255,255,255,0.07);
-  --border-subtle: rgba(255,255,255,0.04);
-  --border-accent: rgba(99,102,241,0.3); /* only for intentionally highlighted elements */
+  /* Borders: solid and clean */
+  --border:        #262626;
+  --border-subtle: #171717;
+  --border-accent: #333333; 
 
   color-scheme: dark;
 }
@@ -98,11 +98,6 @@ html {
 
 body {
   background: var(--background);
-  /* Subtle dark ambient glow — teal top-left, deep violet bottom-right */
-  background-image:
-    radial-gradient(ellipse 80% 50% at 15% 0%, rgba(6,182,212,0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 85% 100%, rgba(99,102,241,0.05) 0%, transparent 60%);
-  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans);
   min-height: 100dvh;
@@ -114,17 +109,17 @@ body {
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
+  background: #333;
   border-radius: 9999px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+::-webkit-scrollbar-thumb:hover { background: #555; }
 
 /* ── Selection ── */
-::selection { background: rgba(99,102,241,0.3); color: #fff; }
+::selection { background: #333; color: #fff; }
 
 /* ── Focus ring ── */
 :focus-visible {
-  outline: 2px solid rgba(99,102,241,0.7);
+  outline: 2px solid #ededed;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -133,73 +128,54 @@ body {
    Utility classes
    ===================================================================== */
 
-/* Base glass — near-black surface, white-glass border */
+/* Base container — solid dark, subtle border */
 .glass {
-  background: rgba(15,15,26,0.75);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: #0a0a0a;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-glass);
 }
 
-/* Tinted glass variants for semantic feature areas */
+/* Tinted container variants for semantic feature areas */
 .glass-teal {
-  background: rgba(6,182,212,0.04);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(6,182,212,0.12);
-  box-shadow: var(--shadow-glass);
+  background: #0a0a0a;
+  border: 1px solid #14b8a633;
 }
 
 .glass-emerald {
-  background: rgba(16,185,129,0.04);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(16,185,129,0.12);
-  box-shadow: var(--shadow-glass);
+  background: #0a0a0a;
+  border: 1px solid #10b98133;
 }
 
 .glass-amber {
-  background: rgba(245,158,11,0.04);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(245,158,11,0.12);
-  box-shadow: var(--shadow-glass);
+  background: #0a0a0a;
+  border: 1px solid #f59e0b33;
 }
 
 .glass-violet {
-  background: rgba(139,92,246,0.04);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(139,92,246,0.12);
-  box-shadow: var(--shadow-glass);
+  background: #0a0a0a;
+  border: 1px solid #8b5cf633;
 }
 
 .glass-rose {
-  background: rgba(251,113,133,0.04);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(251,113,133,0.12);
-  box-shadow: var(--shadow-glass);
+  background: #0a0a0a;
+  border: 1px solid #f43f5e33;
 }
 
-/* Glows */
-.glow-brand   { box-shadow: var(--shadow-glow-brand); }
-.glow-success { box-shadow: var(--shadow-glow-success); }
-.glow-warning { box-shadow: var(--shadow-glow-warning); }
-.glow-info    { box-shadow: var(--shadow-glow-info); }
+/* Glows - disabled in minimal theme */
+.glow-brand   { box-shadow: none; }
+.glow-success { box-shadow: none; }
+.glow-warning { box-shadow: none; }
+.glow-info    { box-shadow: none; }
 
-/* Brand gradient — used only for logos / CTAs */
+/* Brand gradient — simplified to solid or extremely subtle gradient */
 .gradient-brand {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #a78bfa 100%);
+  background: #ededed;
+  color: #0a0a0a;
 }
 
-/* Gradient text — brand identity */
+/* Gradient text — brand identity (replaced with solid white for crispness) */
 .gradient-text {
-  background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ededed;
 }
 
 /* Section accent bars — left border stripe per feature area */

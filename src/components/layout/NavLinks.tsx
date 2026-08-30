@@ -125,21 +125,17 @@ export function NavLinks() {
             <Link
               href={item.href}
               aria-current={isActive ? "page" : undefined}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group relative"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all group relative"
               style={{
-                background: isActive
-                  ? `${item.accent}12`
-                  : "transparent",
-                color: isActive ? item.accent : "rgba(232,232,240,0.45)",
-                borderLeft: isActive
-                  ? `2px solid ${item.accent}`
-                  : "2px solid transparent",
+                background: isActive ? "#171717" : "transparent",
+                color: isActive ? "#ededed" : "#a1a1aa",
+                fontWeight: isActive ? 500 : 400,
               }}
             >
               <span
                 className="transition-colors shrink-0"
                 style={{
-                  color: isActive ? item.accent : "rgba(232,232,240,0.3)",
+                  color: isActive ? "#ededed" : "#52525b",
                 }}
               >
                 {item.icon}

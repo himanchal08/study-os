@@ -39,9 +39,9 @@ export function LoginForm() {
           required
           autoComplete="email"
           placeholder="you@example.com"
-          className="w-full px-3.5 py-2.5 rounded-xl text-sm transition-all"
+          className="w-full px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-1 focus:ring-white"
           style={{
-            background: "rgba(255,255,255,0.05)",
+            background: "#171717",
             border: "1px solid var(--border)",
             color: "var(--foreground)",
           }}
@@ -64,9 +64,9 @@ export function LoginForm() {
           required
           autoComplete={isSignUp ? "new-password" : "current-password"}
           placeholder="••••••••"
-          className="w-full px-3.5 py-2.5 rounded-xl text-sm transition-all"
+          className="w-full px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-1 focus:ring-white"
           style={{
-            background: "rgba(255,255,255,0.05)",
+            background: "#171717",
             border: "1px solid var(--border)",
             color: "var(--foreground)",
           }}
@@ -98,10 +98,10 @@ export function LoginForm() {
         id="submit-auth"
         type="submit"
         disabled={pending}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all hover:bg-neutral-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
-          background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-          color: "#fff",
+          background: "#ededed",
+          color: "#0a0a0a",
         }}
       >
         {pending ? (
@@ -143,8 +143,8 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setIsSignUp(!isSignUp)}
-          className="font-medium hover:underline"
-          style={{ color: "#818cf8" }}
+          className="font-medium hover:underline transition-colors"
+          style={{ color: "#ededed" }}
         >
           {isSignUp ? "Sign in" : "Create one"}
         </button>

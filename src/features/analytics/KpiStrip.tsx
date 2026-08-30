@@ -143,9 +143,8 @@ export async function KpiStrip({
           className="rounded-2xl p-4 relative overflow-hidden"
           role="listitem"
           style={{
-            background: `linear-gradient(135deg, #0f0f1a 0%, ${kpi.glowColor} 100%)`,
-            border: `1px solid ${kpi.borderColor}`,
-            boxShadow: `0 4px 24px -4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)`,
+            background: "#111111",
+            border: "1px solid var(--border)",
           }}
         >
           {/* Progress bar at bottom */}

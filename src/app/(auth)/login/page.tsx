@@ -15,13 +15,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md animate-fade-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl gradient-brand mb-4 glow">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-neutral-900 border border-neutral-800 mb-5 shadow-sm">
             <svg
               width="28"
               height="28"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="white"
+              stroke="#ededed"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -31,10 +31,9 @@ export default function LoginPage() {
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold gradient-text">Study OS</h1>
+          <h1 className="text-2xl font-bold text-neutral-100 tracking-tight">Study OS</h1>
           <p
-            className="text-sm mt-1"
-            style={{ color: "rgba(226,226,240,0.55)" }}
+            className="text-sm mt-1.5 text-neutral-500"
           >
             Your exam prep command centre
           </p>
