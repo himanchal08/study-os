@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import type { Tables } from "@/types/database";
 import { SiteTutorial } from "@/components/layout/SiteTutorial";
+import { GlobalTimer } from "@/features/study-timer/GlobalTimer";
 
 export default async function DashboardLayout({
   children,
@@ -27,6 +28,20 @@ export default async function DashboardLayout({
     .eq("user_id", safeUser.id)
     .single();
 
+  const { data: activeSession } = await supabase
+    .from("study_sessions")
+    .select("*")
+    .eq("user_id", safeUser.id)
+    .is("end_timestamp", null)
+    .maybeSingle();
+
+  const { data: subjects } = await supabase
+    .from("subjects")
+    .select("id, name, color")
+    .eq("user_id", safeUser.id)
+    .is("deleted_at", null)
+    .order("name", { ascending: true });
+
   return (
     <div className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>
       <Sidebar userEmail={safeUser.email ?? ""} />
@@ -35,6 +50,11 @@ export default async function DashboardLayout({
         <TopBar
           profile={profile as Tables<"profiles"> | null}
           userId={safeUser.id}
+        />
+        <GlobalTimer 
+          userId={safeUser.id} 
+          activeSession={activeSession} 
+          subjects={subjects ?? []} 
         />
         <main
           id="main-content"

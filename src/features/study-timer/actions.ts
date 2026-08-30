@@ -12,6 +12,7 @@ export async function startSession(params: {
   subjectId?: string | null;
   topicId?: string | null;
   chapterId?: string | null;
+  notes?: string | null;
   activityType?: Tables<"study_sessions">["activity_type"];
   taskId?: string | null;
   clientGeneratedId?: string;
@@ -23,6 +24,7 @@ export async function startSession(params: {
     subjectId = null,
     topicId = null,
     chapterId = null,
+    notes = null,
     activityType = "practice",
     taskId = null,
     clientGeneratedId = randomUUID(),
@@ -49,6 +51,7 @@ export async function startSession(params: {
       subject_id: subjectId,
       topic_id: topicId,
       chapter_id: chapterId,
+      notes,
       activity_type: activityType,
       task_id: taskId,
       client_generated_id: clientGeneratedId,

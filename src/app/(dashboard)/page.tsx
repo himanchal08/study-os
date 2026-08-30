@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { KpiStrip } from "@/features/analytics/KpiStrip";
-import { StudyTimer } from "@/features/study-timer/StudyTimer";
 import { RevisionQueue } from "@/features/revisions/RevisionQueue";
 
 export const metadata: Metadata = {
@@ -22,12 +21,7 @@ export default async function HomePage() {
     .eq("user_id", user.id)
     .single();
 
-  const { data: activeSession } = await supabase
-    .from("study_sessions")
-    .select("*")
-    .eq("user_id", user.id)
-    .is("end_timestamp", null)
-    .maybeSingle();
+
 
   const today = new Date().toISOString().split("T")[0];
   const { data: revisionsDue } = await supabase
@@ -38,13 +32,6 @@ export default async function HomePage() {
     .is("completed_at", null)
     .order("due_date", { ascending: true })
     .limit(10);
-
-  const { data: subjects } = await supabase
-    .from("subjects")
-    .select("id, name, color")
-    .eq("user_id", user.id)
-    .is("deleted_at", null)
-    .order("name", { ascending: true });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -57,17 +44,7 @@ export default async function HomePage() {
         />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <section aria-label="Study timer">
-            <StudyTimer
-              userId={user.id}
-              activeSession={activeSession}
-              subjects={subjects ?? []}
-            />
-          </section>
-        </div>
-
+      <div className="grid grid-cols-1 gap-6">
         <div>
           <section aria-label="Revisions due today">
             <RevisionQueue
