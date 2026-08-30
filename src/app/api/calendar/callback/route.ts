@@ -31,15 +31,23 @@ export async function GET(request: Request) {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (user) {
-        await supabase
-          .from("profiles")
-          .update({ google_refresh_token: tokens.refresh_token })
-          .eq("user_id", user.id);
+      if (!user) {
+        return NextResponse.redirect(`${appUrl}/settings?error=no_active_session`);
       }
-    }
 
-    return NextResponse.redirect(`${appUrl}/settings?success=calendar_connected`);
+      const { error: dbError } = await supabase
+        .from("profiles")
+        .update({ google_refresh_token: tokens.refresh_token })
+        .eq("user_id", user.id);
+        
+      if (dbError) {
+        return NextResponse.redirect(`${appUrl}/settings?error=db_update_failed`);
+      }
+
+      return NextResponse.redirect(`${appUrl}/settings?success=calendar_connected`);
+    } else {
+      return NextResponse.redirect(`${appUrl}/settings?error=no_refresh_token_from_google`);
+    }
   } catch (err) {
     console.error("Google Calendar callback error:", err);
     return NextResponse.redirect(`${appUrl}/settings?error=calendar_auth_error`);
