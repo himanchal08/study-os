@@ -17,11 +17,12 @@ export function StudyTimer({ userId, activeSession, subjects }: StudyTimerProps)
   const [error, setError] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string>(activeSession?.subject_id ?? "");
 
-  const [sessionStartMs, setSessionStartMs] = useState<number | null>(
-    activeSession?.start_timestamp
-      ? new Date(activeSession.start_timestamp).getTime()
-      : null
-  );
+  const [sessionStartMs, setSessionStartMs] = useState<number | null>(() => {
+    if (!activeSession?.start_timestamp) return null;
+    const ms = new Date(activeSession.start_timestamp).getTime();
+    // Clamp to Date.now() so if client clock is behind server, it doesn't get stuck at negative/0
+    return Math.min(ms, Date.now());
+  });
 
   const [pausedAtMs, setPausedAtMs] = useState<number | null>(null);
   const [totalPauseSec, setTotalPauseSec] = useState(0);
@@ -67,9 +68,9 @@ export function StudyTimer({ userId, activeSession, subjects }: StudyTimerProps)
     if ("error" in result && result.error) {
       setError(result.error);
     } else if ("session" in result && result.session) {
-      const startMs = new Date(result.session.start_timestamp).getTime();
       setSession(result.session);
-      setSessionStartMs(startMs);
+      // Use local client time exactly when they click start, avoiding server clock drift jump
+      setSessionStartMs(Date.now());
       setTotalPauseSec(0);
       setPausedAtMs(null);
     }
