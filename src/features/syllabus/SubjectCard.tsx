@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState, useRef, useTransition as useT } from "react";
+import { useTransition, useState, useRef } from "react";
 import { updateTopicStatus, updateSubjectColor, deleteSubject, archiveTopic } from "@/app/(dashboard)/syllabus/actions";
 
 type TopicStatus = "not_started" | "learning" | "learned" | "revising" | "strong" | "weak";

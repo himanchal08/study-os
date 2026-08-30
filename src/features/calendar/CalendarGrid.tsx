@@ -9,6 +9,8 @@ interface CalendarGridProps {
 
 export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -80,15 +82,30 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
           {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
         </h2>
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={async () => {
-              const res = await fetch("/api/calendar/sync", { method: "POST" });
-              if (res.ok) alert("Synced successfully!");
-              else alert("Failed to sync. Make sure Google Calendar is connected in Settings.");
+              setSyncing(true);
+              setSyncMsg(null);
+              try {
+                const res = await fetch("/api/calendar/sync", { method: "POST" });
+                const data = await res.json();
+                setSyncMsg({ text: data.message ?? data.error ?? "Done", ok: res.ok });
+              } catch {
+                setSyncMsg({ text: "Network error", ok: false });
+              } finally {
+                setSyncing(false);
+                setTimeout(() => setSyncMsg(null), 5000);
+              }
             }}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/10 transition-colors"
+            disabled={syncing}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/10 transition-colors disabled:opacity-50 flex items-center gap-1.5"
           >
-            Sync to Google
+            {syncing && (
+              <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            )}
+            {syncing ? "Syncing…" : "Sync to Google"}
           </button>
           <button onClick={goToday} className="px-3 py-1.5 text-xs font-medium rounded-lg text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors">
             Today
@@ -103,6 +120,20 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
           </div>
         </div>
       </div>
+
+      {/* Sync result banner */}
+      {syncMsg && (
+        <div
+          className="px-4 py-2 text-xs"
+          style={{
+            background: syncMsg.ok ? "rgba(52,211,153,0.08)" : "rgba(239,68,68,0.08)",
+            borderBottom: `1px solid ${syncMsg.ok ? "rgba(52,211,153,0.15)" : "rgba(239,68,68,0.15)"}`,
+            color: syncMsg.ok ? "#34d399" : "#ef4444",
+          }}
+        >
+          {syncMsg.text}
+        </div>
+      )}
 
       {/* Days of week header */}
       <div className="grid grid-cols-7 border-b bg-[#111]" style={{ borderColor: "#1a1a1a" }}>

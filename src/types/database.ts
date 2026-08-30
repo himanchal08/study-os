@@ -21,6 +21,7 @@ export type Database = {
           onboarding_complete: boolean;
           tutorial_completed: boolean;
           google_refresh_token: string | null;
+          google_last_synced_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -35,6 +36,7 @@ export type Database = {
           onboarding_complete?: boolean;
           tutorial_completed?: boolean;
           google_refresh_token?: string | null;
+          google_last_synced_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -49,6 +51,7 @@ export type Database = {
           onboarding_complete?: boolean;
           tutorial_completed?: boolean;
           google_refresh_token?: string | null;
+          google_last_synced_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -213,6 +216,7 @@ export type Database = {
           task_id: string | null;
           client_generated_id: string | null;
           source_client: "web" | "extension" | "android" | "import";
+          google_event_id: string | null;
           deleted_at: string | null;
           created_at: string;
           updated_at: string;
@@ -231,6 +235,7 @@ export type Database = {
           task_id?: string | null;
           client_generated_id?: string | null;
           source_client?: "web" | "extension" | "android" | "import";
+          google_event_id?: string | null;
           deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -247,10 +252,24 @@ export type Database = {
           notes?: string | null;
           task_id?: string | null;
           source_client?: "web" | "extension" | "android" | "import";
+          google_event_id?: string | null;
           deleted_at?: string | null;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "study_sessions_subject_id_fkey";
+            columns: ["subject_id"];
+            referencedRelation: "subjects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "study_sessions_topic_id_fkey";
+            columns: ["topic_id"];
+            referencedRelation: "topics";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       tasks: {
         Row: {
@@ -271,6 +290,7 @@ export type Database = {
           parent_task_id: string | null;
           client_generated_id: string | null;
           source_client: "web" | "extension" | "android" | "import";
+          google_event_id: string | null;
           deleted_at: string | null;
           created_at: string;
           updated_at: string;
@@ -293,6 +313,7 @@ export type Database = {
           parent_task_id?: string | null;
           client_generated_id?: string | null;
           source_client?: "web" | "extension" | "android" | "import";
+          google_event_id?: string | null;
           deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -313,6 +334,7 @@ export type Database = {
           is_recurring?: boolean;
           recurrence_pattern?: string | null;
           parent_task_id?: string | null;
+          google_event_id?: string | null;
           deleted_at?: string | null;
           updated_at?: string;
         };

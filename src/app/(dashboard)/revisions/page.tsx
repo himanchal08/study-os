@@ -31,12 +31,10 @@ export default async function RevisionsPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
-  // eslint-disable-next-line react-hooks/purity
-  const todayStr = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
+  const now = new Date();
+  const todayStr = dayBoundaryAwareDate(now.getTime(), offsetMin, timezone);
 
-  const [{ data: subjectsRaw }, { data: topicsRaw }, { data: revisionsRaw }, { data: historyRaw }] = await Promise.all([
-    supabase.from("subjects").select("id, name, color").order("name"),
-    supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("name"),
+  const [{ data: revisionsRaw }, { data: historyRaw }] = await Promise.all([
     supabase
       .from("revisions")
       .select("id, due_date, completed_at, cycle_type, recall_score, topics(name, subject_id, subjects(name, color))")
@@ -50,7 +48,7 @@ export default async function RevisionsPage() {
       .select("id, due_date, completed_at, cycle_type, recall_score, topics(name, subjects(name, color))")
       .eq("user_id", user.id)
       .not("completed_at", "is", null)
-      .gte("completed_at", new Date(Date.now() - 30 * 86400000).toISOString())
+      .gte("completed_at", new Date(now.getTime() - 30 * 86400000).toISOString())
       .order("completed_at", { ascending: false })
       .limit(200),
   ]);
@@ -59,6 +57,7 @@ export default async function RevisionsPage() {
   type HistEntry = { date: string; cycleType: string; recallScore: number | null };
   type TopicHistory = { topicName: string; subjectName: string; subjectColor: string; entries: HistEntry[] };
   const historyByTopic = new Map<string, TopicHistory>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (historyRaw ?? []).forEach((r: any) => {
     const topic = r.topics as { name: string; subjects: { name: string; color: string } | null } | null;
     const key = topic?.name ?? "Unknown";
@@ -78,8 +77,6 @@ export default async function RevisionsPage() {
   });
   const historyTopics = Array.from(historyByTopic.values());
 
-  const subjects = subjectsRaw ?? [];
-  const topics = topicsRaw ?? [];
   const revisions = (revisionsRaw ?? []) as unknown as RevisionRow[];
 
   const due = (revisions ?? []).filter(r => !r.completed_at);

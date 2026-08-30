@@ -12,61 +12,144 @@ export async function POST() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("google_refresh_token, timezone")
+    .select("google_refresh_token, timezone, day_boundary_offset_minutes")
     .eq("user_id", user.id)
     .single();
 
   if (!profile?.google_refresh_token) {
-    return NextResponse.json({ error: "No Google Calendar connected" }, { status: 400 });
+    return NextResponse.json({ error: "No Google Calendar connected. Please connect via Settings." }, { status: 400 });
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  
+
   if (!clientId || !clientSecret) {
-    return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+    return NextResponse.json({ error: "Server misconfiguration: missing Google credentials." }, { status: 500 });
   }
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
   oauth2Client.setCredentials({ refresh_token: profile.google_refresh_token });
 
-  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const tz = profile.timezone || "Asia/Kolkata";
 
-  // Fetch today's tasks
+  // ── 1. Sync today's tasks as all-day events ──────────────────────────────
   const today = new Date().toISOString().split("T")[0];
   const { data: tasks } = await supabase
     .from("tasks")
-    .select("id, title, planned_date, status")
+    .select("id, title, planned_date, status, google_event_id")
     .eq("user_id", user.id)
     .eq("planned_date", today)
     .is("deleted_at", null);
 
-  if (!tasks || tasks.length === 0) {
-    return NextResponse.json({ message: "No tasks to sync today" });
-  }
+  // ── 2. Sync recent study sessions as timed events ────────────────────────
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const { data: sessions } = await supabase
+    .from("study_sessions")
+    .select("id, start_timestamp, end_timestamp, activity_type, google_event_id, subjects(name), topics(name)")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .not("end_timestamp", "is", null)
+    .gte("start_timestamp", sevenDaysAgo)
+    .order("start_timestamp", { ascending: false })
+    .limit(50);
+
+  let syncedCount = 0;
+  const errors: string[] = [];
 
   try {
-    // For simplicity, we just create an all-day event for each task today.
-    // A robust system would keep track of the Google Event ID in the DB to update/delete them.
-    for (const task of tasks) {
-      await calendar.events.insert({
-        calendarId: 'primary',
-        requestBody: {
-          summary: `[Study OS] ${task.title}`,
-          description: `Status: ${task.status}`,
-          start: {
-            date: task.planned_date,
-            timeZone: profile.timezone || 'UTC',
-          },
-          end: {
-            date: task.planned_date,
-            timeZone: profile.timezone || 'UTC',
-          },
-        },
-      });
+    // Sync tasks
+    for (const task of tasks ?? []) {
+      const eventBody = {
+        summary: `📚 ${task.title}`,
+        description: `Study OS Task · Status: ${task.status}`,
+        start: { date: task.planned_date, timeZone: tz },
+        end: { date: task.planned_date, timeZone: tz },
+        colorId: task.status === "completed" ? "2" : "9", // sage=done, blueberry=pending
+      };
+
+      try {
+        if (task.google_event_id) {
+          // Upsert: update existing event
+          await calendar.events.update({
+            calendarId: "primary",
+            eventId: task.google_event_id,
+            requestBody: eventBody,
+          });
+        } else {
+          // Insert and save the event ID back
+          const res = await calendar.events.insert({
+            calendarId: "primary",
+            requestBody: eventBody,
+          });
+          if (res.data.id) {
+            await supabase
+              .from("tasks")
+              .update({ google_event_id: res.data.id })
+              .eq("id", task.id);
+          }
+        }
+        syncedCount++;
+      } catch {
+        errors.push(`Task "${task.title}" failed`);
+      }
     }
 
-    return NextResponse.json({ success: true, message: `Synced ${tasks.length} tasks to Google Calendar` });
+    // Sync study sessions
+    for (const s of sessions ?? []) {
+      const sub = (s.subjects as { name: string } | null)?.name;
+      const topic = (s.topics as { name: string } | null)?.name;
+      const label = [sub, topic].filter(Boolean).join(" → ") || s.activity_type;
+      const actEmoji: Record<string, string> = {
+        practice: "✏️", lecture: "📖", revision: "🔁", mock: "📝", reading: "📚", other: "⏱",
+      };
+      const emoji = actEmoji[s.activity_type] ?? "⏱";
+
+      const eventBody = {
+        summary: `${emoji} ${label}`,
+        description: `Study OS Session · Activity: ${s.activity_type}`,
+        start: { dateTime: s.start_timestamp, timeZone: tz },
+        end: { dateTime: s.end_timestamp!, timeZone: tz },
+        colorId: "7", // Peacock — distinct from tasks
+      };
+
+      try {
+        if (s.google_event_id) {
+          await calendar.events.update({
+            calendarId: "primary",
+            eventId: s.google_event_id,
+            requestBody: eventBody,
+          });
+        } else {
+          const res = await calendar.events.insert({
+            calendarId: "primary",
+            requestBody: eventBody,
+          });
+          if (res.data.id) {
+            await supabase
+              .from("study_sessions")
+              .update({ google_event_id: res.data.id })
+              .eq("id", s.id);
+          }
+        }
+        syncedCount++;
+      } catch {
+        errors.push(`Session at ${s.start_timestamp} failed`);
+      }
+    }
+
+    // Save last sync time to profile
+    await supabase
+      .from("profiles")
+      .update({ google_last_synced_at: new Date().toISOString() })
+      .eq("user_id", user.id);
+
+    return NextResponse.json({
+      success: true,
+      synced: syncedCount,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Synced ${syncedCount} events${errors.length > 0 ? ` (${errors.length} failed)` : ""}`,
+    });
   } catch (err: unknown) {
     console.error("Calendar sync error:", err);
     return NextResponse.json({ error: "Failed to sync to Google Calendar" }, { status: 500 });
