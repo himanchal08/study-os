@@ -16,6 +16,10 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
   const [error, setError] = useState<string | null>(null);
   
   const [selectedSubject, setSelectedSubject] = useState<string>(activeSession?.subject_id ?? "");
+  const [activityType, setActivityType] = useState<Tables<"study_sessions">["activity_type"]>(
+    activeSession?.activity_type ?? "practice"
+  );
+  
   const [notes, setNotes] = useState<string>(activeSession?.notes ?? "");
 
   const [sessionStartMs, setSessionStartMs] = useState<number | null>(() => {
@@ -63,6 +67,7 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
     const result = await startSession({ 
       userId,
       subjectId: selectedSubject || null,
+      activityType: activityType,
       notes: notes.trim() || null
     });
     if ("error" in result && result.error) {
@@ -75,6 +80,18 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
     }
     setLoading(false);
   }, [userId, selectedSubject, notes]);
+
+  const handlePauseToggle = useCallback(() => {
+    if (isPaused) {
+      // Resume
+      const additionalPause = Math.floor((new Date().getTime() - pausedAtMs) / 1000);
+      setTotalPauseSec((prev) => prev + additionalPause);
+      setPausedAtMs(null);
+    } else {
+      // Pause
+      setPausedAtMs(new Date().getTime());
+    }
+  }, [isPaused, pausedAtMs]);
 
   const handleStop = useCallback(async () => {
     if (!session) return;
@@ -157,6 +174,36 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
             </select>
           )}
         </div>
+
+        <div className="h-4 w-px bg-neutral-800 mx-2" />
+
+        <div className="flex items-center gap-2">
+          {isRunning ? (
+            <span className="text-xs text-neutral-300 capitalize">
+              {activityType}
+            </span>
+          ) : (
+            <select
+              value={activityType}
+              onChange={(e) => setActivityType(e.target.value as any)}
+              disabled={isRunning || loading}
+              className="text-xs bg-transparent text-neutral-300 outline-none hover:text-neutral-200 cursor-pointer appearance-none pr-4"
+              style={{
+                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right center',
+                backgroundSize: '12px'
+              }}
+            >
+              <option value="practice" className="bg-neutral-900 text-white">Practice</option>
+              <option value="lecture" className="bg-neutral-900 text-white">Lecture</option>
+              <option value="revision" className="bg-neutral-900 text-white">Revision</option>
+              <option value="mock" className="bg-neutral-900 text-white">Mock</option>
+              <option value="reading" className="bg-neutral-900 text-white">Reading</option>
+              <option value="other" className="bg-neutral-900 text-white">Other</option>
+            </select>
+          )}
+        </div>
         
         {error && (
           <span className="text-xs text-rose-400 ml-4 truncate">{error}</span>
@@ -174,15 +221,34 @@ export function GlobalTimer({ userId, activeSession, subjects }: GlobalTimerProp
         </div>
 
         {isRunning ? (
-          <button
-            onClick={handleStop}
-            disabled={loading}
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-            style={{ background: "#ef4444" }}
-            aria-label="Stop Timer"
-          >
-            <div className="w-3 h-3 bg-white rounded-sm" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePauseToggle}
+              disabled={loading}
+              className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 border border-neutral-700 bg-transparent text-neutral-300"
+              aria-label={isPaused ? "Resume Timer" : "Pause Timer"}
+            >
+              {isPaused ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+              ) : (
+                <div className="flex gap-1">
+                  <div className="w-1 h-3.5 bg-current rounded-sm" />
+                  <div className="w-1 h-3.5 bg-current rounded-sm" />
+                </div>
+              )}
+            </button>
+            <button
+              onClick={handleStop}
+              disabled={loading}
+              className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+              style={{ background: "#ef4444" }}
+              aria-label="Stop Timer"
+            >
+              <div className="w-3 h-3 bg-white rounded-sm" />
+            </button>
+          </div>
         ) : (
           <button
             onClick={handleStart}
