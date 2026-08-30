@@ -35,7 +35,13 @@ export async function POST() {
   const tz = profile.timezone || "Asia/Kolkata";
 
   // ── 1. Sync today's tasks as all-day events & Google Tasks ───────────────
-  const today = new Date().toISOString().split("T")[0];
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const today = formatter.format(new Date());
   const { data: tasks } = await supabase
     .from("tasks")
     .select("id, title, planned_date, status, google_event_id, google_task_id")
