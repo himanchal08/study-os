@@ -31,13 +31,14 @@ export async function POST() {
   oauth2Client.setCredentials({ refresh_token: profile.google_refresh_token });
 
   const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const tasksApi = google.tasks({ version: "v1", auth: oauth2Client });
   const tz = profile.timezone || "Asia/Kolkata";
 
-  // ── 1. Sync today's tasks as all-day events ──────────────────────────────
+  // ── 1. Sync today's tasks as all-day events & Google Tasks ───────────────
   const today = new Date().toISOString().split("T")[0];
   const { data: tasks } = await supabase
     .from("tasks")
-    .select("id, title, planned_date, status, google_event_id")
+    .select("id, title, planned_date, status, google_event_id, google_task_id")
     .eq("user_id", user.id)
     .eq("planned_date", today)
     .is("deleted_at", null);
@@ -90,8 +91,67 @@ export async function POST() {
           }
         }
         syncedCount++;
-      } catch {
-        errors.push(`Task "${task.title}" failed`);
+      } catch (e: any) {
+        if (e?.response?.status === 403) {
+           errors.push(`Calendar forbidden: Reconnect Google account to grant new permissions.`);
+        } else {
+           errors.push(`Calendar Task "${task.title}" failed`);
+        }
+      }
+    }
+
+    // ── 1.5 Sync to Google Tasks ───────────────────────────────────────────
+    try {
+      // Find or create "Study OS" task list
+      let taskListId = "";
+      const lists = await tasksApi.tasklists.list();
+      const studyOsList = lists.data.items?.find(l => l.title === "Study OS");
+      
+      if (studyOsList?.id) {
+        taskListId = studyOsList.id;
+      } else {
+        const newList = await tasksApi.tasklists.insert({ requestBody: { title: "Study OS" } });
+        taskListId = newList.data.id!;
+      }
+
+      for (const task of tasks ?? []) {
+        const isCompleted = task.status === "completed";
+        const taskBody = {
+          title: task.title,
+          notes: `Status: ${task.status}`,
+          status: isCompleted ? "completed" : "needsAction",
+          due: new Date(task.planned_date).toISOString(),
+        };
+
+        try {
+          if (task.google_task_id) {
+            await tasksApi.tasks.update({
+              tasklist: taskListId,
+              task: task.google_task_id,
+              requestBody: { ...taskBody, id: task.google_task_id },
+            });
+          } else {
+            const res = await tasksApi.tasks.insert({
+              tasklist: taskListId,
+              requestBody: taskBody,
+            });
+            if (res.data.id) {
+              await supabase
+                .from("tasks")
+                .update({ google_task_id: res.data.id })
+                .eq("id", task.id);
+            }
+          }
+          syncedCount++;
+        } catch (e: any) {
+           errors.push(`Google Task sync "${task.title}" failed`);
+        }
+      }
+    } catch (e: any) {
+      if (e?.response?.status === 403 || e?.code === 403 || String(e).includes("insufficientPermissions")) {
+        errors.push(`Tasks forbidden: Please disconnect and reconnect Google account in Settings to grant Tasks permission.`);
+      } else {
+        errors.push(`Failed to access Google Tasks API: ${e?.message}`);
       }
     }
 

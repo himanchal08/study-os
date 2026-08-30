@@ -292,6 +292,7 @@ export type Database = {
           client_generated_id: string | null;
           source_client: "web" | "extension" | "android" | "import";
           google_event_id: string | null;
+          google_task_id: string | null;
           deleted_at: string | null;
           created_at: string;
           updated_at: string;
@@ -315,6 +316,7 @@ export type Database = {
           client_generated_id?: string | null;
           source_client?: "web" | "extension" | "android" | "import";
           google_event_id?: string | null;
+          google_task_id?: string | null;
           deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -336,6 +338,7 @@ export type Database = {
           recurrence_pattern?: string | null;
           parent_task_id?: string | null;
           google_event_id?: string | null;
+          google_task_id?: string | null;
           deleted_at?: string | null;
           updated_at?: string;
         };

@@ -12,7 +12,10 @@ export async function GET() {
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
-  const scopes = ["https://www.googleapis.com/auth/calendar.events"];
+  const scopes = [
+    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/tasks"
+  ];
 
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
