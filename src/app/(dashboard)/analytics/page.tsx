@@ -116,6 +116,16 @@ export default async function AnalyticsPage() {
     .slice(0, 5)
     .map(([domain, secs]) => ({ domain, secs }));
 
+  // Phone Pickups (last 30 days)
+  const { data: phoneEventsRaw } = await supabase
+    .from("phone_events")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("event_type", "distraction_start")
+    .gte("timestamp", thirtyDaysAgo);
+
+  const totalPhonePickups = phoneEventsRaw?.length ?? 0;
+
   // Subject allocation donut
   const subjectMap = new Map<string, { name: string; color: string; seconds: number }>();
   sessions.forEach((s) => {
@@ -243,14 +253,14 @@ export default async function AnalyticsPage() {
             </div>
           </div>
           
-          {topDistractions.length === 0 ? (
+          {topDistractions.length === 0 && totalPhonePickups === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 border border-dashed border-neutral-800 rounded-xl">
               <p className="text-2xl mb-2">🎯</p>
               <p className="text-sm text-neutral-500 font-medium">100% Focused</p>
               <p className="text-xs text-neutral-600 mt-1">No distractions logged</p>
             </div>
           ) : (
-            <div className="space-y-3 mt-6">
+            <div className="space-y-4 mt-6">
               {topDistractions.map((d, i) => (
                 <div key={d.domain} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -260,6 +270,14 @@ export default async function AnalyticsPage() {
                   <span className="text-sm font-mono text-neutral-400">{formatMins(d.secs / 60)}</span>
                 </div>
               ))}
+              {totalPhonePickups > 0 && (
+                <div className="flex items-center justify-between pt-4 border-t border-neutral-800/50 mt-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-neutral-300">📱 Phone Pickups</span>
+                  </div>
+                  <span className="text-sm font-mono" style={{ color: "#fbbf24" }}>{totalPhonePickups} times</span>
+                </div>
+              )}
             </div>
           )}
         </div>

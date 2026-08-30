@@ -86,11 +86,19 @@ export async function KpiStrip({
     .from("browser_events")
     .select("duration_seconds")
     .eq("user_id", userId)
-    .gte("timestamp", `${todayStr}T00:00:00`)
-    .is("deleted_at", null);
+    .gte("timestamp", `${todayStr}T00:00:00`);
 
   const totalDistractionSeconds = distractions?.reduce((sum, d) => sum + (d.duration_seconds || 10), 0) ?? 0;
   
+  const { data: phoneEvents } = await supabase
+    .from("phone_events")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("event_type", "distraction_start")
+    .gte("timestamp", `${todayStr}T00:00:00`);
+
+  const phonePickups = phoneEvents?.length ?? 0;
+
   const focusScore = totalStudySeconds > 0 
     ? Math.max(0, ((totalStudySeconds - totalDistractionSeconds) / totalStudySeconds) * 100)
     : 100;
@@ -158,7 +166,9 @@ export async function KpiStrip({
     {
       ...kpiConfig[4],
       value: totalStudySeconds > 0 ? `${focusScore.toFixed(0)}%` : "—",
-      sub: totalDistractionSeconds > 0 ? `${Math.floor(totalDistractionSeconds/60)}m distracted` : "100% focused",
+      sub: totalDistractionSeconds > 0 
+        ? `${Math.floor(totalDistractionSeconds/60)}m lost · ${phonePickups} pickups` 
+        : (phonePickups > 0 ? `${phonePickups} phone pickups` : "100% focused"),
       progress: focusScore,
     },
   ];

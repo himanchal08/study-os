@@ -271,6 +271,7 @@ export type Database = {
           }
         ];
       };
+
       tasks: {
         Row: {
           id: string;
