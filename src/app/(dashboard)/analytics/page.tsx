@@ -157,11 +157,20 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-xl font-bold gradient-text">Study Time Analytics</h1>
-        <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.4)" }}>
-          30-day rolling view · times adjusted to your day boundary offset
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold gradient-text">Study Time Analytics</h1>
+          <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.4)" }}>
+            30-day rolling view · times adjusted to your day boundary offset
+          </p>
+        </div>
+        <Link 
+          href="/analytics/subjects"
+          className="text-xs px-3 py-1.5 rounded-lg border font-medium hover:bg-white hover:text-black transition-colors shrink-0"
+          style={{ borderColor: "rgba(232,232,240,0.15)", color: "rgba(232,232,240,0.85)" }}
+        >
+          Subject Performance
+        </Link>
       </div>
 
       {/* 52-week activity heatmap */}
