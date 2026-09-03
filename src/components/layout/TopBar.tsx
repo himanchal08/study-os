@@ -7,7 +7,12 @@ interface TopBarProps {
 }
 
 export function TopBar({ profile }: TopBarProps) {
-  const today = new Date().toLocaleDateString("en-IN", {
+  const timezone = profile?.timezone ?? "Asia/Kolkata";
+  const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
+  // eslint-disable-next-line react-hooks/purity
+  const shiftedMs = Date.now() - offsetMin * 60 * 1000;
+  const today = new Date(shiftedMs).toLocaleDateString("en-IN", {
+    timeZone: timezone,
     weekday: "long",
     month: "long",
     day: "numeric",
