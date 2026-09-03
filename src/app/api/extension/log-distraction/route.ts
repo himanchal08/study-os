@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         event_type: event_type || "distraction_start",
         duration_seconds: duration_seconds || 10,
         source_client: "extension",
-        timestamp: new Date().toISOString()
+        occurred_at: new Date().toISOString()
       });
 
     if (error) {

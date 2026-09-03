@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import type { Json } from "@/types/database";
 
 
 
@@ -94,7 +95,7 @@ export async function saveRealExamResult(
       exam_date: data.exam_date,
       total_score: data.total_score,
       total_max: data.total_max,
-      subject_breakdown: data.subject_breakdown ?? null,
+      subject_breakdown: (data.subject_breakdown ?? null) as unknown as Json,
       cutoff_used: data.cutoff_used ?? null,
       notes: data.notes ?? null,
       client_generated_id: data.client_generated_id ?? null,

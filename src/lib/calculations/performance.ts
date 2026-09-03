@@ -9,7 +9,7 @@ export interface TopicForCoverage {
 
 export interface SubjectForCoverage {
   id: string;
-  exam_type: "banking" | "ssc" | "both";
+  exam_type: "banking" | "ssc" | "both" | "other";
 }
 
 

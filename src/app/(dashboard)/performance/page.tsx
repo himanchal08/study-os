@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   classifyMockPerformance,
   dayBoundaryAwareDate,
+  getCurrentTimestamp,
   mockAccuracy,
 } from "@/lib/calculations";
 import {
@@ -76,8 +77,7 @@ export default async function PerformancePage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
- 
-  const now = Date.now();
+  const now = getCurrentTimestamp();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 
   const thirtyDaysAgo   = new Date(now - 30 * 86400000).toISOString();
@@ -126,12 +126,9 @@ export default async function PerformancePage() {
     supabase.from("real_exam_results").select("*").eq("user_id", user.id).order("exam_date", { ascending: false }),
   ]);
 
- 
-  const subjects = (subjectsRaw as any[]) ?? [];
- 
-  const topics = (topicsRaw as any[]) ?? [];
- 
-  const chapters = (chaptersRaw as any[]) ?? [];
+  const subjects = subjectsRaw ?? [];
+  const topics = topicsRaw ?? [];
+  const chapters = chaptersRaw ?? [];
 
   if (temError || subjectsError || topicsError || chaptersError) {
     console.error("Supabase Fetch Errors:");
@@ -144,8 +141,8 @@ export default async function PerformancePage() {
   const bankingTopicIdSet = new Set<string>();
   const sscTopicIdSet = new Set<string>();
   const topicExamRecord: Record<string, string[]> = {};
- 
-  ((topicExamMapRaw as any[]) ?? []).forEach((row) => {
+
+  (topicExamMapRaw ?? []).forEach((row) => {
     if (row.exam_type === "banking") bankingTopicIdSet.add(row.topic_id);
     if (row.exam_type === "ssc")     sscTopicIdSet.add(row.topic_id);
     if (!topicExamRecord[row.topic_id]) topicExamRecord[row.topic_id] = [];

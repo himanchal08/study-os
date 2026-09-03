@@ -1,13 +1,32 @@
 
 
 
+export function getCurrentTimestamp(): number {
+  return Date.now();
+}
+
+export function getDayBoundaryTimestamp(offsetMinutes: number = 0, baseTimestampMs?: number): number {
+  const base = baseTimestampMs ?? Date.now();
+  return base - offsetMinutes * 60 * 1000;
+}
+
+export function getFormattedToday(profile?: { timezone?: string; day_boundary_offset_minutes?: number } | null): string {
+  const timezone = profile?.timezone ?? "Asia/Kolkata";
+  const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
+  const shiftedMs = getDayBoundaryTimestamp(offsetMin);
+  return new Date(shiftedMs).toLocaleDateString("en-IN", {
+    timeZone: timezone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export function dayBoundaryAwareDate(
   timestampMs: number,
   offsetMinutes: number,
   timezone: string
 ): string {
-  
-  
   const shiftedMs = timestampMs - offsetMinutes * 60 * 1000;
   return new Date(shiftedMs).toLocaleDateString("en-CA", {
     timeZone: timezone,
