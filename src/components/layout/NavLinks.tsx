@@ -97,6 +97,17 @@ const navItems = [
     ),
   },
   {
+    href: "/performance",
+    label: "Performance",
+    accent: "#f59e0b",        // amber — readiness / exam score
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/><circle cx="12" cy="7" r="1" fill="currentColor" stroke="none"/><path d="M22 20H2"/>
+      </svg>
+    ),
+  },
+
+  {
     href: "/analytics",
     label: "Analytics",
     accent: "#38bdf8",        // sky — insights/reports

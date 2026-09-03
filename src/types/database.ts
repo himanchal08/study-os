@@ -914,6 +914,107 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      topic_lifecycle: {
+        Row: {
+          id: string;
+          user_id: string;
+          topic_id: string;
+          learning_completed_at: string | null;
+          book_practice_done: boolean;
+          dpp_done: boolean;
+          pyq_done: boolean;
+          tests_attempted_count: number;
+          revision_count: number;
+          last_revised_at: string | null;
+          confidence_level: number | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          topic_id: string;
+          learning_completed_at?: string | null;
+          book_practice_done?: boolean;
+          dpp_done?: boolean;
+          pyq_done?: boolean;
+          tests_attempted_count?: number;
+          revision_count?: number;
+          last_revised_at?: string | null;
+          confidence_level?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          learning_completed_at?: string | null;
+          book_practice_done?: boolean;
+          dpp_done?: boolean;
+          pyq_done?: boolean;
+          tests_attempted_count?: number;
+          revision_count?: number;
+          last_revised_at?: string | null;
+          confidence_level?: number | null;
+          notes?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "topic_lifecycle_topic_id_fkey";
+            columns: ["topic_id"];
+            referencedRelation: "topics";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      real_exam_results: {
+        Row: {
+          id: string;
+          user_id: string;
+          exam_name: string;
+          exam_type: "banking" | "ssc" | "other";
+          stage: string | null;
+          exam_date: string;
+          total_score: number;
+          total_max: number;
+          subject_breakdown: Array<{ subject_name: string; marks_scored: number; marks_available: number }> | null;
+          cutoff_used: number | null;
+          notes: string | null;
+          client_generated_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          exam_name: string;
+          exam_type?: "banking" | "ssc" | "other";
+          stage?: string | null;
+          exam_date: string;
+          total_score: number;
+          total_max: number;
+          subject_breakdown?: Array<{ subject_name: string; marks_scored: number; marks_available: number }> | null;
+          cutoff_used?: number | null;
+          notes?: string | null;
+          client_generated_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          exam_name?: string;
+          exam_type?: "banking" | "ssc" | "other";
+          stage?: string | null;
+          exam_date?: string;
+          total_score?: number;
+          total_max?: number;
+          subject_breakdown?: Array<{ subject_name: string; marks_scored: number; marks_available: number }> | null;
+          cutoff_used?: number | null;
+          notes?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

@@ -6,3 +6,4 @@ export * from "./revisions";
 export * from "./analytics";
 export * from "./streaks";
 export * from "./heatmap";
+export * from "./performance";
