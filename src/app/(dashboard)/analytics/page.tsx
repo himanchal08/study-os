@@ -58,7 +58,7 @@ export default async function AnalyticsPage() {
     .gte("start_timestamp", thirtyDaysAgo)
   const sessions = (rawSessions ?? []) as unknown as SessionRow[];
 
-  // Fetch tasks for the last 7 days to show daily completion indicators
+  
   const sevenDaysAgo = new Date(now - 7 * 86400000).toISOString();
   const { data: rawTasks } = await supabase
     .from("tasks")
@@ -95,7 +95,7 @@ export default async function AnalyticsPage() {
     last7.push({ date: DAY_LABELS[d.getDay()], hours, target, hitTarget: hours >= target, allTasksDone });
   }
 
-  // Distraction Telemetry (last 30 days)
+  
   const { data: distractionsRaw } = await supabase
     .from("browser_events")
     .select("domain, duration_seconds")
@@ -116,7 +116,7 @@ export default async function AnalyticsPage() {
     .slice(0, 5)
     .map(([domain, secs]) => ({ domain, secs }));
 
-  // Phone Pickups (last 30 days)
+  
   const { data: phoneEventsRaw } = await supabase
     .from("phone_events")
     .select("id")
@@ -126,7 +126,7 @@ export default async function AnalyticsPage() {
 
   const totalPhonePickups = phoneEventsRaw?.length ?? 0;
 
-  // Subject allocation donut
+  
   const subjectMap = new Map<string, { name: string; color: string; seconds: number }>();
   sessions.forEach((s) => {
     if (!s.end_timestamp || !s.subject_id) return;
@@ -145,7 +145,7 @@ export default async function AnalyticsPage() {
     .sort((a, b) => b.hours - a.hours)
     .slice(0, 8);
 
-  // Time-of-day breakdown
+  
   const todMap = new Map<string, number>();
   TOD_CONFIG.forEach((c) => todMap.set(c.bucket, 0));
   sessions.forEach((s) => {
@@ -156,7 +156,7 @@ export default async function AnalyticsPage() {
   });
   const todData = TOD_CONFIG.map((c) => ({ ...c, hours: secondsToHours(todMap.get(c.bucket) ?? 0) }));
 
-  // Summary stats
+  
   const totalHours7 = last7.reduce((s, d) => s + d.hours, 0);
   const daysStudied7 = last7.filter((d) => d.hours > 0).length;
   const avgBlockSec = sessions.length > 0
@@ -176,7 +176,7 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Summary stat row */}
+      
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card, i) => (
           <div
@@ -196,8 +196,8 @@ export default async function AnalyticsPage() {
         ))}
       </div>
 
-      {/* Charts row */}
-      {/* Task & Planning Analytics (Phase 14) */}
+      
+      
       <TaskPlanningAnalytics />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <div className="lg:col-span-2 glass rounded-2xl p-5">
@@ -231,7 +231,7 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Time of day & Distractions */}
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="glass rounded-2xl p-5">
           <h2 className="text-sm font-semibold mb-1" style={{ color: "rgba(232,232,240,0.85)" }}>Time-of-Day Study Breakdown</h2>
@@ -283,7 +283,7 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Footer note */}
+      
       <div
         className="rounded-2xl p-4 flex items-center justify-between"
         style={{

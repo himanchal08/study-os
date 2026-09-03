@@ -17,7 +17,7 @@ export default async function MockAnalyticsPage() {
       .select("id, name, score, maximum_marks, attempted, correct, actual_duration_minutes, created_at, exam_type")
       .eq("user_id", user.id)
       .is("deleted_at", null)
-      .order("created_at", { ascending: true }), // chronological for trends
+      .order("created_at", { ascending: true }), 
     supabase
       .from("exams")
       .select("safety_target_score, maximum_marks")
@@ -33,17 +33,17 @@ export default async function MockAnalyticsPage() {
     ? (target.safety_target_score / target.maximum_marks) * 100 
     : null;
 
-  // 1. Classification Matrix
+  
   const classifications = validMocks.map(m => {
-    // We assume recommended minutes is roughly 1 min per question attempted for this basic proxy
-    // In a real scenario, this comes from the mock's exam type schema.
+    
+    
     const mockProxy = {
       score: m.score,
       maximumMarks: m.maximum_marks,
       correct: m.correct,
       attempted: m.attempted,
       actualMinutes: m.actual_duration_minutes,
-      recommendedMinutes: m.maximum_marks, // Assuming 1 mark = 1 minute roughly for basic analysis
+      recommendedMinutes: m.maximum_marks, 
       highMarksThresholdPct: 60,
       highAccuracyThreshold: 80,
     };
@@ -54,13 +54,13 @@ export default async function MockAnalyticsPage() {
   });
 
   const matrix = {
-    A: classifications.filter(c => c.classification?.case === "A"), // Accurate but Slow
-    B: classifications.filter(c => c.classification?.case === "B"), // Fast but Inaccurate
-    C: classifications.filter(c => c.classification?.case === "C"), // Low Marks + Low Accuracy + Slow
-    D: classifications.filter(c => c.classification?.case === "D"), // Accurate but Under-Attempted
+    A: classifications.filter(c => c.classification?.case === "A"), 
+    B: classifications.filter(c => c.classification?.case === "B"), 
+    C: classifications.filter(c => c.classification?.case === "C"), 
+    D: classifications.filter(c => c.classification?.case === "D"), 
   };
 
-  // 2. Trend Data (Last 20 mocks)
+  
   const recentMocks = validMocks.slice(-20);
   const maxScoreScale = Math.max(100, ...recentMocks.map(m => (m.score / m.maximum_marks) * 100));
 
@@ -84,11 +84,11 @@ export default async function MockAnalyticsPage() {
         </div>
       ) : (
         <>
-          {/* Trend Chart */}
+          
           <div className="rounded-xl p-6 relative" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
             <h2 className="text-sm font-semibold text-neutral-300 mb-6 uppercase tracking-wider">Score Trend (Last {recentMocks.length})</h2>
             <div className="h-48 flex items-end gap-2 sm:gap-4 w-full px-2 relative">
-              {/* Safety Target Line */}
+              
               {safetyTargetPct !== null && (
                 <div 
                   className="absolute w-full border-t border-dashed border-emerald-500/50 z-0 pointer-events-none"
@@ -105,16 +105,16 @@ export default async function MockAnalyticsPage() {
                 const height = `${(scorePct / maxScoreScale) * 100}%`;
                 return (
                   <div key={m.id} className="flex-1 flex flex-col items-center justify-end h-full group relative">
-                    {/* Tooltip */}
+                    
                     <div className="absolute -top-12 bg-neutral-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                       {m.name}<br/>Score: {scorePct.toFixed(1)}% | Acc: {accPct.toFixed(1)}%
                     </div>
-                    {/* Bar */}
+                    
                     <div className="w-full relative rounded-t-sm transition-all" style={{ height, background: "#262626" }}>
-                      {/* Accuracy marker overlay */}
+                      
                       <div className="absolute bottom-0 w-full rounded-t-sm opacity-50" style={{ height: `${accPct}%`, background: "#38bdf8" }} />
                     </div>
-                    {/* Label */}
+                    
                     <span className="text-[9px] text-neutral-600 mt-2 truncate w-full text-center">#{i + 1}</span>
                   </div>
                 );
@@ -129,7 +129,7 @@ export default async function MockAnalyticsPage() {
             </div>
           </div>
 
-          {/* Decision Matrix */}
+          
           <div>
             <h2 className="text-sm font-semibold text-neutral-300 mb-4 uppercase tracking-wider">Diagnostic Matrix</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

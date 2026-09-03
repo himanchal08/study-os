@@ -31,7 +31,7 @@ export default async function HomePage() {
   const now = Date.now();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 
-  // 1. Revisions Due Today
+  
   const { data: revisionsDue } = await supabase
     .from("revisions")
     .select("*, topics(name, subjects(name, color))")
@@ -41,7 +41,7 @@ export default async function HomePage() {
     .order("due_date", { ascending: true })
     .limit(10);
 
-  // 2. Heatmap Data (52 weeks)
+  
   const heatStartDate = new Date(now - 363 * 86400000);
   const heatmapStart = dayBoundaryAwareDate(heatStartDate.getTime(), offsetMin, timezone);
 
@@ -68,7 +68,7 @@ export default async function HomePage() {
     knownDates,
   });
 
-  // 3. Today's Tasks
+  
   const { data: todayTasksRaw } = await supabase
     .from("tasks")
     .select("*, subjects(id, name, color), topics(id, name)")
@@ -80,8 +80,8 @@ export default async function HomePage() {
 
   const todayTasks = (todayTasksRaw ?? []) as unknown as TaskItem[];
 
-  // 4. Today's Study Sessions (Recent Activity)
-  // We'll just fetch the last 7 days of activity for the timesheet
+  
+  
   const sevenDaysAgo = new Date(now - 7 * 86400000).toISOString();
   const { data: recentSessionsRaw } = await supabase
     .from("study_sessions")
@@ -91,7 +91,7 @@ export default async function HomePage() {
     .is("deleted_at", null)
     .order("start_timestamp", { ascending: false });
 
-  // Compute today's study hours for the target bar
+  
   const todayStartStr = `${todayStr}T00:00:00`;
   const { data: todaySessions } = await supabase
     .from("study_sessions")
@@ -122,7 +122,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-8 animate-fade-in pb-12">
 
-      {/* Daily Target Bar — Phase 23.4 */}
+      
       <section id="tour-daily-target" aria-label="Daily study target">
         <div className="rounded-2xl p-5" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <div className="flex items-center justify-between mb-3">
@@ -154,7 +154,7 @@ export default async function HomePage() {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-        {/* 2. Today's Tasks */}
+        
         <section id="tour-today-tasks" aria-label="Today's Tasks">
           <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Today&apos;s Tasks</h2>
           {todayTasks.length === 0 ? (
@@ -170,7 +170,7 @@ export default async function HomePage() {
           )}
         </section>
 
-        {/* 3. Revision Queue */}
+        
         <section id="tour-revision-queue" aria-label="Revisions due today">
           <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Revision Queue</h2>
           <RevisionQueue
@@ -180,7 +180,7 @@ export default async function HomePage() {
         </section>
       </div>
 
-      {/* 4. Heatmap */}
+      
       <section aria-label="Activity Heatmap">
         <div className="glass rounded-2xl p-5 overflow-x-auto">
           <div className="flex items-center justify-between mb-4">
@@ -193,7 +193,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 5. Today's Analytics (KPIs) */}
+      
       <section id="tour-analytics-kpi" aria-label="Today's overview">
         <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Today&apos;s Analytics</h2>
         <KpiStrip
@@ -204,7 +204,7 @@ export default async function HomePage() {
         />
       </section>
 
-      {/* 6. Recent Activity (Timesheet) */}
+      
       <section aria-label="Recent Activity">
         <h2 className="text-sm font-semibold text-neutral-100 uppercase tracking-wider mb-4">Timesheet (Last 7 Days)</h2>
         <WeeklyTimesheet sessions={recentSessionsRaw as any ?? []} />

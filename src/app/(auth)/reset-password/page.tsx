@@ -9,7 +9,7 @@ export default async function ResetPasswordPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // If there's no user session, they shouldn't be here (or link is invalid/expired)
+  
   if (!user) {
     redirect("/login?error=unauthorized");
   }

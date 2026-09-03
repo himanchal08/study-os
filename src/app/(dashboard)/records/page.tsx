@@ -17,9 +17,9 @@ export default async function RecordsPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
-  const now = new Date(); // stable reference — avoids react-hooks/purity lint on Date.now()
+  const now = new Date(); 
 
-  // 1. Highest Mock Score
+  
   const { data: mocks } = await supabase
     .from("mocks")
     .select("score, maximum_marks, name, stage")
@@ -29,7 +29,7 @@ export default async function RecordsPage() {
 
   const bestMock = mocks && mocks.length > 0 ? mocks[0] : null;
 
-  // 2. Best Study Streak
+  
   const { data: sessions } = await supabase
     .from("study_sessions")
     .select("start_timestamp")
@@ -42,7 +42,7 @@ export default async function RecordsPage() {
   let lastDate: Date | null = null;
 
   if (sessions && sessions.length > 0) {
-    // Unique dates
+    
     const dates = new Set(
       sessions.map((s) =>
         dayBoundaryAwareDate(new Date(s.start_timestamp).getTime(), offsetMin, timezone)
@@ -66,7 +66,7 @@ export default async function RecordsPage() {
     }
   }
 
-  // 3. Highest Question Volume Day
+  
   const { data: batches } = await supabase
     .from("question_batches")
     .select("attempted, logged_at")
@@ -89,7 +89,7 @@ export default async function RecordsPage() {
     }
   }
 
-  // 4. Most tasks completed in a day
+  
   const { data: tasks } = await supabase
     .from("tasks")
     .select("updated_at")
@@ -114,7 +114,7 @@ export default async function RecordsPage() {
     }
   }
 
-  // 5. Full Session Log — last 90 days
+  
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 86400000).toISOString();
   const { data: sessionLog } = await supabase
     .from("study_sessions")
@@ -126,7 +126,7 @@ export default async function RecordsPage() {
     .order("start_timestamp", { ascending: false })
     .limit(200);
 
-  // Typed session entry — avoids no-explicit-any
+  
   type SessionEntry = {
     id: string;
     start_timestamp: string;
@@ -138,7 +138,7 @@ export default async function RecordsPage() {
     topics: { name: string } | null;
   };
 
-  // Group by day
+  
   const allSessions = (sessionLog ?? []) as SessionEntry[];
   const grouped = new Map<string, SessionEntry[]>();
   allSessions.forEach((s) => {
@@ -182,7 +182,7 @@ export default async function RecordsPage() {
         <p className="text-sm text-neutral-500">Personal bests + complete session history for the last 90 days.</p>
       </header>
 
-      {/* Personal Bests */}
+      
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {records.map((r, i) => (
           <div key={i} className="glass rounded-xl p-5 flex flex-col justify-between" style={{ minHeight: "140px" }}>
@@ -204,7 +204,7 @@ export default async function RecordsPage() {
         ))}
       </div>
 
-      {/* Full Session Log */}
+      
       <section>
         <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider mb-4">
           Session Log — Last 90 Days

@@ -30,7 +30,7 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
   return (
     <form action={action} className="space-y-3 max-w-lg">
 
-      {/* ── Section 1: Profile ── */}
+      
       <section className={FIELD.section} style={FIELD.sectionStyle}>
         <div className="flex items-center gap-2 pb-2 mb-1" style={{ borderBottom: "1px solid #1a1a1a" }}>
           <span className="text-base">👤</span>
@@ -50,7 +50,7 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
         </div>
       </section>
 
-      {/* ── Section 2: Exam Targets ── */}
+      
       <section className={FIELD.section} style={FIELD.sectionStyle}>
         <div className="flex items-center gap-2 pb-2 mb-1" style={{ borderBottom: "1px solid #1a1a1a" }}>
           <span className="text-base">🎯</span>
@@ -96,7 +96,7 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
         </div>
       </section>
 
-      {/* ── Section 3: Study Preferences ── */}
+      
       <section className={FIELD.section} style={FIELD.sectionStyle}>
         <div className="flex items-center gap-2 pb-2 mb-1" style={{ borderBottom: "1px solid #1a1a1a" }}>
           <span className="text-base">⏱</span>
@@ -162,7 +162,7 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
         </div>
       </section>
 
-      {/* ── Feedback ── */}
+      
       {state?.error && (
         <div className="p-3 rounded-lg text-sm" style={{ background: "#1a0a0a", border: "1px solid #3f1515", color: "#f87171" }}>
           {state.error}

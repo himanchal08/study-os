@@ -51,7 +51,7 @@ export async function deleteSavedQuestion(id: string, imagePath: string | null) 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
-  // Delete DB record
+  
   const { error } = await supabase
     .from("saved_questions")
     .update({ deleted_at: new Date().toISOString() })
@@ -60,9 +60,9 @@ export async function deleteSavedQuestion(id: string, imagePath: string | null) 
 
   if (error) return { error: error.message };
 
-  // Clean up storage if an image exists
+  
   if (imagePath) {
-    // Fire and forget storage deletion (it's fine if it fails silently during a soft delete)
+    
     supabase.storage.from("question-images").remove([imagePath]).catch(console.error);
   }
 

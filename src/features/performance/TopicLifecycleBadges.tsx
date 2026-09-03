@@ -20,12 +20,12 @@ interface TopicLifecycleBadgesProps {
 }
 
 const CONFIDENCE_COLORS = [
-  "", // 0 = unused
-  "#ef4444", // 1
-  "#f97316", // 2
-  "#f59e0b", // 3
-  "#22d3ee", // 4
-  "#10b981", // 5
+  "", 
+  "#ef4444", 
+  "#f97316", 
+  "#f59e0b", 
+  "#22d3ee", 
+  "#10b981", 
 ];
 
 export function TopicLifecycleBadges({
@@ -82,7 +82,7 @@ export function TopicLifecycleBadges({
 
   return (
     <div className="flex flex-wrap items-center gap-1.5" title={topicName}>
-      {/* Learning */}
+      
       <button
         type="button"
         onClick={toggleLearning}
@@ -98,7 +98,7 @@ export function TopicLifecycleBadges({
         📘 Learn
       </button>
 
-      {/* Book Practice */}
+      
       <button
         type="button"
         onClick={() => toggle("book_practice_done")}
@@ -114,7 +114,7 @@ export function TopicLifecycleBadges({
         📖 Book
       </button>
 
-      {/* DPP */}
+      
       <button
         type="button"
         onClick={() => toggle("dpp_done")}
@@ -130,7 +130,7 @@ export function TopicLifecycleBadges({
         📝 DPP
       </button>
 
-      {/* PYQ */}
+      
       <button
         type="button"
         onClick={() => toggle("pyq_done")}
@@ -146,7 +146,7 @@ export function TopicLifecycleBadges({
         🏛 PYQ
       </button>
 
-      {/* Confidence */}
+      
       <div className="flex items-center gap-0.5 ml-1">
         {[1, 2, 3, 4, 5].map((level) => (
           <button

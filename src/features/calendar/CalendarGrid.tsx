@@ -15,22 +15,22 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  // Days in month
+  
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 is Sunday
+  const firstDayOfMonth = new Date(year, month, 1).getDay(); 
 
-  // Previous month padding
+  
   const daysInPrevMonth = new Date(year, month, 0).getDate();
   const prevMonthDays = Array.from({ length: firstDayOfMonth }).map((_, i) => {
     return { day: daysInPrevMonth - firstDayOfMonth + i + 1, isCurrentMonth: false, date: new Date(year, month - 1, daysInPrevMonth - firstDayOfMonth + i + 1) };
   });
 
-  // Current month
+  
   const currentMonthDays = Array.from({ length: daysInMonth }).map((_, i) => {
     return { day: i + 1, isCurrentMonth: true, date: new Date(year, month, i + 1) };
   });
 
-  // Next month padding to fill 6 rows (42 cells)
+  
   const totalCells = 42;
   const remainingCells = totalCells - (prevMonthDays.length + currentMonthDays.length);
   const nextMonthDays = Array.from({ length: remainingCells }).map((_, i) => {
@@ -39,7 +39,7 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
 
   const allDays = [...prevMonthDays, ...currentMonthDays, ...nextMonthDays];
 
-  // Helper to format Date to YYYY-MM-DD local time string for matching DB dates
+  
   const toDateString = (d: Date) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -76,7 +76,7 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
 
   return (
     <div className="rounded-xl border flex flex-col overflow-hidden" style={{ background: "#0a0a0a", borderColor: "#1a1a1a" }}>
-      {/* Header Controls */}
+      
       <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: "#1a1a1a" }}>
         <h2 className="text-lg font-semibold text-neutral-100">
           {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
@@ -121,7 +121,7 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
         </div>
       </div>
 
-      {/* Sync result banner */}
+      
       {syncMsg && (
         <div
           className="px-4 py-2 text-xs"
@@ -135,7 +135,7 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
         </div>
       )}
 
-      {/* Days of week header */}
+      
       <div className="grid grid-cols-7 border-b bg-[#111]" style={{ borderColor: "#1a1a1a" }}>
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
           <div key={d} className="py-2 text-center text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">
@@ -144,7 +144,7 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
         ))}
       </div>
 
-      {/* Grid */}
+      
       <div className="grid grid-cols-7 auto-rows-fr flex-1 bg-[#1a1a1a] gap-px">
         {allDays.map((cell, idx) => {
           const dateStr = toDateString(cell.date);
@@ -187,7 +187,7 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
                   </div>
                 ))}
 
-                {/* Session blocks */}
+                
                 {getSessionsForDate(dateStr).map(s => {
                   const color = s.subjects?.color ?? "#52525b";
                   const label = s.subjects?.name ?? s.topics?.name ?? s.activity_type;

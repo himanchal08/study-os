@@ -6,8 +6,8 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/";
 
-  // Use the explicit app URL so Supabase confirmation emails always redirect
-  // to the correct host, regardless of how the request arrives.
+  
+  
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ??
     (process.env.NODE_ENV === "production"

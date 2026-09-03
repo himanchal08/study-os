@@ -36,7 +36,7 @@ export async function POST() {
   const offset = (profile.day_boundary_offset_minutes || 0) * 60000;
   const nowWithOffset = new Date(Date.now() + offset);
 
-  // ── 1. Sync today's tasks as all-day events & Google Tasks ───────────────
+  
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
     year: "numeric",
@@ -56,7 +56,7 @@ export async function POST() {
     fs.appendFileSync('sync-error.log', `Tasks Query Error: ${JSON.stringify(tasksError)}\n`);
   }
 
-  // ── 2. Sync recent study sessions as timed events ────────────────────────
+  
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
   const { data: sessions } = await supabase
     .from("study_sessions")
@@ -72,26 +72,26 @@ export async function POST() {
   const errors: string[] = [];
 
   try {
-    // Sync tasks
+    
     for (const task of tasks ?? []) {
       const eventBody = {
         summary: `📚 ${task.title}`,
         description: `Study OS Task · Status: ${task.status}`,
         start: { date: task.planned_date, timeZone: tz },
         end: { date: task.planned_date, timeZone: tz },
-        colorId: task.status === "completed" ? "2" : "9", // sage=done, blueberry=pending
+        colorId: task.status === "completed" ? "2" : "9", 
       };
 
       try {
         if (task.google_event_id) {
-          // Upsert: update existing event
+          
           await calendar.events.update({
             calendarId: "primary",
             eventId: task.google_event_id,
             requestBody: eventBody,
           });
         } else {
-          // Insert and save the event ID back
+          
           const res = await calendar.events.insert({
             calendarId: "primary",
             requestBody: eventBody,
@@ -113,9 +113,9 @@ export async function POST() {
       }
     }
 
-    // ── 1.5 Sync to Google Tasks ───────────────────────────────────────────
+    
     try {
-      // Find or create "Study OS" task list
+      
       let taskListId = "";
       const lists = await tasksApi.tasklists.list();
       const studyOsList = lists.data.items?.find(l => l.title === "Study OS");
@@ -168,7 +168,7 @@ export async function POST() {
       }
     }
 
-    // Sync study sessions
+    
     for (const s of sessions ?? []) {
       const sub = (s.subjects as { name: string } | null)?.name;
       const topic = (s.topics as { name: string } | null)?.name;
@@ -183,7 +183,7 @@ export async function POST() {
         description: `Study OS Session · Activity: ${s.activity_type}`,
         start: { dateTime: s.start_timestamp, timeZone: tz },
         end: { dateTime: s.end_timestamp!, timeZone: tz },
-        colorId: "7", // Peacock — distinct from tasks
+        colorId: "7", 
       };
 
       try {
@@ -211,7 +211,7 @@ export async function POST() {
       }
     }
 
-    // Save last sync time to profile
+    
     await supabase
       .from("profiles")
       .update({ google_last_synced_at: new Date().toISOString() })

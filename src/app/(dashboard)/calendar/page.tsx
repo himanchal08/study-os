@@ -10,15 +10,15 @@ export default async function CalendarPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch tasks for the current and surrounding months
+  
   const { data: tasks } = await supabase
     .from("tasks")
     .select("id, title, status, planned_date, due_date")
     .eq("user_id", user.id)
     .is("deleted_at", null);
 
-  // Fetch study sessions for the last 90 days for calendar overlay
-  const now = new Date(); // stable reference — avoids react-hooks/purity on Date.now()
+  
+  const now = new Date(); 
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 86400000).toISOString();
   const { data: sessions } = await supabase
     .from("study_sessions")

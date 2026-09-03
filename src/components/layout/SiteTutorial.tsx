@@ -51,11 +51,11 @@ export function SiteTutorial({ userId, startImmediately }: SiteTutorialProps) {
       }
     });
 
-    // Always expose it globally so the TourButton can trigger it on demand
+    
     (window as any).startProductTour = () => d.drive();
 
     if (startImmediately) {
-      // Short delay to ensure DOM elements are rendered
+      
       setTimeout(() => {
         d.drive();
       }, 500);

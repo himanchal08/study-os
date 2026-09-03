@@ -1,15 +1,6 @@
-/**
- * Accuracy and question-batch metrics.
- * Rule: every metric implemented once here, reused everywhere (LLM rules §5.1).
- */
 
-/**
- * accuracy = correct ÷ attempted × 100
- * Guards against zero denominator → returns null (render "no data", never 0% or NaN).
- *
- * @example accuracy(42, 50) → 84
- * @example accuracy(0, 0) → null
- */
+
+
 export function accuracy(
   correct: number,
   attempted: number
@@ -18,10 +9,7 @@ export function accuracy(
   return (correct / attempted) * 100;
 }
 
-/**
- * questions_per_hour = attempted ÷ active_practice_hours
- * Guards against zero denominator → returns null.
- */
+
 export function questionsPerHour(
   attempted: number,
   activeStudyHours: number
@@ -30,10 +18,7 @@ export function questionsPerHour(
   return attempted / activeStudyHours;
 }
 
-/**
- * Validate a question batch before write.
- * Throws with a descriptive message on any violation (PRD §E).
- */
+
 export function validateQuestionBatch(batch: {
   attempted: number;
   correct: number;

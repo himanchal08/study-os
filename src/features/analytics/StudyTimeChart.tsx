@@ -12,7 +12,7 @@ import {
 } from "recharts";
 
 interface DailyBarData {
-  date: string;        // "Mon", "Tue" etc
+  date: string;        
   hours: number;
   target: number;
   hitTarget: boolean;

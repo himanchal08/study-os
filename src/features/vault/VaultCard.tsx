@@ -53,7 +53,7 @@ export function VaultCard({
 
   return (
     <div className="rounded-xl overflow-hidden flex flex-col transition-all hover:border-[#333]" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-      {/* Image Header */}
+      
       {imageUrl ? (
         <div className="w-full aspect-video bg-black border-b relative group" style={{ borderColor: "#1a1a1a" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -74,7 +74,7 @@ export function VaultCard({
         </div>
       )}
 
-      {/* Body */}
+      
       <div className="p-4 flex-1 flex flex-col">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="min-w-0">

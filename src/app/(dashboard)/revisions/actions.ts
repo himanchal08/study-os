@@ -3,13 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// Adaptive interval table (days until next revision based on recall score)
+
 const ADAPTIVE_INTERVALS: Record<number, number> = {
-  1: 1,   // Forgot → review tomorrow
-  2: 2,   // Very hard → 2 days
-  3: 7,   // Hard → 1 week (keep default weekly cadence)
-  4: 14,  // Good → 2 weeks
-  5: 21,  // Easy → 3 weeks
+  1: 1,   
+  2: 2,   
+  3: 7,   
+  4: 14,  
+  5: 21,  
 };
 
 function addDays(date: Date, days: number): string {
@@ -25,7 +25,7 @@ export async function markRevisionDone(id: string, recallScore: number) {
 
   const now = new Date();
 
-  // 1. Mark current revision as done
+  
   const { data: revision, error } = await supabase
     .from("revisions")
     .update({
@@ -40,8 +40,8 @@ export async function markRevisionDone(id: string, recallScore: number) {
 
   if (error) return { error: error.message };
 
-  // 2. Adaptive Engine: spawn next revision based on recall score
-  // Only for scores 1-4 (score 5 = mastered, no forced follow-up unless it's a cycle)
+  
+  
   if (revision && recallScore <= 4) {
     const intervalDays = ADAPTIVE_INTERVALS[recallScore] ?? 7;
     const nextDueDate = addDays(now, intervalDays);

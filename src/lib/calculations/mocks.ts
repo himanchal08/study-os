@@ -1,7 +1,4 @@
-/**
- * Mock test metrics — all from PRD metric dictionary §44.
- * Implemented once here, reused in dashboard KPI strip, drill-down, reports, exports.
- */
+
 
 export type MockPerformanceCase = "A" | "B" | "C" | "D";
 
@@ -28,34 +25,17 @@ export function timeGap(
   return actualMinutes - recommendedMinutes;
 }
 
-/**
- * cutoffGap = score − historical_cutoff
- * Positive = above cutoff; Negative = below cutoff.
- */
+
 export function cutoffGap(score: number, cutoff: number): number {
   return score - cutoff;
 }
 
-/**
- * safetyGap = score − safety_target
- * Positive = above target; Negative = below target.
- */
+
 export function safetyGap(score: number, safetyTarget: number): number {
   return score - safetyTarget;
 }
 
-/**
- * Classify mock performance into one of four cases (PRD §37 decision matrix).
- *
- * Thresholds (configurable in the future; using sensible defaults):
- *   high accuracy  = accuracy ≥ 80%
- *   positive time  = timeGap > 0 (took longer than recommended)
- *
- * Case A: High marks + High accuracy + Slow   → Speed bottleneck
- * Case B: High marks + Low  accuracy + Fast   → Rushing/guessing risk
- * Case C: Low  marks + Low  accuracy + Slow   → Knowledge + speed issue
- * Case D: Low  marks + High accuracy + Slow   → Insufficient attempt volume
- */
+
 export function classifyMockPerformance(params: {
   score: number;
   maximumMarks: number;
@@ -63,9 +43,9 @@ export function classifyMockPerformance(params: {
   attempted: number;
   actualMinutes: number;
   recommendedMinutes: number | null;
-  /** Percentage of max marks considered "high" — default 60 */
+  
   highMarksThresholdPct?: number;
-  /** Accuracy percentage considered "high" — default 80 */
+  
   highAccuracyThreshold?: number;
 }): MockClassification | null {
   const {
@@ -123,13 +103,11 @@ export function classifyMockPerformance(params: {
     };
   }
 
-  // Fallback: doesn't neatly fit one case
+  
   return null;
 }
 
-/**
- * Validate mock entry before write (PRD §E).
- */
+
 export function validateMock(mock: {
   score: number;
   maximumMarks: number;

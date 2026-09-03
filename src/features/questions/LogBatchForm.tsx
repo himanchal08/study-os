@@ -28,7 +28,7 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
 
   return (
     <form action={action} className="space-y-4">
-      {/* Subject */}
+      
       <div>
         <label className={labelCls}>Subject</label>
         <select
@@ -45,7 +45,7 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         </select>
       </div>
 
-      {/* Topic */}
+      
       {filteredTopics.length > 0 && (
         <div>
           <label className={labelCls}>Topic</label>
@@ -58,7 +58,7 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         </div>
       )}
 
-      {/* Source */}
+      
       <div>
         <label className={labelCls}>Source / Book</label>
         <input
@@ -70,7 +70,7 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         />
       </div>
 
-      {/* Attempted / Correct / Wrong */}
+      
       <div className="grid grid-cols-3 gap-3">
         <div>
           <label className={labelCls}>Attempted</label>
@@ -116,7 +116,7 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         </div>
       </div>
 
-      {/* Live accuracy preview */}
+      
       {accuracy !== null && (
         <div className="flex items-center gap-2 text-xs">
           <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#1a1a1a" }}>
@@ -136,10 +136,10 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         </div>
       )}
 
-      {/* Hidden skipped */}
+      
       <input type="hidden" name="skipped" value={skipped} />
 
-      {/* Duration */}
+      
       <div>
         <label className={labelCls}>Duration (min)</label>
         <input
@@ -152,7 +152,7 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         />
       </div>
 
-      {/* Notes */}
+      
       <div>
         <label className={labelCls}>Notes</label>
         <textarea

@@ -91,8 +91,8 @@ export async function stopSession(params: {
     return { error: error.message };
   }
 
-  // Auto-Revision Engine
-  // If the session was tagged with a topic, spawn the spaced-repetition cycles automatically.
+  
+  
   if (data && data.topic_id) {
     const today = new Date();
     const tomorrow = new Date(today);
@@ -106,8 +106,8 @@ export async function stopSession(params: {
 
     const toDateString = (d: Date) => d.toISOString().split("T")[0];
 
-    // We use upsert if there's a unique constraint, but since we don't have the exact constraint name,
-    // we just insert. The DB might throw on duplicate, which we can silently catch.
+    
+    
     const revisionsToInsert: Database["public"]["Tables"]["revisions"]["Insert"][] = [
       {
         user_id: userId,

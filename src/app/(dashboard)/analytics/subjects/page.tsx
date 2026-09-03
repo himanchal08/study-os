@@ -13,7 +13,7 @@ export default async function SubjectPerformancePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch necessary data
+  
   const [
     { data: subjects },
     { data: topics },
@@ -30,7 +30,7 @@ export default async function SubjectPerformancePage() {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  // Past You Calcs
+  
   const currentWeekSessions = (sessions ?? []).filter(s => new Date(s.start_timestamp).getTime() >= sevenDaysAgo.getTime());
   const pastWeekSessions = (sessions ?? []).filter(s => new Date(s.start_timestamp).getTime() >= fourteenDaysAgo.getTime() && new Date(s.start_timestamp).getTime() < sevenDaysAgo.getTime());
   
@@ -49,7 +49,7 @@ export default async function SubjectPerformancePage() {
     pastBatches.reduce((sum, b) => sum + b.attempted, 0)
   );
 
-  // Per-Subject Data Structure
+  
   const subjectMap = new Map();
   (subjects ?? []).forEach(s => {
     subjectMap.set(s.id, {
@@ -112,7 +112,7 @@ export default async function SubjectPerformancePage() {
       <div className="space-y-6">
         {subjectData.map(sub => {
           const subAcc = accuracy(sub.correct, sub.attempted);
-          // Sort topics by lowest accuracy first to highlight weaknesses
+          
           const sortedTopics = [...sub.topics].sort((a, b) => {
             if (a.acc === null) return 1;
             if (b.acc === null) return -1;

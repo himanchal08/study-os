@@ -13,7 +13,7 @@ export default function LoginPage() {
       style={{ background: "var(--background)" }}
     >
       <div className="w-full max-w-md animate-fade-in">
-        {/* Logo */}
+        
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-neutral-900 border border-neutral-800 mb-5 shadow-sm">
             <svg
@@ -39,7 +39,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Card */}
+        
         <div className="glass rounded-2xl p-8">
           <h2
             className="text-lg font-semibold mb-6"

@@ -19,7 +19,7 @@ const labelCls = "block text-xs font-medium text-neutral-500 mb-1 uppercase trac
 export function ScheduleRevisionForm({ topics, subjects, defaultDate }: ScheduleFormProps) {
   const [state, action, isPending] = useActionState(scheduleRevision, null);
 
-  // Build grouped topic options
+  
   const subjectMap = Object.fromEntries(subjects.map(s => [s.id, s.name]));
 
   return (

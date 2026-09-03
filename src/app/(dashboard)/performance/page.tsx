@@ -22,7 +22,6 @@ import { LifecyclePanel } from "@/features/performance/LifecyclePanel";
 
 export const metadata: Metadata = { title: "Performance & Readiness" };
 
-// ─── Colours ──────────────────────────────────────────────────────────────────
 const EXAM_COLORS = {
   banking: { text: "#38bdf8", bg: "#38bdf815", border: "#38bdf830" },
   ssc:     { text: "#a78bfa", bg: "#a78bfa15", border: "#a78bfa30" },
@@ -64,7 +63,6 @@ function pctColor(pct: number) {
   return pct >= 75 ? "#34d399" : pct >= 50 ? "#f59e0b" : "#ef4444";
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function PerformancePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -78,11 +76,10 @@ export default async function PerformancePage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
-  // eslint-disable-next-line react-hooks/purity
+ 
   const now = Date.now();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 
-  // ── Parallel data fetches ──────────────────────────────────────────────────
   const thirtyDaysAgo   = new Date(now - 30 * 86400000).toISOString();
   const fourteenDaysAgo = new Date(now - 14 * 86400000).toISOString();
   const prevFourteen    = new Date(now - 28 * 86400000).toISOString();
@@ -129,11 +126,11 @@ export default async function PerformancePage() {
     supabase.from("real_exam_results").select("*").eq("user_id", user.id).order("exam_date", { ascending: false }),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
   const subjects = (subjectsRaw as any[]) ?? [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
   const topics = (topicsRaw as any[]) ?? [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
   const chapters = (chaptersRaw as any[]) ?? [];
 
   if (temError || subjectsError || topicsError || chaptersError) {
@@ -144,12 +141,10 @@ export default async function PerformancePage() {
     if (chaptersError) console.error("chaptersError:", chaptersError.message, chaptersError.code, chaptersError.details);
   }
 
-  // ── topic_exam_map → per-exam topic ID sets ──────────────────────────────────
   const bankingTopicIdSet = new Set<string>();
   const sscTopicIdSet = new Set<string>();
-  // Also build a full map: topic_id → exam_types[] for the LifecyclePanel
   const topicExamRecord: Record<string, string[]> = {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
   ((topicExamMapRaw as any[]) ?? []).forEach((row) => {
     if (row.exam_type === "banking") bankingTopicIdSet.add(row.topic_id);
     if (row.exam_type === "ssc")     sscTopicIdSet.add(row.topic_id);
@@ -169,7 +164,6 @@ export default async function PerformancePage() {
     cutoff_used: number|null; notes: string|null;
   }>;
 
-  // ── Syllabus stats ──────────────────────────────────────────────────────────
   const overallPct = syllabusCompletionPct(topics);
   const bankingPct = examWiseCoverage(topics, subjects, "banking");
   const sscPct     = examWiseCoverage(topics, subjects, "ssc");
@@ -179,7 +173,6 @@ export default async function PerformancePage() {
     (t) => t.status === "learned" || t.status === "strong"
   ).length;
 
-  // ── Questions stats ─────────────────────────────────────────────────────────
   const totalQuestionsAllTime = (batchesAll ?? []).reduce((s, b) => s + b.attempted, 0);
   const questionsLast7 = (batchesLast7 ?? []).reduce((s, b) => s + b.attempted, 0);
 
@@ -193,7 +186,6 @@ export default async function PerformancePage() {
   const cor30  = (batchesLast30 ?? []).reduce((s, b) => s + b.correct,   0);
   const acc30  = att30 > 0 ? (cor30 / att30) * 100 : null;
 
-  // ── Mock stats ──────────────────────────────────────────────────────────────
   const last5Mocks = mocks.slice(0, 5);
   const last5AvgPct = last5Mocks.length > 0
     ? last5Mocks.reduce((s, m) => s + (m.score / m.maximum_marks) * 100, 0) / last5Mocks.length
@@ -203,13 +195,11 @@ export default async function PerformancePage() {
     ? Math.floor((now - new Date(mocks[0].mock_date).getTime()) / 86400000)
     : null;
 
-  // Speed discipline: mocks where actual ≤ recommended
   const mocksWithRec = mocks.filter((m) => m.recommended_duration_minutes != null);
   const speedDisciplinePct = mocksWithRec.length > 0
     ? (mocksWithRec.filter((m) => m.actual_duration_minutes <= m.recommended_duration_minutes!).length / mocksWithRec.length) * 100
     : null;
 
-  // ── Revision stats ──────────────────────────────────────────────────────────
   const due30 = (revisionsDue30Raw ?? []).length;
   const completed30 = (revisionsCompleted30Raw ?? []).length;
   const adherence30 = due30 > 0 ? Math.round((completed30 / due30) * 100) : null;
@@ -219,7 +209,6 @@ export default async function PerformancePage() {
   }>;
   const overdueTopicNames = overdueRevisions.map((r) => r.topics?.name ?? "Unknown");
 
-  // ── Mock section accuracy map (for weak area corroboration) ────────────────
   const mockSectionAccMap = new Map<string, { attempted: number; correct: number }>();
   (mockSectionsRaw ?? []).forEach((ms: { name: string; attempted: number; correct: number }) => {
     const key = ms.name.toLowerCase().trim();
@@ -229,7 +218,6 @@ export default async function PerformancePage() {
     d.correct += ms.correct;
   });
 
-  // ── Per-topic practice aggregation (for weak areas) ────────────────────────
   type TopicPractice = {
     topicId: string; topicName: string; subjectName: string; subjectColor: string;
     attempted: number; correct: number; pyqWeight: number | null;
@@ -259,7 +247,6 @@ export default async function PerformancePage() {
     p.correct += b.correct;
   });
 
-  // ── PYQ coverage ───────────────────────────────────────────────────────────
   const learnedTopicIds = topics
     .filter((t) => t.status === "learned" || t.status === "strong")
     .map((t) => t.id);
@@ -270,14 +257,12 @@ export default async function PerformancePage() {
     ? Math.round((pyqDoneCount / learnedTopicIds.length) * 100)
     : null;
 
-  // ── Exam date (nearest upcoming) ───────────────────────────────────────────
   const upcomingExams = exams.filter(
     (e) => e.exam_date && new Date(e.exam_date) > new Date()
   ).sort((a, b) => new Date(a.exam_date!).getTime() - new Date(b.exam_date!).getTime());
   const nearestExam = upcomingExams[0] ?? null;
   const examDate = nearestExam?.exam_date ?? null;
 
-  // If no exam date set by user, use known reference dates — pick the NEAREST upcoming one
   const defaultExamType = (profile?.exam_targets?.[0] as "banking" | "ssc") ?? "banking";
   const knownFallback = KNOWN_EXAM_DATES
     .filter((e) => e.examType === defaultExamType && new Date(e.estimatedDate) > new Date())
@@ -288,11 +273,9 @@ export default async function PerformancePage() {
     ? Math.max(0, Math.ceil((new Date(effectiveExamDate).getTime() - now) / 86400000))
     : null;
 
-  // ── Study start ─────────────────────────────────────────────────────────────
   const studyStartDate =
     (sessionsEarliest ?? [])[0]?.start_timestamp?.split("T")[0] ?? null;
 
-  // ── On Track ────────────────────────────────────────────────────────────────
   const onTrack = computeOnTrackStatus({
     studyStartDate,
     examDate: effectiveExamDate,
@@ -312,7 +295,6 @@ export default async function PerformancePage() {
     revisionsDue30: due30,
   });
 
-  // ── Readiness Score ─────────────────────────────────────────────────────────
   const readiness = computeReadinessScore({
     syllabusCompletionPct: overallPct,
     totalQuestionsAllTime,
@@ -325,33 +307,28 @@ export default async function PerformancePage() {
     mockTrend: onTrack.mockTrend,
   });
 
-  // ── Practice map as plain object for client component ──────────────────────
   const practiceMapObj: Record<string, { attempted: number; correct: number }> = {};
   topicPracticeMap.forEach((v, k) => {
     practiceMapObj[k] = { attempted: v.attempted, correct: v.correct };
   });
 
-  // ── Weak Areas ──────────────────────────────────────────────────────────────
   const weakAreas = detectWeakAreas({
     topicPractice: Array.from(topicPracticeMap.values()),
     mockSectionAccMap,
     minSampleSize: 10,
   });
 
-  // ── Topics pending PYQ (learned but pyq_done=false) ────────────────────────
   const pyqPendingTopics = learnedTopicIds
     .filter((id) => !lifecycleMap.get(id)?.pyq_done)
     .map((id) => topicLookup.get(id)?.name ?? "")
     .filter(Boolean)
     .slice(0, 10);
 
-  // ── Unstarted topics ────────────────────────────────────────────────────────
   const unstartedTopics = topics
     .filter((t) => t.status === "not_started")
     .map((t) => t.name)
     .slice(0, 5);
 
-  // ── Next Actions ────────────────────────────────────────────────────────────
   const nextActions = generateNextActions({
     onTrack,
     weakAreas,
@@ -363,7 +340,6 @@ export default async function PerformancePage() {
     notStartedTopicsCount: topics.filter((t) => t.status === "not_started").length,
   });
 
-  // ── Subject-wise progress ──────────────────────────────────────────────────
   const subjectProgress = subjects.map((s) => {
     const subTopics = topics.filter((t) => t.subject_id === s.id);
     const done = subTopics.filter((t) => t.status === "learned" || t.status === "strong").length;
@@ -376,13 +352,11 @@ export default async function PerformancePage() {
     const totalCor = practice.reduce((a, p) => a + p.correct, 0);
     const acc = totalAtt >= 10 ? (totalCor / totalAtt) * 100 : null;
     return { ...s, subTopics, done, pct, accuracy: acc, totalAttempted: totalAtt };
-  }).sort((a, b) => a.pct - b.pct); // worst first
+  }).sort((a, b) => a.pct - b.pct);
 
-  // ── Mock per exam type ──────────────────────────────────────────────────────
   const bankingMocks = mocks.filter((m) => m.exam_type === "banking").slice(0, 5);
   const sscMocks = mocks.filter((m) => m.exam_type === "ssc").slice(0, 5);
 
-  // ── Real exam weakness corroboration ───────────────────────────────────────
   const lastRealExam = realExamResults[0] ?? null;
   const realWeakSubjects = lastRealExam?.subject_breakdown
     ?.filter((s) => s.marks_available > 0 && (s.marks_scored / s.marks_available) < 0.65)
@@ -395,7 +369,6 @@ export default async function PerformancePage() {
   return (
     <div className="space-y-8 animate-fade-in pb-16">
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold text-neutral-100 tracking-tight mb-1">
@@ -428,7 +401,6 @@ export default async function PerformancePage() {
         )}
       </div>
 
-      {/* ── Overview Strip ──────────────────────────────────────────────────── */}
       <section aria-label="Overview">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
@@ -447,7 +419,6 @@ export default async function PerformancePage() {
         </div>
       </section>
 
-      {/* ── Exam-wise Progress ──────────────────────────────────────────────── */}
       <section aria-label="Exam-wise progress">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Exam-wise Progress</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -478,7 +449,6 @@ export default async function PerformancePage() {
                   </span>
                   <span className="text-xl font-bold tabular-nums" style={{ color: pctColor(pct) }}>{pct}%</span>
                 </div>
-                {/* Coverage bar */}
                 <div>
                   <div className="w-full h-2 rounded-full" style={{ background: "#1a1a1a" }}>
                     <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: cfg.text }} />
@@ -519,7 +489,6 @@ export default async function PerformancePage() {
         </div>
       </section>
 
-      {/* ── Am I On Track? ──────────────────────────────────────────────────── */}
       <section aria-label="Am I on track">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Am I On Track?</h2>
         <div className="rounded-xl p-5 space-y-5" style={{ background: "#0a0a0a", border: `1px solid ${onTrackCfg.text}30` }}>
@@ -535,7 +504,6 @@ export default async function PerformancePage() {
             </div>
           </div>
 
-          {/* Signal bars */}
           {onTrack.status !== "insufficient_data" && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
@@ -555,7 +523,6 @@ export default async function PerformancePage() {
             </div>
           )}
 
-          {/* Reasons */}
           <div className="space-y-2 pt-2 border-t" style={{ borderColor: "#1a1a1a" }}>
             <p className="text-[10px] uppercase tracking-wider text-neutral-600 font-semibold">Evidence</p>
             {onTrack.reasons.map((r, i) => (
@@ -578,7 +545,6 @@ export default async function PerformancePage() {
         </div>
       </section>
 
-      {/* ── Exam Readiness Score ────────────────────────────────────────────── */}
       <section aria-label="Exam readiness score">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Exam Readiness Score</h2>
         <div className="rounded-xl p-5" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
@@ -631,10 +597,8 @@ export default async function PerformancePage() {
         </div>
       </section>
 
-      {/* ── Weak Areas + Next Actions (side by side) ────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Weak Areas */}
         <section aria-label="Weak areas">
           <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Weak Areas</h2>
           {weakAreas.length === 0 ? (
@@ -701,7 +665,6 @@ export default async function PerformancePage() {
           )}
         </section>
 
-        {/* Next Actions */}
         <section aria-label="Next actions">
           <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Next Actions</h2>
           {nextActions.length === 0 ? (
@@ -733,7 +696,6 @@ export default async function PerformancePage() {
         </section>
       </div>
 
-      {/* ── Subject Progress ────────────────────────────────────────────────── */}
       <section aria-label="Subject progress">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Subject Progress</h2>
         <div className="space-y-2">
@@ -786,7 +748,6 @@ export default async function PerformancePage() {
         </div>
       </section>
 
-      {/* ── Topic Lifecycle ─────────────────────────────────────────────────── */}
       <LifecyclePanel
         subjects={subjects}
         chapters={chapters}
@@ -796,7 +757,6 @@ export default async function PerformancePage() {
         topicExamRecord={topicExamRecord}
       />
 
-      {/* ── Mock Performance ────────────────────────────────────────────────── */}
       <section aria-label="Mock performance">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Mock Performance</h2>
         {mocks.length === 0 ? (
@@ -853,7 +813,6 @@ export default async function PerformancePage() {
         )}
       </section>
 
-      {/* ── Revision Status ─────────────────────────────────────────────────── */}
       <section aria-label="Revision status">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Revision Status</h2>
         <div className="grid grid-cols-3 gap-3 mb-4">
@@ -884,7 +843,6 @@ export default async function PerformancePage() {
         )}
       </section>
 
-      {/* ── Reference Cutoffs ───────────────────────────────────────────────── */}
       <section aria-label="Reference cutoffs">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Reference Cutoffs (Estimated)</h2>
         <div className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
@@ -921,7 +879,6 @@ export default async function PerformancePage() {
         </div>
       </section>
 
-      {/* ── Real Exam Results ───────────────────────────────────────────────── */}
       <section aria-label="Real exam results">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Real Exam Results</h2>
         <p className="text-xs text-neutral-600 mb-4">
@@ -934,7 +891,6 @@ export default async function PerformancePage() {
         />
       </section>
 
-      {/* Footer */}
       <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: "#111111", border: "1px solid var(--border)" }}>
         <p className="text-xs" style={{ color: "rgba(232,232,240,0.4)" }}>
           Data: Supabase is source of truth · This page is a view · {todayStr}

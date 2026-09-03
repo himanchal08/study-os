@@ -100,9 +100,9 @@ export function SubjectCard({ subject }: SubjectCardProps) {
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-      {/* Header */}
+      
       <div className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/2 transition-colors group">
-        {/* Color swatch — click to open color picker */}
+        
         <button
           type="button"
           onClick={() => colorRef.current?.click()}
@@ -141,7 +141,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
           <span className="text-neutral-600 text-xs shrink-0">{expanded ? "▲" : "▼"}</span>
         </button>
 
-        {/* Delete button — visible on hover */}
+        
         <button
           type="button"
           onClick={() => {
@@ -156,7 +156,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
         </button>
       </div>
 
-      {/* Content */}
+      
       <div
         className="transition-all duration-300 ease-in-out"
         style={{
@@ -182,7 +182,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
             );
           })}
           
-          {/* Topics without a chapter */}
+          
           {subject.topics.filter(t => !t.chapter_id).length > 0 && (
             <div className="space-y-2">
               <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider pl-1">

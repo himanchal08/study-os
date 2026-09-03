@@ -21,7 +21,7 @@ export function GoogleCalendarPanel({ isConnected, lastSyncedAt }: GoogleCalenda
       const res = await fetch("/api/calendar/sync", { method: "POST" });
       const data = await res.json();
       setSyncResult({ message: data.message ?? data.error ?? "Done", ok: res.ok });
-      if (res.ok) router.refresh(); // refresh to show new lastSyncedAt
+      if (res.ok) router.refresh(); 
     } catch {
       setSyncResult({ message: "Network error — could not reach sync endpoint.", ok: false });
     } finally {

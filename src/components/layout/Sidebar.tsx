@@ -16,7 +16,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
         borderColor: "var(--border)",
       }}
     >
-      {/* Logo */}
+      
       <div
         className="px-5 py-5 flex items-center gap-3 border-b"
         style={{ borderColor: "var(--border-subtle)" }}
@@ -53,7 +53,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
         <TourButton />
       </div>
 
-      {/* User chip */}
+      
       <div
         className="px-3 py-4 border-t"
         style={{ borderColor: "var(--border-subtle)" }}

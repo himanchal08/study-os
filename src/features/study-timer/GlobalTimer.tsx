@@ -24,15 +24,15 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   
   const [notes, setNotes] = useState<string>(activeSession?.notes ?? "");
 
-  // Topics filtered by selected subject — cascading dropdown
+  
   const filteredTopics = topics.filter(t => t.subject_id === selectedSubject);
 
-  // Wall-clock ms when the current running segment started (not the session start timestamp).
-  // This is reset on every resume so we can accumulate clean elapsed time.
+  
+  
   const segmentStartMonoRef = useRef<number | null>(null);
   const segmentStartWallRef = useRef<number | null>(null);
 
-  // Elapsed seconds at the end of the PREVIOUS running segment (before the last pause).
+  
   const [accumulatedSec, setAccumulatedSec] = useState<number>(() => {
     if (!activeSession?.start_timestamp) return 0;
     const sessionMs = new Date(activeSession.start_timestamp).getTime();
@@ -43,14 +43,14 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   const [pausedAtMs, setPausedAtMs] = useState<number | null>(null);
   const [totalPauseSec, setTotalPauseSec] = useState(activeSession?.pause_duration_seconds ?? 0);
 
-  // Displayed elapsed seconds — derived purely from monotonic clock to prevent drift.
+  
   const [displayedSec, setDisplayedSec] = useState(accumulatedSec);
   const rafRef = useRef<number | null>(null);
 
   const isRunning = !!session;
   const isPaused = pausedAtMs !== null;
 
-  // Sync state to localStorage for the browser extension
+  
   useEffect(() => {
     try {
       localStorage.setItem("study_os_timer_state", JSON.stringify({
@@ -60,11 +60,11 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
         activity_type: session?.activity_type || null
       }));
     } catch {
-      // ignore
+      
     }
   }, [isRunning, isPaused, session?.id]);
 
-  // Start the segment monotonic reference when we begin running.
+  
   useEffect(() => {
     if (isRunning && !isPaused) {
       segmentStartMonoRef.current = performance.now();
@@ -119,11 +119,11 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
 
   const handlePauseToggle = useCallback(() => {
     if (isPaused) {
-      // Resume: snapshot how many seconds we had at pause and start a fresh monotonic segment
+      
       setPausedAtMs(null);
-      // accumulatedSec is already frozen at the value when we paused
+      
     } else {
-      // Pause: freeze accumulatedSec at the current displayed value
+      
       setAccumulatedSec(displayedSec);
       setPausedAtMs(Date.now());
     }
@@ -134,8 +134,8 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     setLoading(true);
     setError(null);
 
-    // Total pause seconds = however long was accumulated while paused
-    // We track this via totalPauseSec which we update on each resume.
+    
+    
     let finalPauseSec = totalPauseSec;
     if (isPaused && pausedAtMs !== null) {
       finalPauseSec += Math.floor((Date.now() - pausedAtMs) / 1000);
@@ -187,7 +187,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
 
         <div className="h-4 w-px bg-neutral-800 mx-2" />
 
-        {/* Subject picker */}
+        
         <div className="flex items-center gap-2">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-500 shrink-0">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -201,7 +201,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
               value={selectedSubject}
               onChange={(e) => {
                 setSelectedSubject(e.target.value);
-                setSelectedTopic(""); // reset topic on subject change
+                setSelectedTopic(""); 
               }}
               disabled={isRunning || loading}
               className="text-xs bg-transparent text-neutral-300 outline-none hover:text-neutral-200 cursor-pointer appearance-none pr-4"
@@ -220,7 +220,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
           )}
         </div>
 
-        {/* Topic picker — cascades from selected subject */}
+        
         {(selectedSubject || session?.topic_id) && (
           <>
             <div className="h-4 w-px bg-neutral-800" />
@@ -334,7 +334,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
             onClick={handleStart}
             disabled={loading}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 pl-0.5"
-            style={{ background: "#d946ef" }} // Toggl-like pinkish purple
+            style={{ background: "#d946ef" }} 
             aria-label="Start Timer"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

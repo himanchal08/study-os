@@ -42,7 +42,7 @@ export default async function RevisionsPage() {
       .lte("due_date", todayStr)
       .order("due_date", { ascending: true })
       .limit(100),
-    // Revision history — last 30 days of completed revisions for the history panel
+    
     supabase
       .from("revisions")
       .select("id, due_date, completed_at, cycle_type, recall_score, topics(name, subjects(name, color))")
@@ -53,7 +53,7 @@ export default async function RevisionsPage() {
       .limit(200),
   ]);
 
-  // Group history by topic
+  
   type HistEntry = { date: string; cycleType: string; recallScore: number | null };
   type TopicHistory = { topicName: string; subjectName: string; subjectColor: string; entries: HistEntry[] };
   const historyByTopic = new Map<string, TopicHistory>();
@@ -90,7 +90,7 @@ export default async function RevisionsPage() {
         <p className="text-sm text-neutral-500">Track what needs reviewing and log how well you remembered it.</p>
       </div>
 
-      {/* Summary strip */}
+      
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Due Today", value: due.length, color: due.length > 0 ? "#f59e0b" : "#10b981" },
@@ -105,7 +105,7 @@ export default async function RevisionsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Due list */}
+        
         <div className="lg:col-span-2 space-y-2">
           <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
             Due — {due.length} remaining
@@ -137,7 +137,7 @@ export default async function RevisionsPage() {
             })
           )}
 
-          {/* Completed today */}
+          
           {completed.length > 0 && (
             <>
               <p className="text-xs font-semibold text-neutral-600 uppercase tracking-wider pt-2">
@@ -165,7 +165,7 @@ export default async function RevisionsPage() {
         </div>
       </div>
 
-      {/* Revision History — Phase 21.3 */}
+      
       {historyTopics.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider mb-3">
@@ -193,7 +193,7 @@ export default async function RevisionsPage() {
                       )}
                     </div>
                   </div>
-                  {/* Recall score dot timeline */}
+                  
                   <div className="flex items-center gap-1 flex-wrap mt-1">
                     {ht.entries.slice(0, 30).map((e, i) => {
                       const score = e.recallScore;

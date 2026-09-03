@@ -83,7 +83,7 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
 
   return (
     <div className="space-y-5">
-      {/* Planner Summary KPIs */}
+      
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="glass rounded-2xl p-3.5">
           <p className="text-[11px] font-medium" style={{ color: "rgba(226,226,240,0.45)" }}>
@@ -124,7 +124,7 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
         </div>
       </div>
 
-      {/* Tabs and Filters */}
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-3" style={{ borderColor: "var(--border-subtle)" }}>
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
           {(
@@ -198,7 +198,7 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
         </div>
       </div>
 
-      {/* Task List items */}
+      
       {filteredTasks.length === 0 ? (
         <div className="glass rounded-2xl p-10 text-center flex flex-col items-center justify-center">
           <div className="text-3xl mb-2">📋</div>

@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// ─── Topic Lifecycle ────────────────────────────────────────────────────────
+
 
 interface LifecycleUpdate {
   learning_completed_at?: string | null;
@@ -16,10 +16,7 @@ interface LifecycleUpdate {
   confidence_level?: number | null;
 }
 
-/**
- * Upsert a topic_lifecycle row for the given topic.
- * UNIQUE(user_id, topic_id) ensures exactly one row per topic per user.
- */
+
 export async function saveTopicLifecycle(
   topicId: string,
   update: LifecycleUpdate
@@ -46,7 +43,7 @@ export async function saveTopicLifecycle(
   return { error: null };
 }
 
-// ─── Real Exam Results ──────────────────────────────────────────────────────
+
 
 interface SubjectBreakdownItem {
   subject_name: string;
@@ -67,11 +64,7 @@ interface RealExamResultData {
   client_generated_id?: string;
 }
 
-/**
- * Insert a real exam result.
- * Uses client_generated_id for idempotency (PRD §C — upsert on conflict).
- * Validates: total_score <= total_max, cutoff <= total_max.
- */
+
 export async function saveRealExamResult(
   data: RealExamResultData
 ): Promise<{ error: string | null }> {
@@ -81,7 +74,7 @@ export async function saveRealExamResult(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  // Client-side validation (server-side constraint also enforced in DB)
+  
   if (data.total_score > data.total_max) {
     return { error: `Score (${data.total_score}) cannot exceed max marks (${data.total_max})` };
   }
@@ -119,9 +112,7 @@ export async function saveRealExamResult(
   return { error: null };
 }
 
-/**
- * Delete a real exam result by ID.
- */
+
 export async function deleteRealExamResult(
   id: string
 ): Promise<{ error: string | null }> {

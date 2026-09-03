@@ -66,7 +66,7 @@ export function VaultUploadForm({ subjects, topics, userId }: VaultUploadFormPro
       const formData = new FormData(e.currentTarget);
       let imagePath: string | null = null;
 
-      // 1. Upload image to Supabase Storage if present
+      
       if (file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
@@ -84,14 +84,14 @@ export function VaultUploadForm({ subjects, topics, userId }: VaultUploadFormPro
         formData.append("image_path", imagePath);
       }
 
-      // 2. Save metadata via Server Action
+      
       const result = await saveQuestionMetadata(formData);
       
       if (result.error) {
         throw new Error(result.error);
       }
 
-      // Success
+      
       setSuccessMsg("Question saved to vault!");
       clearImage();
       e.currentTarget.reset();
@@ -104,12 +104,12 @@ export function VaultUploadForm({ subjects, topics, userId }: VaultUploadFormPro
     }
   };
 
-  // Group topics for select
+  
   const subjectMap = Object.fromEntries(subjects.map(s => [s.id, s.name]));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Image Uploader */}
+      
       <div>
         <label className={labelCls}>Screenshot / Photo</label>
         {previewUrl ? (
@@ -142,7 +142,7 @@ export function VaultUploadForm({ subjects, topics, userId }: VaultUploadFormPro
         )}
       </div>
 
-      {/* Metadata */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelCls}>Topic</label>
@@ -167,7 +167,7 @@ export function VaultUploadForm({ subjects, topics, userId }: VaultUploadFormPro
         </div>
       </div>
 
-      {/* Error Category */}
+      
       <div>
         <label className={labelCls}>Why did you get it wrong?</label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -186,7 +186,7 @@ export function VaultUploadForm({ subjects, topics, userId }: VaultUploadFormPro
         </div>
       </div>
 
-      {/* Explanation */}
+      
       <div>
         <label className={labelCls}>Explanation / Right Approach</label>
         <textarea

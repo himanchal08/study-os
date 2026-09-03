@@ -18,7 +18,7 @@ export async function TaskPlanningAnalytics() {
 
   const validTasks = tasks ?? [];
 
-  // Current 7 days
+  
   const currentTasks = validTasks.filter(t => new Date(t.planned_date!) >= sevenDaysAgo);
   const currentPlanned = currentTasks.length;
   const currentCompleted = currentTasks.filter(t => t.status === "completed").length;
@@ -27,7 +27,7 @@ export async function TaskPlanningAnalytics() {
   const currentCompletionRate = currentPlanned > 0 ? (currentCompleted / currentPlanned) * 100 : null;
   const currentPostponementRate = currentPlanned > 0 ? (currentPostponed / currentPlanned) * 100 : null;
 
-  // Previous 7 days
+  
   const pastTasks = validTasks.filter(t => new Date(t.planned_date!) >= fourteenDaysAgo && new Date(t.planned_date!) < sevenDaysAgo);
   const pastPlanned = pastTasks.length;
   const pastCompleted = pastTasks.filter(t => t.status === "completed").length;

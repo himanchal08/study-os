@@ -25,8 +25,8 @@ export async function GET(request: Request) {
   try {
     const { tokens } = await oauth2Client.getToken(code);
     
-    // We only care about saving the refresh token to our DB.
-    // In production, we'd encrypt this before saving.
+    
+    
     if (tokens.refresh_token) {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();

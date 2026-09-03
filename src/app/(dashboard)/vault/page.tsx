@@ -41,7 +41,7 @@ export default async function VaultPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        {/* Upload Form */}
+        
         <div className="lg:col-span-1 rounded-xl p-5 sticky top-6 space-y-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <div>
             <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1">Add to Vault</p>
@@ -50,7 +50,7 @@ export default async function VaultPage() {
           <VaultUploadForm subjects={subjects ?? []} topics={topics ?? []} userId={user.id} />
         </div>
 
-        {/* Gallery */}
+        
         <div className="lg:col-span-3">
           {savedQuestions.length === 0 ? (
             <div className="rounded-xl p-12 text-center flex flex-col items-center justify-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>

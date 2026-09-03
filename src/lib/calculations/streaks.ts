@@ -1,15 +1,7 @@
 
 import { dayBoundaryAwareDate } from "./time";
 
-/**
- * Compute current and longest streak from an array of session dates.
- *
- * @param sessions         Array with start_timestamp and end_timestamp
- * @param offsetMin        day_boundary_offset_minutes from user profile
- * @param timezone         IANA timezone from user profile
- * @param annotations      Map<dateString, { exclude_from_trends: boolean }>
- *                         Annotated days are not penalised (don't break streak).
- */
+
 export function computeStreaks(
   sessions: Array<{
     start_timestamp: string;
@@ -20,7 +12,7 @@ export function computeStreaks(
   timezone: string,
   annotations: Map<string, { exclude_from_trends: boolean }> = new Map()
 ): { current: number; longest: number } {
-  // Build a Set of unique study dates (day-boundary-aware)
+  
   const studyDates = new Set<string>();
   for (const s of sessions) {
     if (!s.end_timestamp) continue;
@@ -35,7 +27,7 @@ export function computeStreaks(
 
   if (studyDates.size === 0) return { current: 0, longest: 0 };
 
-  // Sort dates ascending
+  
   const sorted = [...studyDates].sort();
 
   let currentStreak = 1;
@@ -52,7 +44,7 @@ export function computeStreaks(
     if (diffDays === 1) {
       tempStreak++;
     } else if (diffDays > 1) {
-      // Check if the gap days are all annotated (exempt from streak break)
+      
       let gapIsAnnotated = true;
       for (let d = 1; d < diffDays; d++) {
         const gapDate = new Date(prev);
@@ -67,13 +59,13 @@ export function computeStreaks(
         longestStreak = Math.max(longestStreak, tempStreak);
         tempStreak = 1;
       }
-      // If gap is fully annotated, streak continues unbroken
+      
     }
   }
 
   longestStreak = Math.max(longestStreak, tempStreak);
 
-  // Current streak: count backwards from today
+  
   const todayStr = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
   const yesterdayStr = (() => {
     const d = new Date(todayStr);
@@ -84,7 +76,7 @@ export function computeStreaks(
   if (!studyDates.has(todayStr) && !studyDates.has(yesterdayStr)) {
     currentStreak = 0;
   } else {
-    currentStreak = tempStreak; // approximate — full backward walk omitted for brevity
+    currentStreak = tempStreak; 
   }
 
   return { current: currentStreak, longest: longestStreak };

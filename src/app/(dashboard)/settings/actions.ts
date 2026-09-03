@@ -17,7 +17,7 @@ export async function updateProfile(prevState: unknown, formData: FormData) {
     const timezone = formData.get("timezone") as string;
     const fullName = (formData.get("full_name") as string)?.trim() || null;
 
-    // Collect exam targets from checkboxes
+    
     const examTargets: string[] = [];
     if (formData.get("exam_banking")) examTargets.push("banking");
     if (formData.get("exam_ssc")) examTargets.push("ssc");

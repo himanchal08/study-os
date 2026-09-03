@@ -1,13 +1,6 @@
-/**
- * Performance calculations — Phase 11 (Syllabus Coverage) + Phase 22 (Exam Readiness).
- * All functions are framework-agnostic (no React/Next imports) and purely deterministic.
- *
- * Reuses existing shared types from this module; does NOT reimport from React.
- * Per LLM rules §5.1: every metric is implemented once here and reused across
- * the dashboard page, components, and future exports.
- */
 
-// ─── Lightweight topic shape for coverage calculations ────────────────────────
+
+
 export interface TopicForCoverage {
   id: string;
   status: "not_started" | "learning" | "learned" | "revising" | "strong" | "weak";
@@ -19,7 +12,7 @@ export interface SubjectForCoverage {
   exam_type: "banking" | "ssc" | "both";
 }
 
-/** Overall syllabus completion %. Counts 'learned' + 'strong' as done. */
+
 export function syllabusCompletionPct(topics: TopicForCoverage[]): number {
   if (topics.length === 0) return 0;
   const done = topics.filter((t) =>
@@ -28,16 +21,12 @@ export function syllabusCompletionPct(topics: TopicForCoverage[]): number {
   return Math.round((done / topics.length) * 100);
 }
 
-/**
- * Coverage % for a specific exam type.
- * NEW: uses topicIdSet derived from topic_exam_map (canonical model).
- * Falls back to subject-based filtering when topicIdSet is not provided.
- */
+
 export function examWiseCoverage(
   topics: TopicForCoverage[],
   subjects: SubjectForCoverage[],
   examType: "banking" | "ssc",
-  /** Optional: Set of topic IDs from topic_exam_map for this exam. Preferred. */
+  
   examTopicIdSet?: Set<string>
 ): number {
   let relevant: TopicForCoverage[];
@@ -58,52 +47,52 @@ export function examWiseCoverage(
   return Math.round((done / relevant.length) * 100);
 }
 
-// ─── Am I On Track? ──────────────────────────────────────────────────────────
+
 
 export type OnTrackStatus = "ahead" | "on_track" | "behind" | "insufficient_data";
 
 export interface OnTrackResult {
   status: OnTrackStatus;
-  /** Topics completed per week (actual) */
+  
   syllabusVelocity: number;
-  /** Topics per week needed to finish before exam */
+  
   syllabusTarget: number;
-  /** Total questions attempted in last 7 days */
+  
   questionVolumeWeekly: number;
-  /** % topics with pyq_done = true (null if no lifecycle data) */
+  
   pyqCoveragePct: number | null;
   accuracyTrend: "improving" | "stable" | "declining" | null;
   mockTrend: "improving" | "stable" | "declining" | null;
-  /** % due revisions completed (last 30 days) */
+  
   revisionAdherencePct: number;
-  /** Days remaining until nearest exam date */
+  
   daysRemaining: number | null;
-  /** Human-readable evidence strings (1 per signal) */
+  
   reasons: string[];
 }
 
 export interface OnTrackParams {
-  /** ISO date string of earliest study session */
+  
   studyStartDate: string | null;
-  /** ISO date string of nearest upcoming exam */
+  
   examDate: string | null;
   totalTopics: number;
   completedTopics: number;
-  /** Number of questions attempted in last 7 days */
+  
   questionsLast7Days: number;
-  /** % topics with pyq_done = true (null = no lifecycle data) */
+  
   pyqCoveragePct: number | null;
-  /** Accuracy 0–100 for last 14 days (null = no data) */
+  
   accuracyLast14: number | null;
-  /** Accuracy 0–100 for days 15–28 ago (null = no data) */
+  
   accuracyPrev14: number | null;
-  /** Average mock score % of last 3 mocks (null = < 3 mocks) */
+  
   mockScoreLast3Avg: number | null;
-  /** Average mock score % of mocks 4–6 (null = insufficient) */
+  
   mockScorePrev3Avg: number | null;
-  /** Revisions completed in last 30 days */
+  
   revisionsCompleted30: number;
-  /** Revisions that were due in last 30 days */
+  
   revisionsDue30: number;
 }
 
@@ -126,13 +115,13 @@ export function computeOnTrackStatus(params: OnTrackParams): OnTrackResult {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Revision adherence (guard zero denominator)
+  
   const revisionAdherencePct =
     revisionsDue30 > 0
       ? Math.round((revisionsCompleted30 / revisionsDue30) * 100)
-      : 100; // no revisions due = 100% adherence (not penalised)
+      : 100; 
 
-  // Days remaining
+  
   let daysRemaining: number | null = null;
   if (examDate) {
     const exam = new Date(examDate);
@@ -143,7 +132,7 @@ export function computeOnTrackStatus(params: OnTrackParams): OnTrackResult {
     );
   }
 
-  // Insufficient data check: < 14 days of sessions or no exam date
+  
   if (!studyStartDate || !examDate || daysRemaining === null) {
     return {
       status: "insufficient_data",
@@ -188,14 +177,14 @@ export function computeOnTrackStatus(params: OnTrackParams): OnTrackResult {
   }
 
   const weeksElapsed = daysElapsed / 7;
-  const weeksRemaining = Math.max(0.14, daysRemaining / 7); // at least 1 day
+  const weeksRemaining = Math.max(0.14, daysRemaining / 7); 
 
   const remainingTopics = totalTopics - completedTopics;
   const syllabusVelocity = completedTopics / weeksElapsed;
   const syllabusTarget =
     weeksRemaining > 0 ? remainingTopics / weeksRemaining : remainingTopics * 99;
 
-  // Trends
+  
   let accuracyTrend: OnTrackResult["accuracyTrend"] = null;
   if (accuracyLast14 !== null && accuracyPrev14 !== null) {
     const delta = accuracyLast14 - accuracyPrev14;
@@ -212,7 +201,7 @@ export function computeOnTrackStatus(params: OnTrackParams): OnTrackResult {
     else mockTrend = "stable";
   }
 
-  // Build evidence reasons
+  
   const reasons: string[] = [];
 
   const velRatio = syllabusTarget > 0 ? syllabusVelocity / syllabusTarget : 1;
@@ -291,7 +280,7 @@ export function computeOnTrackStatus(params: OnTrackParams): OnTrackResult {
     );
   }
 
-  // Determine status
+  
   const isBehind =
     velRatio < 0.85 ||
     revisionAdherencePct < 50 ||
@@ -324,15 +313,15 @@ export function computeOnTrackStatus(params: OnTrackParams): OnTrackResult {
   };
 }
 
-// ─── Exam Readiness Score ─────────────────────────────────────────────────────
+
 
 export interface ReadinessComponent {
   label: string;
-  /** 0–100 score for this component */
+  
   score: number;
-  /** Fraction 0–1; all weights sum to 1.0 */
+  
   weight: number;
-  /** Human-readable evidence for the score */
+  
   evidence: string;
 }
 
@@ -344,38 +333,32 @@ export type ReadinessLabel =
   | "Ready";
 
 export interface ReadinessScore {
-  /** Weighted composite 0–100 */
+  
   total: number;
   components: ReadinessComponent[];
   label: ReadinessLabel;
 }
 
 export interface ReadinessParams {
-  /** 0–100 */
+  
   syllabusCompletionPct: number;
-  /** Total questions attempted all-time */
+  
   totalQuestionsAllTime: number;
-  /** % topics with pyq_done (0–100); null if no lifecycle data */
+  
   pyqCoveragePct: number | null;
-  /** Average score % of last 5 mocks (null if < 1 mock) */
+  
   last5MockAvgPct: number | null;
-  /** 30-day accuracy (0–100); null if no data */
+  
   accuracy30Day: number | null;
-  /** Revision adherence last 30 days (0–100); null if no revisions due */
+  
   revisionAdherence30: number | null;
-  /**
-   * % of mocks where actual_duration <= recommended_duration.
-   * null if no recommended_duration data.
-   */
+  
   speedDisciplinePct: number | null;
-  /** accuracy trend */
+  
   accuracyTrend: "improving" | "stable" | "declining" | null;
-  /** mock trend */
+  
   mockTrend: "improving" | "stable" | "declining" | null;
-  /**
-   * Benchmark for "100% question practice score".
-   * Default 5000 (reasonable for Banking+SSC combined prep).
-   */
+  
   questionBenchmark?: number;
 }
 
@@ -390,18 +373,18 @@ function readinessLabel(total: number): ReadinessLabel {
 export function computeReadinessScore(params: ReadinessParams): ReadinessScore {
   const benchmark = params.questionBenchmark ?? 5000;
 
-  // Component: Syllabus Coverage (weight 0.20)
+  
   const syllabusScore = Math.min(100, params.syllabusCompletionPct);
   const syllabusEvidence = `${params.syllabusCompletionPct}% of topics marked as learned or strong.`;
 
-  // Component: Question Practice (weight 0.15)
+  
   const qScore = Math.min(
     100,
     Math.round((params.totalQuestionsAllTime / benchmark) * 100)
   );
   const qEvidence = `${params.totalQuestionsAllTime.toLocaleString()} questions attempted (target: ${benchmark.toLocaleString()}).`;
 
-  // Component: PYQ Coverage (weight 0.15)
+  
   const pyqScore =
     params.pyqCoveragePct !== null ? Math.min(100, params.pyqCoveragePct) : 0;
   const pyqEvidence =
@@ -409,7 +392,7 @@ export function computeReadinessScore(params: ReadinessParams): ReadinessScore {
       ? `${params.pyqCoveragePct.toFixed(0)}% of topics have PYQs marked as practised.`
       : "No PYQ lifecycle data recorded yet. Mark topics as PYQ-done on the Performance page.";
 
-  // Component: Mock Performance (weight 0.20)
+  
   const mockScore =
     params.last5MockAvgPct !== null ? Math.min(100, params.last5MockAvgPct) : 0;
   const mockEvidence =
@@ -417,7 +400,7 @@ export function computeReadinessScore(params: ReadinessParams): ReadinessScore {
       ? `Average score of last 5 mocks: ${params.last5MockAvgPct.toFixed(1)}%.`
       : "No mock test data. Log mocks on the Mocks page.";
 
-  // Component: Accuracy (30-day) (weight 0.10)
+  
   const accScore =
     params.accuracy30Day !== null ? Math.min(100, params.accuracy30Day) : 0;
   const accEvidence =
@@ -425,7 +408,7 @@ export function computeReadinessScore(params: ReadinessParams): ReadinessScore {
       ? `30-day question accuracy: ${params.accuracy30Day.toFixed(0)}%.`
       : "No question batch data in last 30 days.";
 
-  // Component: Revision Discipline (weight 0.10)
+  
   const revScore =
     params.revisionAdherence30 !== null ? Math.min(100, params.revisionAdherence30) : 0;
   const revEvidence =
@@ -433,17 +416,17 @@ export function computeReadinessScore(params: ReadinessParams): ReadinessScore {
       ? `${params.revisionAdherence30}% of due revisions completed in last 30 days.`
       : "No revisions due in the last 30 days.";
 
-  // Component: Speed Discipline (weight 0.05)
+  
   const speedScore =
     params.speedDisciplinePct !== null
       ? Math.min(100, params.speedDisciplinePct)
-      : 0; // neutral if no data, changed to 0
+      : 0; 
   const speedEvidence =
     params.speedDisciplinePct !== null
       ? `${params.speedDisciplinePct.toFixed(0)}% of mocks completed within recommended time.`
       : "No recommended-duration data on mocks - add it when logging mocks.";
 
-  // Component: Trend (weight 0.05)
+  
   const hasTrendData = params.accuracyTrend !== null || params.mockTrend !== null;
   let trendScore = 0;
   if (hasTrendData) {
@@ -482,20 +465,20 @@ export function computeReadinessScore(params: ReadinessParams): ReadinessScore {
   return { total, components, label: readinessLabel(total) };
 }
 
-// ─── Weak Areas Detection ─────────────────────────────────────────────────────
+
 
 export interface WeakArea {
   topicId: string;
   topicName: string;
   subjectName: string;
   subjectColor: string;
-  /** 0–100 */
+  
   accuracy: number;
   attempted: number;
-  /** true if mock_sections show corroborating low accuracy for this topic */
+  
   mockCorroboration: boolean;
   urgency: "critical" | "high" | "medium";
-  /** PYQ weight from topics table (higher = exam frequently tests this) */
+  
   pyqWeight: number | null;
 }
 
@@ -509,11 +492,11 @@ export interface WeakAreaParams {
     correct: number;
     pyqWeight: number | null;
   }>;
-  /** Map of topic name (lowercased) → mock section accuracy */
+  
   mockSectionAccMap: Map<string, { attempted: number; correct: number }>;
-  /** Minimum attempted questions before labelling weak (per LLM rules §5.5) */
+  
   minSampleSize?: number;
-  /** Accuracy threshold below which a topic is "weak" */
+  
   weakThreshold?: number;
 }
 
@@ -528,7 +511,7 @@ export function detectWeakAreas(params: WeakAreaParams): WeakArea[] {
   const weakAreas: WeakArea[] = [];
 
   for (const tp of topicPractice) {
-    if (tp.attempted < minSampleSize) continue; // small-sample guardrail
+    if (tp.attempted < minSampleSize) continue; 
     const accuracy = tp.attempted > 0 ? (tp.correct / tp.attempted) * 100 : 0;
     if (accuracy >= weakThreshold) continue;
 
@@ -539,7 +522,7 @@ export function detectWeakAreas(params: WeakAreaParams): WeakArea[] {
       mockData.attempted >= 5 &&
       mockData.correct / mockData.attempted < weakThreshold / 100;
 
-    // Urgency: critical < 45%, high < 55%, medium < weakThreshold
+    
     const urgency: WeakArea["urgency"] =
       accuracy < 45 ? "critical" : accuracy < 55 ? "high" : "medium";
 
@@ -556,7 +539,7 @@ export function detectWeakAreas(params: WeakAreaParams): WeakArea[] {
     });
   }
 
-  // Sort: critical first, then by accuracy ascending (worst first)
+  
   const urgencyOrder = { critical: 0, high: 1, medium: 2 };
   weakAreas.sort(
     (a, b) =>
@@ -567,11 +550,11 @@ export function detectWeakAreas(params: WeakAreaParams): WeakArea[] {
   return weakAreas;
 }
 
-// ─── Next Actions ─────────────────────────────────────────────────────────────
+
 
 export interface NextAction {
   type: "study" | "practice" | "revise" | "mock" | "pyq";
-  priority: number; // 1 = highest
+  priority: number; 
   label: string;
   reason: string;
   targetTopic?: string;
@@ -584,11 +567,11 @@ export interface NextActionParams {
   overdueRevisionCount: number;
   overdueRevisionTopicNames: string[];
   daysSinceLastMock: number | null;
-  /** Topics with no question practice at all */
+  
   unstartedTopics: string[];
-  /** Topics learned but with pyq_done = false */
+  
   pyqPendingTopics: string[];
-  /** total topics with lifecycle not yet started */
+  
   notStartedTopicsCount: number;
 }
 
@@ -605,7 +588,7 @@ export function generateNextActions(params: NextActionParams): NextAction[] {
 
   const actions: NextAction[] = [];
 
-  // 1. Overdue revisions — highest priority
+  
   if (overdueRevisionCount > 0) {
     const names = overdueRevisionTopicNames.slice(0, 2).join(", ");
     const more =
@@ -619,7 +602,7 @@ export function generateNextActions(params: NextActionParams): NextAction[] {
     });
   }
 
-  // 2. Critical weak areas — practice
+  
   const criticalWeak = weakAreas.filter((w) => w.urgency === "critical");
   if (criticalWeak.length > 0) {
     const top = criticalWeak[0];
@@ -633,7 +616,7 @@ export function generateNextActions(params: NextActionParams): NextAction[] {
     });
   }
 
-  // 3. Mock — if no mock in > 7 days
+  
   if (daysSinceLastMock === null || daysSinceLastMock > 7) {
     const daysLabel =
       daysSinceLastMock === null
@@ -647,7 +630,7 @@ export function generateNextActions(params: NextActionParams): NextAction[] {
     });
   }
 
-  // 4. PYQ practice for learned topics
+  
   if (pyqPendingTopics.length > 0) {
     const top3 = pyqPendingTopics.slice(0, 3).join(", ");
     actions.push({
@@ -658,7 +641,7 @@ export function generateNextActions(params: NextActionParams): NextAction[] {
     });
   }
 
-  // 5. Syllabus pace — study new topics if behind
+  
   if (
     onTrack.status === "behind" &&
     onTrack.syllabusVelocity < onTrack.syllabusTarget
@@ -674,26 +657,21 @@ export function generateNextActions(params: NextActionParams): NextAction[] {
     }
   }
 
-  // Limit to top 5 by priority
+  
   return actions.sort((a, b) => a.priority - b.priority).slice(0, 5);
 }
 
-// ─── Known exam reference data ────────────────────────────────────────────────
 
-/**
- * Known upcoming exam dates.
- * 2027 dates are ESTIMATED based on historical annual patterns — official schedules
- * for 2027 have not been released as of Sep 2026. User should override via Targets page.
- * Sourced: official 2026 results + historical trend analysis, Sep 2026.
- */
+
+
 export const KNOWN_EXAM_DATES: Array<{
   name: string;
   examType: "banking" | "ssc";
   stage: string;
-  estimatedDate: string; // ISO YYYY-MM-DD
+  estimatedDate: string; 
   source: string;
 }> = [
-  // ── SSC CGL 2027 (estimated from annual pattern: notification Apr, Tier1 Aug-Sep, Tier2 Dec) ──
+  
   {
     name: "SSC CGL 2027",
     examType: "ssc",
@@ -708,7 +686,7 @@ export const KNOWN_EXAM_DATES: Array<{
     estimatedDate: "2027-12-15",
     source: "Estimated from SSC CGL annual pattern (Tier 2 typically Dec)",
   },
-  // ── SBI PO 2027 (estimated: Prelims Nov, Mains Dec based on trend shift) ──
+  
   {
     name: "SBI PO 2027",
     examType: "banking",
@@ -723,7 +701,7 @@ export const KNOWN_EXAM_DATES: Array<{
     estimatedDate: "2027-12-15",
     source: "Estimated from SBI PO annual pattern (Mains ~6 weeks after Prelims)",
   },
-  // ── IBPS PO 2027 (estimated: Prelims Oct, Mains Nov) ──
+  
   {
     name: "IBPS PO 2027",
     examType: "banking",
@@ -745,7 +723,7 @@ export const KNOWN_EXAM_DATES: Array<{
     estimatedDate: "2027-10-09",
     source: "Estimated from IBPS annual calendar pattern",
   },
-  // ── Keep SSC CGL 2026 Tier 2 only (Dec 2026, still upcoming) ──
+  
   {
     name: "SSC CGL 2026",
     examType: "ssc",
@@ -755,13 +733,7 @@ export const KNOWN_EXAM_DATES: Array<{
   },
 ];
 
-/**
- * Historical + estimated cutoff reference data (General/UR category).
- * Official 2025–26 figures from SSC/IBPS/SBI result notifications.
- * 2027 figures are ESTIMATED by extrapolating the 2025–26 trend ±1–2%.
- * Per PRD §E: cutoff ≤ maximum_marks enforced in DB constraints.
- * Source checked: Sep 2026.
- */
+
 export const REFERENCE_CUTOFFS: Array<{
   examType: "banking" | "ssc";
   examName: string;
@@ -772,7 +744,7 @@ export const REFERENCE_CUTOFFS: Array<{
   maximumMarks: number;
   reference: string;
 }> = [
-  // ── SSC CGL Tier 1 (out of 200) ──────────────────────────────────────────
+  
   { examType: "ssc", examName: "SSC CGL", stage: "Tier 1", year: 2027, category: "General", cutoff: 138.00, maximumMarks: 200, reference: "Estimated from 2025 cutoff (136.83) + ~1% trend" },
   { examType: "ssc", examName: "SSC CGL", stage: "Tier 1", year: 2027, category: "OBC",     cutoff: 138.00, maximumMarks: 200, reference: "Estimated from 2025 trend" },
   { examType: "ssc", examName: "SSC CGL", stage: "Tier 1", year: 2027, category: "SC",      cutoff: 116.00, maximumMarks: 200, reference: "Estimated from 2025 cutoff (114.97)" },
@@ -781,20 +753,20 @@ export const REFERENCE_CUTOFFS: Array<{
   { examType: "ssc", examName: "SSC CGL", stage: "Tier 1", year: 2025, category: "SC",      cutoff: 114.97, maximumMarks: 200, reference: "SSC CGL 2025 official result" },
   { examType: "ssc", examName: "SSC CGL", stage: "Tier 1", year: 2025, category: "ST",      cutoff: 106.37, maximumMarks: 200, reference: "SSC CGL 2025 official result" },
 
-  // ── SBI PO Prelims (out of 100) ──────────────────────────────────────────
+  
   { examType: "banking", examName: "SBI PO", stage: "Prelims", year: 2027, category: "General", cutoff: 67.00, maximumMarks: 100, reference: "Estimated from 2026 cutoff (66.25) + slight uptick" },
   { examType: "banking", examName: "SBI PO", stage: "Prelims", year: 2026, category: "General", cutoff: 66.25, maximumMarks: 100, reference: "SBI PO 2026 official cutoff, Sep 2026" },
   { examType: "banking", examName: "SBI PO", stage: "Prelims", year: 2025, category: "General", cutoff: 66.75, maximumMarks: 100, reference: "SBI PO 2025 official cutoff" },
 
-  // ── SBI PO Mains (out of 250) ─────────────────────────────────────────────
+  
   { examType: "banking", examName: "SBI PO", stage: "Mains", year: 2027, category: "General", cutoff: 76.00, maximumMarks: 250, reference: "Estimated from 2025 cutoff (75.00) + trend" },
   { examType: "banking", examName: "SBI PO", stage: "Mains", year: 2025, category: "General", cutoff: 75.00, maximumMarks: 250, reference: "SBI PO 2025 official cutoff" },
 
-  // ── IBPS PO Prelims (out of 100) ─────────────────────────────────────────
+  
   { examType: "banking", examName: "IBPS PO", stage: "Prelims", year: 2027, category: "General", cutoff: 50.00, maximumMarks: 100, reference: "Estimated from 2025 cutoff (49.21) + trend" },
   { examType: "banking", examName: "IBPS PO", stage: "Prelims", year: 2025, category: "General", cutoff: 49.21, maximumMarks: 100, reference: "IBPS PO 2025 official cutoff" },
 
-  // ── IBPS PO Mains (out of 225) ───────────────────────────────────────────
+  
   { examType: "banking", examName: "IBPS PO", stage: "Mains", year: 2027, category: "General", cutoff: 76.50, maximumMarks: 225, reference: "Estimated from 2025 cutoff (75.75) + trend" },
   { examType: "banking", examName: "IBPS PO", stage: "Mains", year: 2025, category: "General", cutoff: 75.75, maximumMarks: 225, reference: "IBPS PO 2025 official cutoff" },
 ];

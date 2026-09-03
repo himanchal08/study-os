@@ -105,7 +105,7 @@ export function RealExamResultForm({
 
   return (
     <div className="space-y-6">
-      {/* Form */}
+      
       <form onSubmit={handleSubmit} className="space-y-4 rounded-xl p-5" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
         <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Log Real Exam Result</p>
 
@@ -165,7 +165,7 @@ export function RealExamResultForm({
           />
         </div>
 
-        {/* Subject breakdown */}
+        
         <div className="space-y-2">
           <p className="text-[10px] uppercase tracking-wider text-neutral-600 font-semibold">
             Subject Breakdown (optional)
@@ -237,7 +237,7 @@ export function RealExamResultForm({
         </button>
       </form>
 
-      {/* History */}
+      
       {existingResults.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
@@ -308,7 +308,7 @@ function ExamResultCard({
         </div>
       </div>
 
-      {/* Subject breakdown bars */}
+      
       {result.subject_breakdown && result.subject_breakdown.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t" style={{ borderColor: "#1a1a1a" }}>
           {result.subject_breakdown.map((s, i) => {

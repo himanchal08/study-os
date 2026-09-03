@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: scopes,
-    prompt: "consent", // Force to get refresh token
+    prompt: "consent", 
   });
 
   return NextResponse.redirect(url);

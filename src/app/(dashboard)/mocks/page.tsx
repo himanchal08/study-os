@@ -49,7 +49,7 @@ export default async function MocksPage() {
     .order("mock_date", { ascending: false })
     .limit(50);
 
-  // Fetch section counts per mock for the "flagged" pill
+  
   const allMockIds = (mocks ?? []).map(m => m.id);
   const { data: sectionsRaw } = allMockIds.length > 0
     ? await supabase
@@ -59,13 +59,13 @@ export default async function MocksPage() {
         .eq("user_id", user.id)
     : { data: [] };
 
-  // Count sections with timing data per mock
+  
   const sectionCountMap = new Map<string, number>();
   (sectionsRaw ?? []).forEach(s => {
     sectionCountMap.set(s.mock_id, (sectionCountMap.get(s.mock_id) ?? 0) + 1);
   });
 
-  // Summary stats
+  
   const allMocks = mocks ?? [];
   const avgScore = allMocks.length > 0
     ? allMocks.reduce((s, m) => s + (m.score / m.maximum_marks) * 100, 0) / allMocks.length
@@ -90,7 +90,7 @@ export default async function MocksPage() {
         </Link>
       </div>
 
-      {/* Summary strip */}
+      
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Total Mocks", value: allMocks.length || "—" },
@@ -105,7 +105,7 @@ export default async function MocksPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* History */}
+        
         <div className="lg:col-span-2 space-y-2">
           <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Mock History</p>
           {allMocks.length === 0 ? (
@@ -166,7 +166,7 @@ export default async function MocksPage() {
           )}
         </div>
 
-        {/* Log form */}
+        
         <div>
           <div className="rounded-xl p-5 sticky top-6" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
             <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Log New Mock</p>

@@ -23,7 +23,7 @@ export default async function TargetsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Exams & Safety Targets */}
+        
         <div className="space-y-6">
           <div>
             <h2 className="text-sm font-semibold text-neutral-300 uppercase tracking-wider mb-4">Your Exams</h2>
@@ -73,7 +73,7 @@ export default async function TargetsPage() {
           </form>
         </div>
 
-        {/* Historical Cutoffs */}
+        
         <div className="space-y-6">
           <div>
             <h2 className="text-sm font-semibold text-neutral-300 uppercase tracking-wider mb-4">Historical Cutoffs</h2>

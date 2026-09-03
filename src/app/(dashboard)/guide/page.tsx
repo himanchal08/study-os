@@ -17,7 +17,7 @@ export default function GuidePage() {
 
       <div className="prose prose-invert prose-neutral max-w-none space-y-12">
         
-        {/* DASHBOARD */}
+        
         <section>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">1</div>
@@ -113,7 +113,7 @@ export default function GuidePage() {
           </div>
         </section>
 
-        {/* SYLLABUS */}
+        
         <section>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">4</div>
@@ -135,7 +135,7 @@ export default function GuidePage() {
           </div>
         </section>
 
-        {/* REVISIONS ENGINE */}
+        
         <section>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold">5</div>
@@ -157,7 +157,7 @@ export default function GuidePage() {
           </div>
         </section>
 
-        {/* ANALYTICS */}
+        
         <section>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold">6</div>

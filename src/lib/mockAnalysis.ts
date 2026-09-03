@@ -17,8 +17,8 @@ export interface SectionAnalysis {
   unattempted: number;
   durationMinutes: number | null;
   recommendedMinutes: number | null;
-  accuracy: number | null;       // correct / attempted * 100
-  percentScore: number;          // score / maxMarks * 100
+  accuracy: number | null;       
+  percentScore: number;          
   flag: SectionFlag;
   flagLabel: string;
   flagColor: string;

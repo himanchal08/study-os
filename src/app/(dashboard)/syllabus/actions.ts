@@ -78,7 +78,7 @@ export async function deleteSubject(subjectId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-  // Soft-delete subject and all its topics
+  
   const now = new Date().toISOString();
   await supabase.from("topics").update({ archived_at: now }).eq("subject_id", subjectId).eq("user_id", user.id);
   await supabase.from("subjects").update({ deleted_at: now }).eq("id", subjectId).eq("user_id", user.id);

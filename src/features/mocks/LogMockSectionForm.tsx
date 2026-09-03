@@ -21,7 +21,7 @@ export function LogMockSectionForm({ mockId, sections }: LogMockSectionFormProps
 
   return (
     <div className="space-y-5">
-      {/* Existing sections */}
+      
       {sections.length > 0 && (
         <div className="space-y-2">
           {sections.map((s) => (
@@ -71,7 +71,7 @@ export function LogMockSectionForm({ mockId, sections }: LogMockSectionFormProps
         </div>
       )}
 
-      {/* Add section form */}
+      
       <form action={formAction} className="space-y-3">
         <input type="hidden" name="mock_id" value={mockId} />
         

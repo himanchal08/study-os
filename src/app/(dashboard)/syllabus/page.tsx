@@ -34,7 +34,7 @@ export default async function SyllabusPage() {
       .order("sort_order"),
   ]);
 
-  // Group topics and chapters by subject
+  
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const subjectWithTopics = ((subjects as any[]) ?? []).map(s => ({
     ...s,
@@ -44,7 +44,7 @@ export default async function SyllabusPage() {
     chapters: ((chapters as any[]) ?? []).filter(ch => ch.subject_id === s.id),
   }));
 
-  // Overall stats
+  
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allTopics = (topics as any[]) ?? [];
   const learnedCount = allTopics.filter(t => ["learned", "strong"].includes(t.status)).length;
@@ -57,7 +57,7 @@ export default async function SyllabusPage() {
         <p className="text-sm text-neutral-500">Track topics by status - click any status badge to cycle through it.</p>
       </div>
 
-      {/* Coverage strip */}
+      
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Subjects", value: (subjects ?? []).length },
@@ -72,7 +72,7 @@ export default async function SyllabusPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Subject tree */}
+        
         <div className="lg:col-span-2 space-y-2">
           <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Subjects & Topics</p>
           {subjectWithTopics.length === 0 ? (
@@ -86,7 +86,7 @@ export default async function SyllabusPage() {
           )}
         </div>
 
-        {/* Add forms */}
+        
         <div className="space-y-3">
           <div className="rounded-xl p-5 sticky top-6 space-y-6" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
             <div>

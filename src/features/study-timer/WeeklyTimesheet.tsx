@@ -36,11 +36,11 @@ export function WeeklyTimesheet({ sessions }: WeeklyTimesheetProps) {
       groups[dateStr].push(s);
     });
     
-    // Sort days descending
+    
     return Object.entries(groups)
       .sort((a, b) => b[0].localeCompare(a[0]))
       .map(([date, items]) => {
-        // Sort items by start time descending
+        
         const sortedItems = items.sort((a, b) => new Date(b.start_timestamp).getTime() - new Date(a.start_timestamp).getTime());
         return { date, items: sortedItems };
       });
@@ -58,7 +58,7 @@ export function WeeklyTimesheet({ sessions }: WeeklyTimesheetProps) {
   return (
     <div className="space-y-6">
       {grouped.map(({ date, items }) => {
-        // Calculate total time for the day
+        
         const totalSecs = items.reduce((acc, s) => {
           if (!s.end_timestamp) return acc;
           const start = new Date(s.start_timestamp).getTime();

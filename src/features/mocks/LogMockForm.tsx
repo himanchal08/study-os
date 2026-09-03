@@ -75,7 +75,7 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
         </div>
       </div>
 
-      {/* Scores */}
+      
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Score</label>

@@ -60,7 +60,7 @@ export default async function QuestionsPage() {
   const topics = topicsRaw ?? [];
   const batches = (batchesRaw ?? []) as unknown as BatchRow[];
 
-  // Today's summary
+  
   const todayBatches = (batches ?? []).filter(b => b.logged_at.startsWith(todayStr));
   const totalAttempted = todayBatches.reduce((s, b) => s + b.attempted, 0);
   const totalCorrect = todayBatches.reduce((s, b) => s + b.correct, 0);
@@ -73,7 +73,7 @@ export default async function QuestionsPage() {
         <p className="text-sm text-neutral-500">Log practice batches and track accuracy over time.</p>
       </div>
 
-      {/* Today summary strip */}
+      
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Attempted Today", value: totalAttempted || "—" },
@@ -88,7 +88,7 @@ export default async function QuestionsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Log form */}
+        
         <div className="lg:col-span-1">
           <div className="rounded-xl p-5 sticky top-6" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
             <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Log New Batch</p>
@@ -96,7 +96,7 @@ export default async function QuestionsPage() {
           </div>
         </div>
 
-        {/* History */}
+        
         <div className="lg:col-span-2 space-y-2">
           <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recent Batches</p>
           {(batches ?? []).length === 0 ? (

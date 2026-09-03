@@ -95,7 +95,7 @@ export function RevisionCard({
         <p className="text-xs text-neutral-600 shrink-0">{dueDate}</p>
       </div>
 
-      {/* Recall score buttons */}
+      
       <div className="flex items-center gap-2">
         <span className="text-[10px] text-neutral-600 uppercase tracking-wider mr-1">Recall:</span>
         {RECALL_LABELS.map(({ score, label, color }) => (

@@ -186,7 +186,7 @@ export async function KpiStrip({
             border: "1px solid var(--border)",
           }}
         >
-          {/* Progress bar at bottom */}
+          
           <div
             className="absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-700"
             style={{
@@ -196,7 +196,7 @@ export async function KpiStrip({
             aria-hidden="true"
           />
 
-          {/* Icon chip */}
+          
           <div
             className="inline-flex items-center justify-center w-8 h-8 rounded-lg mb-3 text-base font-bold"
             style={{

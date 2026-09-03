@@ -1,10 +1,7 @@
 
 import { dayBoundaryAwareDate, secondsToHours } from "./time";
 
-/**
- * allocationPct = subject_time ÷ total_tracked_time × 100
- * Guards zero denominator → null.
- */
+
 export function allocationPct(
   subjectSeconds: number,
   totalTrackedSeconds: number
@@ -13,10 +10,7 @@ export function allocationPct(
   return (subjectSeconds / totalTrackedSeconds) * 100;
 }
 
-/**
- * activePracticeRatio = (practice + revision) ÷ total_study_time × 100
- * Guards zero denominator → null.
- */
+
 export function activePracticeRatio(
   practiceSeconds: number,
   revisionSeconds: number,
@@ -26,14 +20,7 @@ export function activePracticeRatio(
   return ((practiceSeconds + revisionSeconds) / totalStudySeconds) * 100;
 }
 
-/**
- * Group an array of study sessions by day-boundary-aware date.
- * Returns a Map<dateString, totalHours>.
- *
- * @param sessions  array of sessions with start/end timestamps
- * @param offsetMin day_boundary_offset_minutes from user profile
- * @param timezone  IANA timezone from user profile
- */
+
 export function groupSessionsByDay(
   sessions: Array<{
     start_timestamp: string;
@@ -46,7 +33,7 @@ export function groupSessionsByDay(
   const result = new Map<string, number>();
 
   for (const s of sessions) {
-    if (!s.end_timestamp) continue; // skip open sessions
+    if (!s.end_timestamp) continue; 
     const dateKey = dayBoundaryAwareDate(
       new Date(s.start_timestamp).getTime(),
       offsetMin,
@@ -64,12 +51,7 @@ export function groupSessionsByDay(
   return result;
 }
 
-/**
- * Exam-proximity weight factor for adaptive planning (New Feature #2).
- * Returns a multiplier 1.0–2.0 based on days remaining until exam.
- * At ≥ 60 days: 1.0 (no extra weight).
- * At 0 days: 2.0 (maximum urgency).
- */
+
 export function examProximityWeight(
   examDate: string | null,
   horizonDays = 60
@@ -79,6 +61,6 @@ export function examProximityWeight(
   const exam = new Date(examDate);
   const daysRemaining = Math.max(0, Math.ceil((exam.getTime() - today.getTime()) / 86400000));
   if (daysRemaining >= horizonDays) return 1.0;
-  // Linear interpolation from 1.0 (at horizon) to 2.0 (at 0 days)
+  
   return 1.0 + (1.0 - daysRemaining / horizonDays);
 }

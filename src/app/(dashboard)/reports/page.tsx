@@ -18,7 +18,7 @@ interface TopicDiagnosis {
   subjectColor: string;
   hoursSpent: number;
   timeSharePct: number;
-  accuracy: number | null;   // null = no practice data
+  accuracy: number | null;   
   attempted: number;
   strategicState: StrategicState | "no_data";
   recommendation: string;
@@ -49,9 +49,9 @@ const STATE_META: Record<StrategicState, { label: string; color: string; recomme
   },
 };
 
-const ADEQUATE_TIME_PCT = 5;   // > 5% of weekly time = adequately studied
-const OVER_STUDIED_PCT = 15;   // > 15% = over-studied
-const STRONG_ACCURACY = 75;    // >= 75% accuracy = strong
+const ADEQUATE_TIME_PCT = 5;   
+const OVER_STUDIED_PCT = 15;   
+const STRONG_ACCURACY = 75;    
 
 export default async function ReportsPage({
   searchParams,
@@ -80,7 +80,7 @@ export default async function ReportsPage({
   const periodStart = new Date(now - lookbackMs).toISOString();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 
-  // Fetch sessions with topic + subject info
+  
   const { data: rawSessions } = await supabase
     .from("study_sessions")
     .select("start_timestamp, end_timestamp, pause_duration_seconds, topic_id, topics(name, subjects(name, color))")
@@ -89,7 +89,7 @@ export default async function ReportsPage({
     .is("deleted_at", null)
     .not("end_timestamp", "is", null);
 
-  // Fetch practice batches with topic info
+  
   const { data: rawBatches } = await supabase
     .from("question_batches")
     .select("attempted, correct, topic_id")
@@ -97,15 +97,15 @@ export default async function ReportsPage({
     .gte("logged_at", periodStart)
     .is("deleted_at", null);
 
-  // Fetch mock sections for cross-correlation (Phase 22.3)
+  
   const { data: rawMockSections } = await supabase
     .from("mock_sections")
     .select("name, attempted, correct, mock_id, mocks!inner(mock_date)")
     .eq("user_id", user.id)
     .gte("mocks.mock_date", periodStart.split("T")[0]);
 
-  // Build a map of topic name → mock section accuracy
-  // (since mock_sections don't have topic_id, match by name similarity — exact match on name)
+  
+  
   type MockAccData = { attempted: number; correct: number; count: number };
   const mockSectionAccMap = new Map<string, MockAccData>();
   (rawMockSections ?? []).forEach((ms: any) => {
@@ -117,7 +117,7 @@ export default async function ReportsPage({
     d.count++;
   });
 
-  // Aggregate time per topic
+  
   type TopicInfo = { name: string; subjectName: string; subjectColor: string; seconds: number };
   const topicTimeMap = new Map<string, TopicInfo>();
 
@@ -139,7 +139,7 @@ export default async function ReportsPage({
     topicTimeMap.get(s.topic_id)!.seconds += secs;
   });
 
-  // Aggregate accuracy per topic from practice batches
+  
   type PracticeData = { attempted: number; correct: number };
   const topicPracticeMap = new Map<string, PracticeData>();
 
@@ -153,7 +153,7 @@ export default async function ReportsPage({
     p.correct += b.correct;
   });
 
-  // Build diagnosis for each topic that has study time
+  
   const diagnoses: TopicDiagnosis[] = [];
 
   topicTimeMap.forEach((info, topicId) => {
@@ -169,7 +169,7 @@ export default async function ReportsPage({
     let strategicState: StrategicState | "no_data";
 
     if (accuracy === null) {
-      // No practice data — only classify by time
+      
       strategicState = timeSharePct < ADEQUATE_TIME_PCT ? "weak_under_studied" : "no_data";
     } else {
       const isStrong = accuracy >= STRONG_ACCURACY;
@@ -209,7 +209,7 @@ export default async function ReportsPage({
     });
   });
 
-  // Sort: worst first (weak_under_studied, weak_adequately, strong_over, strong_appropriate, no_data)
+  
   const ORDER: Record<string, number> = {
     weak_under_studied: 0,
     weak_adequately_studied: 1,
@@ -230,7 +230,7 @@ export default async function ReportsPage({
 
   const totalHours = secondsToHours(totalSeconds);
 
-  // ── Narrative Summary (deterministic string — no LLMs) ──────────────────
+  
   function buildNarrative(): string {
     if (diagnoses.length === 0) return "";
 
@@ -279,7 +279,7 @@ export default async function ReportsPage({
             Based on {lookbackDays} days of data · {todayStr} · {totalHours.toFixed(1)}h analyzed
           </p>
         </div>
-        {/* Period toggle */}
+        
         <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           {[{label: "30 Days", value: "30"}, {label: "90 Days", value: "90"}].map(opt => (
             <Link
@@ -297,7 +297,7 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      {/* Executive Narrative */}
+      
       {narrative && (
         <div
           className="rounded-xl p-5 border-l-4"
@@ -315,7 +315,7 @@ export default async function ReportsPage({
         </div>
       ) : (
         <>
-          {/* Summary strip */}
+          
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: "Total Study Time", value: `${totalHours.toFixed(1)}h`, color: "#ededed" },
@@ -330,7 +330,7 @@ export default async function ReportsPage({
             ))}
           </div>
 
-          {/* State Groups */}
+          
           {(Object.entries(groupedByState) as [string, TopicDiagnosis[]][])
             .filter(([, items]) => items.length > 0)
             .map(([state, items]) => {
@@ -374,7 +374,7 @@ export default async function ReportsPage({
                                 <p className="text-[10px] text-neutral-600">{d.attempted} qs</p>
                               </div>
                             )}
-                            {/* Mock section accuracy cross-correlation */}
+                            
                             {(() => {
                               const key = d.topicName.toLowerCase().trim();
                               const mockData = mockSectionAccMap.get(key);

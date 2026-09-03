@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { TopicLifecycleBadges } from "@/features/performance/TopicLifecycleBadges";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+
 interface Subject {
   id: string;
   name: string;
@@ -51,7 +51,7 @@ interface Props {
   topicExamRecord: Record<string, string[]>;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   not_started: { label: "Not started", color: "#71717a", bg: "#71717a18" },
   learning:    { label: "Learning",    color: "#38bdf8", bg: "#38bdf818" },
@@ -74,7 +74,7 @@ const EXAM_TABS = [
 
 type ExamTab = "banking" | "ssc";
 
-// ── Lifecycle completion checker ──────────────────────────────────────────────
+
 function lifecycleProgress(lc: Lifecycle | undefined): number {
   if (!lc) return 0;
   let done = 0;
@@ -82,39 +82,39 @@ function lifecycleProgress(lc: Lifecycle | undefined): number {
   if (lc.book_practice_done) done++;
   if (lc.dpp_done) done++;
   if (lc.pyq_done) done++;
-  return done; // 0-4
+  return done; 
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
+
 export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practiceMap, topicExamRecord }: Props) {
   const [activeTab, setActiveTab] = useState<ExamTab>("banking");
   const [activeSubject, setActiveSubject] = useState<string>("all");
 
-  // Build lifecycle lookup
+  
   const lcMap = useMemo(() => {
     const m = new Map<string, Lifecycle>();
     lifecycles.forEach(l => m.set(l.topic_id, l));
     return m;
   }, [lifecycles]);
 
-  // Topics for active tab
+  
   const tabTopics = useMemo(() => {
     return topics.filter(t => (topicExamRecord[t.id] ?? []).includes(activeTab));
   }, [topics, topicExamRecord, activeTab]);
 
-  // Subjects for active tab (any subject that has >=1 topic in tabTopics)
+  
   const tabSubjects = useMemo(() => {
     const relevantSubjectIds = new Set(tabTopics.map(t => t.subject_id));
     return subjects.filter(s => relevantSubjectIds.has(s.id)).sort((a, b) => a.name.localeCompare(b.name));
   }, [subjects, tabTopics]);
 
-  // Reset subject filter when tab changes
+  
   const handleTabChange = (tab: ExamTab) => {
     setActiveTab(tab);
     setActiveSubject("all");
   };
 
-  // Subjects to render
+  
   const filteredSubjects = useMemo(() => {
     if (activeSubject === "all") return tabSubjects;
     return tabSubjects.filter(s => s.id === activeSubject);
@@ -122,7 +122,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
 
   const activeTabConfig = EXAM_TABS.find(t => t.key === activeTab)!;
 
-  // Per-tab stats
+  
   const tabStats = useMemo(() => {
     const total = tabTopics.length;
     const done = tabTopics.filter(t => ["learned", "strong"].includes(t.status)).length;
@@ -132,7 +132,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
 
   return (
     <section aria-label="Topic lifecycle" className="space-y-4">
-      {/* Header */}
+      
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
@@ -142,7 +142,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
             Toggle each milestone as you complete it. Confidence: 5 dots.
           </p>
         </div>
-        {/* Tab stats pill */}
+        
         <div className="text-right">
           <p className="text-[11px] text-neutral-500">
             <span style={{ color: activeTabConfig.color }} className="font-semibold tabular-nums">
@@ -156,7 +156,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
         </div>
       </div>
 
-      {/* Exam Tabs */}
+      
       <div
         className="flex rounded-xl p-1 gap-1"
         style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
@@ -192,7 +192,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
         })}
       </div>
 
-      {/* Subject Filter Pills */}
+      
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setActiveSubject("all")}
@@ -235,7 +235,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
         })}
       </div>
 
-      {/* Topic Cards — Hierarchy: Subject -> Chapter -> Topic */}
+      
       <div className="space-y-6">
         {filteredSubjects.map(s => {
           const subjectTopics = tabTopics.filter(t => t.subject_id === s.id);
@@ -244,7 +244,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
           const doneCount = subjectTopics.filter(t => ["learned", "strong"].includes(t.status)).length;
           const pct = Math.round((doneCount / subjectTopics.length) * 100);
 
-          // Get chapters for this subject that have topics in the current exam tab
+          
           const subjectChapterIds = new Set(subjectTopics.map(t => t.chapter_id).filter(id => id !== null));
           const subjectChapters = chapters
             .filter(ch => ch.subject_id === s.id && subjectChapterIds.has(ch.id))
@@ -256,7 +256,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
               className="rounded-2xl overflow-hidden"
               style={{ background: "#080808", border: `1px solid #1e1e1e` }}
             >
-              {/* Subject Header */}
+              
               <div
                 className="px-5 py-4 flex items-center gap-4"
                 style={{ background: `${s.color ?? "#52525b"}0c`, borderBottom: "1px solid #1a1a1a" }}
@@ -270,7 +270,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
                   <p className="text-[11px] text-neutral-600 mt-0.5">{subjectTopics.length} topics</p>
                 </div>
 
-                {/* Progress */}
+                
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-xs font-semibold tabular-nums" style={{ color: s.color ?? "#71717a" }}>
@@ -287,7 +287,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
                 </div>
               </div>
 
-              {/* Chapters & Topics */}
+              
               <div className="divide-y divide-[#141414]">
                 {subjectChapters.map((ch) => {
                   const chapterTopics = subjectTopics
@@ -298,14 +298,14 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
 
                   return (
                     <div key={ch.id} className="pb-2">
-                      {/* Chapter Header */}
+                      
                       <div className="px-5 py-3 sticky top-0 z-10 backdrop-blur-sm" style={{ background: "#050505cc" }}>
                         <p className="text-xs font-bold text-neutral-400 uppercase tracking-wide">
                           {ch.name}
                         </p>
                       </div>
 
-                      {/* Topics in Chapter */}
+                      
                       <div className="space-y-1 px-2">
                         {chapterTopics.map((t, tIdx) => {
                           const lc = lcMap.get(t.id) ?? undefined;
@@ -353,7 +353,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
                                     </div>
                                   </div>
 
-                                  {/* Lifecycle progress bar */}
+                                  
                                   <div className="flex items-center gap-1 mb-2.5">
                                     {["Learn", "Book", "DPP", "PYQ"].map((label, i) => (
                                       <div key={i} className="flex-1 flex flex-col gap-0.5">
@@ -368,7 +368,7 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
                                     ))}
                                   </div>
 
-                                  {/* Lifecycle badges */}
+                                  
                                   <TopicLifecycleBadges
                                     topicId={t.id}
                                     topicName={t.name}

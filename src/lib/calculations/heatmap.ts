@@ -1,25 +1,22 @@
-/**
- * Heatmap data builder — day-boundary-aware (PRD Phase 12).
- * Every heatmap cell is a VIEW over raw study_sessions, never a cached count.
- */
+
 
 import { dayBoundaryAwareDate, secondsToHours } from "./time";
 
 export type HeatmapMetric = "hours" | "tasks" | "questions" | "revisions" | "mocks";
 
 export interface HeatmapCell {
-  date: string; // YYYY-MM-DD
+  date: string; 
   value: number;
   metric: HeatmapMetric;
   isAnnotated: boolean;
   annotationTag?: string;
-  /** true = no data at all (never started); false = genuinely zero effort */
+  
   isMissing: boolean;
 }
 
 export interface BuildHeatmapParams {
-  startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD
+  startDate: string; 
+  endDate: string;   
   sessions?: Array<{
     start_timestamp: string;
     end_timestamp: string | null;
@@ -33,17 +30,11 @@ export interface BuildHeatmapParams {
   metric: HeatmapMetric;
   dayBoundaryOffsetMin: number;
   timezone: string;
-  /** Dates for which we have at least some telemetry (to distinguish missing from zero) */
+  
   knownDates?: Set<string>;
 }
 
-/**
- * Build an array of HeatmapCell objects for the given date range.
- * Uses day-boundary-aware aggregation throughout.
- *
- * Missing telemetry is flagged as isMissing=true and MUST NOT be rendered
- * identically to a genuine zero-effort day (PRD Phase 12 guardrail).
- */
+
 export function buildHeatmapData(params: BuildHeatmapParams): HeatmapCell[] {
   const {
     startDate,
@@ -60,7 +51,7 @@ export function buildHeatmapData(params: BuildHeatmapParams): HeatmapCell[] {
     knownDates = new Set(),
   } = params;
 
-  // Build hours-by-date map from sessions
+  
   const hoursByDate = new Map<string, number>();
   for (const s of sessions) {
     if (!s.end_timestamp) continue;
@@ -108,7 +99,7 @@ export function buildHeatmapData(params: BuildHeatmapParams): HeatmapCell[] {
       metric,
       isAnnotated: !!annotation,
       annotationTag: annotation?.tag,
-      // isMissing: date is in the past, has no telemetry, and is not annotated
+      
       isMissing: !knownDates.has(dateStr) && !annotation && new Date(dateStr) < new Date(),
     });
 
