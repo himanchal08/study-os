@@ -30,19 +30,27 @@ export function syllabusCompletionPct(topics: TopicForCoverage[]): number {
 
 /**
  * Coverage % for a specific exam type.
- * Includes topics whose subject is tagged for that exam OR 'both'.
+ * NEW: uses topicIdSet derived from topic_exam_map (canonical model).
+ * Falls back to subject-based filtering when topicIdSet is not provided.
  */
 export function examWiseCoverage(
   topics: TopicForCoverage[],
   subjects: SubjectForCoverage[],
-  examType: "banking" | "ssc"
+  examType: "banking" | "ssc",
+  /** Optional: Set of topic IDs from topic_exam_map for this exam. Preferred. */
+  examTopicIdSet?: Set<string>
 ): number {
-  const relevantSubjectIds = new Set(
-    subjects
-      .filter((s) => s.exam_type === examType || s.exam_type === "both")
-      .map((s) => s.id)
-  );
-  const relevant = topics.filter((t) => relevantSubjectIds.has(t.subject_id));
+  let relevant: TopicForCoverage[];
+  if (examTopicIdSet && examTopicIdSet.size > 0) {
+    relevant = topics.filter((t) => examTopicIdSet.has(t.id));
+  } else {
+    const relevantSubjectIds = new Set(
+      subjects
+        .filter((s) => s.exam_type === examType || s.exam_type === "both")
+        .map((s) => s.id)
+    );
+    relevant = topics.filter((t) => relevantSubjectIds.has(t.subject_id));
+  }
   if (relevant.length === 0) return 0;
   const done = relevant.filter(
     (t) => t.status === "learned" || t.status === "strong"
@@ -353,8 +361,8 @@ export interface ReadinessParams {
   last5MockAvgPct: number | null;
   /** 30-day accuracy (0–100); null if no data */
   accuracy30Day: number | null;
-  /** Revision adherence last 30 days (0–100) */
-  revisionAdherence30: number;
+  /** Revision adherence last 30 days (0–100); null if no revisions due */
+  revisionAdherence30: number | null;
   /**
    * % of mocks where actual_duration <= recommended_duration.
    * null if no recommended_duration data.
@@ -418,41 +426,43 @@ export function computeReadinessScore(params: ReadinessParams): ReadinessScore {
       : "No question batch data in last 30 days.";
 
   // Component: Revision Discipline (weight 0.10)
-  const revScore = Math.min(100, params.revisionAdherence30);
-  const revEvidence = `${params.revisionAdherence30}% of due revisions completed in last 30 days.`;
+  const revScore =
+    params.revisionAdherence30 !== null ? Math.min(100, params.revisionAdherence30) : 0;
+  const revEvidence =
+    params.revisionAdherence30 !== null
+      ? `${params.revisionAdherence30}% of due revisions completed in last 30 days.`
+      : "No revisions due in the last 30 days.";
 
   // Component: Speed Discipline (weight 0.05)
   const speedScore =
     params.speedDisciplinePct !== null
       ? Math.min(100, params.speedDisciplinePct)
-      : 50; // neutral if no data
+      : 0; // neutral if no data, changed to 0
   const speedEvidence =
     params.speedDisciplinePct !== null
       ? `${params.speedDisciplinePct.toFixed(0)}% of mocks completed within recommended time.`
-      : "No recommended-duration data on mocks — add it when logging mocks.";
+      : "No recommended-duration data on mocks - add it when logging mocks.";
 
   // Component: Trend (weight 0.05)
-  let trendScore = 50; // neutral
-  const accTrendVal =
-    params.accuracyTrend === "improving"
-      ? 1
-      : params.accuracyTrend === "declining"
-      ? -1
-      : 0;
-  const mockTrendVal =
-    params.mockTrend === "improving"
-      ? 1
-      : params.mockTrend === "declining"
-      ? -1
-      : 0;
-  const trendAvg = (accTrendVal + mockTrendVal) / 2;
-  trendScore = Math.round(50 + trendAvg * 50);
+  const hasTrendData = params.accuracyTrend !== null || params.mockTrend !== null;
+  let trendScore = 0;
+  if (hasTrendData) {
+    const accTrendVal =
+      params.accuracyTrend === "improving" ? 1 : params.accuracyTrend === "declining" ? -1 : 0;
+    const mockTrendVal =
+      params.mockTrend === "improving" ? 1 : params.mockTrend === "declining" ? -1 : 0;
+    const trendAvg = (accTrendVal + mockTrendVal) / 2;
+    trendScore = Math.round(50 + trendAvg * 50);
+  }
+  
   const trendLabels: Record<string, string> = {
     improving: "improving",
     stable: "stable",
     declining: "declining",
   };
-  const trendEvidence = `Accuracy trend: ${trendLabels[params.accuracyTrend ?? "stable"] ?? "stable"}, mock score trend: ${trendLabels[params.mockTrend ?? "stable"] ?? "stable"}.`;
+  const trendEvidence = hasTrendData
+    ? `Accuracy trend: ${trendLabels[params.accuracyTrend ?? "stable"] ?? "stable"}, mock score trend: ${trendLabels[params.mockTrend ?? "stable"] ?? "stable"}.`
+    : "Not enough data to calculate performance trends.";
 
   const components: ReadinessComponent[] = [
     { label: "Syllabus Coverage",      score: syllabusScore, weight: 0.20, evidence: syllabusEvidence },

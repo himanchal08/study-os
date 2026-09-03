@@ -12,7 +12,7 @@ export default async function SyllabusPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: subjects }, { data: topics }] = await Promise.all([
+  const [{ data: subjects }, { data: topics }, { data: chapters }] = await Promise.all([
     supabase
       .from("subjects")
       .select("id, name, color, exam_type")
@@ -21,21 +21,32 @@ export default async function SyllabusPage() {
       .order("name"),
     supabase
       .from("topics")
-      .select("id, name, status, subject_id")
+      .select("id, name, status, subject_id, chapter_id")
       .eq("user_id", user.id)
       .is("deleted_at", null)
       .is("archived_at", null)
       .order("name"),
+    supabase
+      .from("chapters")
+      .select("id, name, subject_id, sort_order")
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .order("sort_order"),
   ]);
 
-  // Group topics by subject
-  const subjectWithTopics = (subjects ?? []).map(s => ({
+  // Group topics and chapters by subject
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const subjectWithTopics = ((subjects as any[]) ?? []).map(s => ({
     ...s,
-    topics: (topics ?? []).filter(t => t.subject_id === s.id),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    topics: ((topics as any[]) ?? []).filter(t => t.subject_id === s.id),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chapters: ((chapters as any[]) ?? []).filter(ch => ch.subject_id === s.id),
   }));
 
   // Overall stats
-  const allTopics = topics ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allTopics = (topics as any[]) ?? [];
   const learnedCount = allTopics.filter(t => ["learned", "strong"].includes(t.status)).length;
   const coverage = allTopics.length > 0 ? Math.round((learnedCount / allTopics.length) * 100) : 0;
 
@@ -43,7 +54,7 @@ export default async function SyllabusPage() {
     <div className="space-y-6 animate-fade-in pb-12">
       <div>
         <h1 className="text-xl font-semibold text-neutral-100 tracking-tight mb-1">Syllabus Coverage</h1>
-        <p className="text-sm text-neutral-500">Track topics by status — click any status badge to cycle through it.</p>
+        <p className="text-sm text-neutral-500">Track topics by status - click any status badge to cycle through it.</p>
       </div>
 
       {/* Coverage strip */}

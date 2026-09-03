@@ -3,11 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  dayBoundaryAwareDate,
-  studyDurationSeconds,
-  secondsToHours,
-  mockAccuracy,
   classifyMockPerformance,
+  dayBoundaryAwareDate,
+  mockAccuracy,
 } from "@/lib/calculations";
 import {
   syllabusCompletionPct,
@@ -18,13 +16,9 @@ import {
   generateNextActions,
   KNOWN_EXAM_DATES,
   REFERENCE_CUTOFFS,
-  type OnTrackResult,
-  type ReadinessScore,
-  type WeakArea,
-  type NextAction,
 } from "@/lib/calculations/performance";
-import { TopicLifecycleBadges } from "@/features/performance/TopicLifecycleBadges";
 import { RealExamResultForm } from "@/features/performance/RealExamResultForm";
+import { LifecyclePanel } from "@/features/performance/LifecyclePanel";
 
 export const metadata: Metadata = { title: "Performance & Readiness" };
 
@@ -64,12 +58,7 @@ const ACTION_ICONS: Record<string, string> = {
   pyq:      "🏛",
 };
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
-function formatDays(days: number) {
-  if (days > 365) return `~${(days / 365).toFixed(1)}y`;
-  if (days > 30) return `~${Math.round(days / 30)}mo`;
-  return `${days}d`;
-}
+
 
 function pctColor(pct: number) {
   return pct >= 75 ? "#34d399" : pct >= 50 ? "#f59e0b" : "#ef4444";
@@ -89,6 +78,7 @@ export default async function PerformancePage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 
@@ -100,10 +90,12 @@ export default async function PerformancePage() {
   const ninety          = new Date(now - 90 * 86400000).toISOString();
 
   const [
-    { data: subjectsRaw },
-    { data: topicsRaw },
+    { data: subjectsRaw, error: subjectsError },
+    { data: topicsRaw, error: topicsError },
+    { data: chaptersRaw, error: chaptersError },
+    { data: topicExamMapRaw, error: temError },
     { data: lifecycleRaw },
-    { data: batchesAllTime },
+    { data: batchesAll },
     { data: batchesLast14 },
     { data: batchesPrev14 },
     { data: batchesLast7 },
@@ -118,7 +110,9 @@ export default async function PerformancePage() {
     { data: realExamResultsRaw },
   ] = await Promise.all([
     supabase.from("subjects").select("id, name, color, exam_type").eq("user_id", user.id).is("deleted_at", null),
-    supabase.from("topics").select("id, name, status, subject_id, pyq_frequency_weight").eq("user_id", user.id).is("deleted_at", null).is("archived_at", null),
+    supabase.from("topics").select("id, name, status, subject_id, chapter_id, pyq_frequency_weight").eq("user_id", user.id).is("deleted_at", null).is("archived_at", null),
+    supabase.from("chapters").select("id, subject_id, name, sort_order").eq("user_id", user.id).is("deleted_at", null).order("sort_order"),
+    supabase.from("topic_exam_map").select("topic_id, exam_type, priority").eq("user_id", user.id),
     supabase.from("topic_lifecycle").select("*").eq("user_id", user.id),
     supabase.from("question_batches").select("attempted, correct, topic_id, subject_id").eq("user_id", user.id).is("deleted_at", null),
     supabase.from("question_batches").select("attempted, correct").eq("user_id", user.id).gte("logged_at", fourteenDaysAgo).is("deleted_at", null),
@@ -135,8 +129,34 @@ export default async function PerformancePage() {
     supabase.from("real_exam_results").select("*").eq("user_id", user.id).order("exam_date", { ascending: false }),
   ]);
 
-  const subjects = subjectsRaw ?? [];
-  const topics = topicsRaw ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const subjects = (subjectsRaw as any[]) ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const topics = (topicsRaw as any[]) ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chapters = (chaptersRaw as any[]) ?? [];
+
+  if (temError || subjectsError || topicsError || chaptersError) {
+    console.error("Supabase Fetch Errors:");
+    if (temError) console.error("temError:", temError.message, temError.code, temError.details);
+    if (subjectsError) console.error("subjectsError:", subjectsError.message, subjectsError.code, subjectsError.details);
+    if (topicsError) console.error("topicsError:", topicsError.message, topicsError.code, topicsError.details);
+    if (chaptersError) console.error("chaptersError:", chaptersError.message, chaptersError.code, chaptersError.details);
+  }
+
+  // ── topic_exam_map → per-exam topic ID sets ──────────────────────────────────
+  const bankingTopicIdSet = new Set<string>();
+  const sscTopicIdSet = new Set<string>();
+  // Also build a full map: topic_id → exam_types[] for the LifecyclePanel
+  const topicExamRecord: Record<string, string[]> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ((topicExamMapRaw as any[]) ?? []).forEach((row) => {
+    if (row.exam_type === "banking") bankingTopicIdSet.add(row.topic_id);
+    if (row.exam_type === "ssc")     sscTopicIdSet.add(row.topic_id);
+    if (!topicExamRecord[row.topic_id]) topicExamRecord[row.topic_id] = [];
+    topicExamRecord[row.topic_id].push(row.exam_type);
+  });
+
   const lifecycleMap = new Map(
     (lifecycleRaw ?? []).map((l) => [l.topic_id, l])
   );
@@ -160,7 +180,7 @@ export default async function PerformancePage() {
   ).length;
 
   // ── Questions stats ─────────────────────────────────────────────────────────
-  const totalQuestionsAllTime = (batchesAllTime ?? []).reduce((s, b) => s + b.attempted, 0);
+  const totalQuestionsAllTime = (batchesAll ?? []).reduce((s, b) => s + b.attempted, 0);
   const questionsLast7 = (batchesLast7 ?? []).reduce((s, b) => s + b.attempted, 0);
 
   const last14Att  = (batchesLast14 ?? []).reduce((s, b) => s + b.attempted, 0);
@@ -175,12 +195,8 @@ export default async function PerformancePage() {
 
   // ── Mock stats ──────────────────────────────────────────────────────────────
   const last5Mocks = mocks.slice(0, 5);
-  const prev5Mocks = mocks.slice(5, 10);
   const last5AvgPct = last5Mocks.length > 0
     ? last5Mocks.reduce((s, m) => s + (m.score / m.maximum_marks) * 100, 0) / last5Mocks.length
-    : null;
-  const prev5AvgPct = prev5Mocks.length > 0
-    ? prev5Mocks.reduce((s, m) => s + (m.score / m.maximum_marks) * 100, 0) / prev5Mocks.length
     : null;
 
   const daysSinceLastMock = mocks.length > 0
@@ -196,7 +212,7 @@ export default async function PerformancePage() {
   // ── Revision stats ──────────────────────────────────────────────────────────
   const due30 = (revisionsDue30Raw ?? []).length;
   const completed30 = (revisionsCompleted30Raw ?? []).length;
-  const adherence30 = due30 > 0 ? Math.round((completed30 / due30) * 100) : 100;
+  const adherence30 = due30 > 0 ? Math.round((completed30 / due30) * 100) : null;
   const overdueRevisions = (revisionsOverdue ?? []) as Array<{
     id: string; topic_id: string; due_date: string;
     topics: { name: string } | null;
@@ -222,7 +238,7 @@ export default async function PerformancePage() {
   const topicLookup = new Map(topics.map((t) => [t.id, t]));
   const subjectLookup = new Map(subjects.map((s) => [s.id, s]));
 
-  (batchesAllTime ?? []).forEach((b: { attempted: number; correct: number; topic_id: string | null }) => {
+  (batchesAll ?? []).forEach((b: { attempted: number; correct: number; topic_id: string | null }) => {
     if (!b.topic_id) return;
     const topic = topicLookup.get(b.topic_id);
     if (!topic) return;
@@ -307,6 +323,12 @@ export default async function PerformancePage() {
     speedDisciplinePct,
     accuracyTrend: onTrack.accuracyTrend,
     mockTrend: onTrack.mockTrend,
+  });
+
+  // ── Practice map as plain object for client component ──────────────────────
+  const practiceMapObj: Record<string, { attempted: number; correct: number }> = {};
+  topicPracticeMap.forEach((v, k) => {
+    practiceMapObj[k] = { attempted: v.attempted, correct: v.correct };
   });
 
   // ── Weak Areas ──────────────────────────────────────────────────────────────
@@ -413,7 +435,7 @@ export default async function PerformancePage() {
             { label: "Overall Coverage", value: `${overallPct}%`,        sub: `${completedTopics}/${totalTopics} topics`,        color: pctColor(overallPct) },
             { label: "Questions Solved",  value: totalQuestionsAllTime.toLocaleString(), sub: `${questionsLast7} this week`,   color: "#ededed" },
             { label: "Total Mocks",       value: mocks.length,            sub: last5AvgPct != null ? `avg ${last5AvgPct.toFixed(0)}% (last 5)` : "No mocks yet", color: "#fb7185" },
-            { label: "Revision Adherence",value: `${adherence30}%`,       sub: `${completed30}/${due30} done (30 days)`,         color: pctColor(adherence30) },
+            { label: "Revision Adherence",value: adherence30 != null ? `${adherence30}%` : "-",       sub: `${completed30}/${due30} done (30 days)`,         color: pctColor(adherence30 ?? 0) },
           ].map(({ label, value, sub, color }) => (
             <div key={label} className="rounded-2xl p-4 relative overflow-hidden" style={{ background: "#111111", border: "1px solid var(--border)" }}>
               <div className="absolute bottom-0 left-0 h-0.5 rounded-full" style={{ width: "100%", background: `${color}20` }} aria-hidden="true" />
@@ -765,72 +787,14 @@ export default async function PerformancePage() {
       </section>
 
       {/* ── Topic Lifecycle ─────────────────────────────────────────────────── */}
-      <section aria-label="Topic lifecycle">
-        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Topic Lifecycle</h2>
-        <p className="text-xs text-neutral-600 mb-4">Click badges to toggle. Learning → Book Practice → DPP → PYQ. Confidence: 5 dots (1=low, 5=high).</p>
-        <div className="space-y-3">
-          {subjects.map((s) => {
-            const subTopics = topics.filter((t) => t.subject_id === s.id);
-            if (subTopics.length === 0) return null;
-            return (
-              <div key={s.id} className="rounded-xl overflow-hidden" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ borderColor: "#1a1a1a" }}>
-                  <div className="w-2 h-2 rounded-full" style={{ background: s.color ?? "#52525b" }} />
-                  <p className="text-xs font-semibold text-neutral-300">{s.name}</p>
-                  <span
-                    className="text-[9px] px-1.5 py-0.5 rounded-full ml-auto"
-                    style={
-                      s.exam_type === "banking"
-                        ? { background: EXAM_COLORS.banking.bg, color: EXAM_COLORS.banking.text }
-                        : { background: EXAM_COLORS.ssc.bg, color: EXAM_COLORS.ssc.text }
-                    }
-                  >
-                    {s.exam_type}
-                  </span>
-                </div>
-                <div className="divide-y" style={{ borderColor: "#1a1a1a" }}>
-                  {subTopics.map((t) => {
-                    const lc = lifecycleMap.get(t.id) ?? null;
-                    const practice = topicPracticeMap.get(t.id);
-                    const acc = practice && practice.attempted >= 10
-                      ? Math.round((practice.correct / practice.attempted) * 100)
-                      : null;
-                    const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-                      not_started: { label: "Not started", color: "#525252" },
-                      learning:    { label: "Learning",    color: "#38bdf8" },
-                      learned:     { label: "Learned",     color: "#10b981" },
-                      revising:    { label: "Revising",    color: "#f59e0b" },
-                      strong:      { label: "Strong",      color: "#34d399" },
-                      weak:        { label: "Weak",        color: "#ef4444" },
-                    };
-                    const sc = STATUS_CONFIG[t.status] ?? STATUS_CONFIG.not_started;
-                    return (
-                      <div key={t.id} className="px-4 py-3 flex items-center gap-3 flex-wrap">
-                        <div className="w-28 shrink-0">
-                          <p className="text-xs text-neutral-300 truncate">{t.name}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-[9px]" style={{ color: sc.color }}>{sc.label}</span>
-                            {acc !== null && (
-                              <span className="text-[9px] tabular-nums" style={{ color: pctColor(acc) }}>· {acc}%</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <TopicLifecycleBadges
-                            topicId={t.id}
-                            topicName={t.name}
-                            lifecycle={lc}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <LifecyclePanel
+        subjects={subjects}
+        chapters={chapters}
+        topics={topics}
+        lifecycles={lifecycleRaw ?? []}
+        practiceMap={practiceMapObj}
+        topicExamRecord={topicExamRecord}
+      />
 
       {/* ── Mock Performance ────────────────────────────────────────────────── */}
       <section aria-label="Mock performance">
@@ -896,7 +860,7 @@ export default async function PerformancePage() {
           {[
             { label: "Overdue",   value: overdueRevisions.length, color: "#ef4444" },
             { label: "30-day Due",  value: due30,                   color: "#f59e0b" },
-            { label: "Adherence",  value: `${adherence30}%`,        color: pctColor(adherence30) },
+            { label: "Adherence",  value: adherence30 != null ? `${adherence30}%` : "-",        color: pctColor(adherence30 ?? 0) },
           ].map(({ label, value, color }) => (
             <div key={label} className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
               <p className="text-[10px] uppercase tracking-wider text-neutral-600 mb-1">{label}</p>
@@ -925,7 +889,7 @@ export default async function PerformancePage() {
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Reference Cutoffs (Estimated)</h2>
         <div className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <p className="text-[10px] text-neutral-700 mb-3 italic">
-            Sourced Sep 2026 from official results. These are historical/reference figures — actual cutoffs vary by year, vacancies, paper difficulty.{" "}
+            Sourced Sep 2026 from official results. These are historical/reference figures - actual cutoffs vary by year, vacancies, paper difficulty.{" "}
             <Link href="/targets" className="underline hover:text-neutral-500">Add your own safety targets</Link>.
           </p>
           <div className="space-y-1.5">
@@ -961,7 +925,7 @@ export default async function PerformancePage() {
       <section aria-label="Real exam results">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Real Exam Results</h2>
         <p className="text-xs text-neutral-600 mb-4">
-          Log your actual exam attempts — subject-wise marks help identify where you lost points.
+          Log your actual exam attempts - subject-wise marks help identify where you lost points.
         </p>
         <RealExamResultForm
           existingResults={realExamResults}

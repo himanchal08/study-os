@@ -9,6 +9,14 @@ interface Topic {
   id: string;
   name: string;
   status: TopicStatus;
+  chapter_id: string | null;
+}
+
+interface Chapter {
+  id: string;
+  name: string;
+  subject_id: string;
+  sort_order: number;
 }
 
 interface Subject {
@@ -17,6 +25,7 @@ interface Subject {
   color: string | null;
   exam_type: "banking" | "ssc" | "both";
   topics: Topic[];
+  chapters: Chapter[];
 }
 
 const STATUS_CONFIG: Record<TopicStatus, { label: string; color: string; bg: string }> = {
@@ -147,16 +156,51 @@ export function SubjectCard({ subject }: SubjectCardProps) {
         </button>
       </div>
 
-      {/* Topics */}
-      {expanded && (
-        <div className="px-2 pb-2 border-t" style={{ borderColor: "#1a1a1a" }}>
-          {subject.topics.length === 0 ? (
-            <p className="text-xs text-neutral-700 py-3 text-center">No topics yet. Add one below.</p>
-          ) : (
-            subject.topics.map(t => <TopicRow key={t.id} topic={t} />)
+      {/* Content */}
+      <div
+        className="transition-all duration-300 ease-in-out"
+        style={{
+          display: expanded ? "block" : "none",
+          borderTop: "1px solid #1a1a1a",
+        }}
+      >
+        <div className="p-4 space-y-6">
+          {subject.chapters.sort((a, b) => a.sort_order - b.sort_order).map(ch => {
+            const chTopics = subject.topics.filter(t => t.chapter_id === ch.id);
+            if (chTopics.length === 0) return null;
+            return (
+              <div key={ch.id} className="space-y-2">
+                <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider pl-1">
+                  {ch.name}
+                </p>
+                <div className="space-y-1">
+                  {chTopics.map(t => (
+                    <TopicRow key={t.id} topic={t} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          
+          {/* Topics without a chapter */}
+          {subject.topics.filter(t => !t.chapter_id).length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider pl-1">
+                Other Topics
+              </p>
+              <div className="space-y-1">
+                {subject.topics.filter(t => !t.chapter_id).map(t => (
+                  <TopicRow key={t.id} topic={t} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {subject.topics.length === 0 && (
+            <p className="text-sm text-neutral-600 px-3">No topics added yet.</p>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

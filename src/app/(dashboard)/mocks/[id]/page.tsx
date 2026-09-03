@@ -108,7 +108,7 @@ export default async function MockDetailPage({
           {hasSlowInaccurate && (
             <div className="flex items-start gap-2 text-sm" style={{ color: "#ef4444" }}>
               <span className="mt-0.5">🚨</span>
-              <p>You are <strong>slow AND inaccurate</strong> in some sections — these need immediate focused study. Review fundamentals.</p>
+              <p>You are <strong>slow AND inaccurate</strong> in some sections - these need immediate focused study. Review fundamentals.</p>
             </div>
           )}
         </div>

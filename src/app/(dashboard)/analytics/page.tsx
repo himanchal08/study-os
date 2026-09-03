@@ -243,7 +243,7 @@ export default async function AnalyticsPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-semibold" style={{ color: "rgba(232,232,240,0.85)" }}>Focus & Distractions</h2>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>Top distraction sites — last 30 days</p>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>Top distraction sites - last 30 days</p>
             </div>
             <div className="text-right">
               <span className="text-xl font-bold tabular-nums" style={{ color: "#ef4444" }}>
