@@ -64,7 +64,7 @@ export async function startSession(params: {
     return { error: error.message };
   }
 
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { session: data };
 }
 
@@ -72,16 +72,22 @@ export async function stopSession(params: {
   sessionId: string;
   userId: string;
   pauseDurationSeconds?: number;
+  notes?: string;
 }) {
   const supabase = await createClient();
-  const { sessionId, userId, pauseDurationSeconds = 0 } = params;
+  const { sessionId, userId, pauseDurationSeconds = 0, notes } = params;
+
+  const updateData: any = {
+    end_timestamp: new Date().toISOString(),
+    pause_duration_seconds: pauseDurationSeconds,
+  };
+  if (notes !== undefined) {
+    updateData.notes = notes;
+  }
 
   const { data, error } = await supabase
     .from("study_sessions")
-    .update({
-      end_timestamp: new Date().toISOString(),
-      pause_duration_seconds: pauseDurationSeconds,
-    })
+    .update(updateData)
     .eq("id", sessionId)
     .eq("user_id", userId)
     .select()
@@ -136,9 +142,58 @@ export async function stopSession(params: {
     ];
 
     await supabase.from("revisions").insert(revisionsToInsert);
+
+    let nextStatus = null;
+    if (data.activity_type === "lecture") nextStatus = "learning";
+    else if (data.activity_type === "practice" || data.activity_type === "mock") nextStatus = "learned";
+    else if (data.activity_type === "revision") nextStatus = "revising";
+
+    if (nextStatus) {
+      await supabase
+        .from("topics")
+        .update({ status: nextStatus as any })
+        .eq("id", data.topic_id);
+    }
+
+    const lifecycleUpdates: Database["public"]["Tables"]["topic_lifecycle"]["Update"] = {};
+    if (data.activity_type === "lecture") {
+      lifecycleUpdates.learning_completed_at = new Date().toISOString();
+    } else if (data.activity_type === "practice") {
+      lifecycleUpdates.dpp_done = true;
+    }
+
+    if (Object.keys(lifecycleUpdates).length > 0) {
+      const { data: existingLc } = await supabase
+        .from("topic_lifecycle")
+        .select("id")
+        .eq("topic_id", data.topic_id)
+        .maybeSingle();
+
+      if (existingLc) {
+        await supabase
+          .from("topic_lifecycle")
+          .update(lifecycleUpdates)
+          .eq("topic_id", data.topic_id);
+      } else {
+        await supabase
+          .from("topic_lifecycle")
+          .insert({
+            user_id: userId,
+            topic_id: data.topic_id,
+            ...lifecycleUpdates,
+          });
+      }
+    }
   }
 
-  revalidatePath("/");
+  if (data && data.task_id) {
+    await supabase
+      .from("tasks")
+      .update({ status: "completed" })
+      .eq("id", data.task_id);
+  }
+
+  revalidatePath("/", "layout");
   return { session: data };
 }
 
@@ -160,6 +215,6 @@ export async function deleteStudySession(sessionId: string) {
     return { error: error.message };
   }
 
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { success: true };
 }

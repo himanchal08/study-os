@@ -35,9 +35,10 @@ export function TaskForm({
 
   const [state, formAction, pending] = useActionState(createTask, INITIAL_STATE);
 
-  const filteredTopics = selectedSubject
+  const filteredTopics = (selectedSubject
     ? topics.filter((t) => t.subject_id === selectedSubject)
-    : topics;
+    : topics
+  ).filter(t => !t.name.toLowerCase().includes("no specific"));
 
   useEffect(() => {
     if (state?.success && onSuccess) {

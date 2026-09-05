@@ -25,16 +25,26 @@ export default async function TasksPage() {
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const todayDate = dayBoundaryAwareDate(new Date().getTime(), offsetMin, timezone);
 
-  const { data: subjects } = await supabase
+  const { data: rawSubjects } = await supabase
     .from("subjects")
     .select("id, name, color")
     .order("name", { ascending: true });
 
-  const { data: topics } = await supabase
+  const subjects = rawSubjects
+    ? [...rawSubjects].sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+
+  const { data: rawTopics } = await supabase
     .from("topics")
     .select("id, name, subject_id")
     .is("archived_at", null)
     .order("name", { ascending: true });
+
+  const topics = rawTopics
+    ? rawTopics
+        .filter(t => t.name.toLowerCase().trim() !== "no specific topic" && t.name.trim() !== "")
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
 
   const { data: rawTasks } = await supabase
     .from("tasks")

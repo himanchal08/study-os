@@ -31,26 +31,54 @@ export default async function HomePage() {
   const now = Date.now();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 
-  
-  const { data: revisionsDue } = await supabase
-    .from("revisions")
-    .select("*, topics(name, subjects(name, color))")
-    .eq("user_id", user.id)
-    .lte("due_date", todayStr)
-    .is("completed_at", null)
-    .order("due_date", { ascending: true })
-    .limit(10);
-
-  
+  const todayStartStr = `${todayStr}T00:00:00`;
+  const sevenDaysAgo = new Date(now - 7 * 86400000).toISOString();
   const heatStartDate = new Date(now - 363 * 86400000);
   const heatmapStart = dayBoundaryAwareDate(heatStartDate.getTime(), offsetMin, timezone);
 
-  const { data: heatSessions } = await supabase
-    .from("study_sessions")
-    .select("start_timestamp, end_timestamp, pause_duration_seconds")
-    .eq("user_id", user.id)
-    .gte("start_timestamp", heatStartDate.toISOString())
-    .is("deleted_at", null);
+  const [
+    { data: revisionsDue },
+    { data: heatSessions },
+    { data: todayTasksRaw },
+    { data: recentSessionsRaw },
+    { data: todaySessions }
+  ] = await Promise.all([
+    supabase
+      .from("revisions")
+      .select("*, topics(name, subjects(name, color))")
+      .eq("user_id", user.id)
+      .lte("due_date", todayStr)
+      .is("completed_at", null)
+      .order("due_date", { ascending: true })
+      .limit(10),
+    supabase
+      .from("study_sessions")
+      .select("start_timestamp, end_timestamp, pause_duration_seconds")
+      .eq("user_id", user.id)
+      .gte("start_timestamp", heatStartDate.toISOString())
+      .is("deleted_at", null),
+    supabase
+      .from("tasks")
+      .select("*, subjects(id, name, color), topics(id, name)")
+      .eq("user_id", user.id)
+      .eq("planned_date", todayStr)
+      .neq("status", "completed")
+      .is("deleted_at", null)
+      .limit(5),
+    supabase
+      .from("study_sessions")
+      .select("id, start_timestamp, end_timestamp, activity_type, notes, pause_duration_seconds, subjects(name, color), topics(name)")
+      .eq("user_id", user.id)
+      .gte("start_timestamp", sevenDaysAgo)
+      .is("deleted_at", null)
+      .order("start_timestamp", { ascending: false }),
+    supabase
+      .from("study_sessions")
+      .select("start_timestamp, end_timestamp, pause_duration_seconds")
+      .eq("user_id", user.id)
+      .gte("start_timestamp", todayStartStr)
+      .is("deleted_at", null)
+  ]);
 
   const knownDates = new Set(
     (heatSessions ?? []).map((s) =>
@@ -68,37 +96,7 @@ export default async function HomePage() {
     knownDates,
   });
 
-  
-  const { data: todayTasksRaw } = await supabase
-    .from("tasks")
-    .select("*, subjects(id, name, color), topics(id, name)")
-    .eq("user_id", user.id)
-    .eq("planned_date", todayStr)
-    .neq("status", "completed")
-    .is("deleted_at", null)
-    .limit(5);
-
   const todayTasks = (todayTasksRaw ?? []) as unknown as TaskItem[];
-
-  
-  
-  const sevenDaysAgo = new Date(now - 7 * 86400000).toISOString();
-  const { data: recentSessionsRaw } = await supabase
-    .from("study_sessions")
-    .select("id, start_timestamp, end_timestamp, activity_type, notes, pause_duration_seconds, subjects(name, color), topics(name)")
-    .eq("user_id", user.id)
-    .gte("start_timestamp", sevenDaysAgo)
-    .is("deleted_at", null)
-    .order("start_timestamp", { ascending: false });
-
-  
-  const todayStartStr = `${todayStr}T00:00:00`;
-  const { data: todaySessions } = await supabase
-    .from("study_sessions")
-    .select("start_timestamp, end_timestamp, pause_duration_seconds")
-    .eq("user_id", user.id)
-    .gte("start_timestamp", todayStartStr)
-    .is("deleted_at", null);
 
   const todayHours = (todaySessions ?? []).reduce((sum, s) => {
     if (!s.end_timestamp) return sum;
@@ -182,7 +180,7 @@ export default async function HomePage() {
 
       
       <section aria-label="Activity Heatmap">
-        <div className="glass rounded-2xl p-5 overflow-x-auto">
+        <div className="glass rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-semibold text-neutral-100">Consistency Heatmap</h2>

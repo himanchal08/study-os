@@ -24,6 +24,14 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   
   const [notes, setNotes] = useState<string>(activeSession?.notes ?? "");
 
+  useEffect(() => {
+    setSession(activeSession);
+    setSelectedSubject(activeSession?.subject_id ?? "");
+    setSelectedTopic(activeSession?.topic_id ?? "");
+    setActivityType(activeSession?.activity_type ?? "practice");
+    setNotes(activeSession?.notes ?? "");
+  }, [activeSession]);
+
   
   const filteredTopics = topics.filter(t => t.subject_id === selectedSubject);
 
@@ -145,6 +153,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       sessionId: session.id,
       userId,
       pauseDurationSeconds: finalPauseSec,
+      notes: notes.trim() || undefined,
     });
     
     if ("error" in result && result.error) {
@@ -182,7 +191,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
           className="bg-transparent border-none outline-none text-sm w-full max-w-sm text-neutral-200 placeholder:text-neutral-500"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          disabled={isRunning || loading}
+          disabled={loading}
         />
 
         <div className="h-4 w-px bg-neutral-800 mx-2" />

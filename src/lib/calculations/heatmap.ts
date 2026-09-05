@@ -62,7 +62,7 @@ export function buildHeatmapData(params: BuildHeatmapParams): HeatmapCell[] {
     );
     const durationSec =
       (new Date(s.end_timestamp).getTime() - new Date(s.start_timestamp).getTime()) / 1000 -
-      s.pause_duration_seconds;
+      (s.pause_duration_seconds ?? 0);
     hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + secondsToHours(Math.max(0, durationSec)));
   }
 
@@ -103,7 +103,7 @@ export function buildHeatmapData(params: BuildHeatmapParams): HeatmapCell[] {
       isMissing: !knownDates.has(dateStr) && !annotation && new Date(dateStr) < new Date(),
     });
 
-    cursor.setDate(cursor.getDate() + 1);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
   return cells;

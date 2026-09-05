@@ -36,28 +36,30 @@ export async function POST() {
   const offset = (profile.day_boundary_offset_minutes || 0) * 60000;
   const nowWithOffset = new Date(Date.now() + offset);
 
-  
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
-  const today = formatter.format(nowWithOffset);
+  const sevenDaysAgoDate = new Date(nowWithOffset.getTime() - 7 * 86400000);
+  const next14DaysDate = new Date(nowWithOffset.getTime() + 14 * 86400000);
+  const startRange = formatter.format(sevenDaysAgoDate);
+  const endRange = formatter.format(next14DaysDate);
+
   const { data: tasks, error: tasksError } = await supabase
     .from("tasks")
     .select("id, title, planned_date, status, google_event_id, google_task_id")
     .eq("user_id", user.id)
-    .eq("planned_date", today)
+    .gte("planned_date", startRange)
+    .lte("planned_date", endRange)
     .is("deleted_at", null);
 
   if (tasksError) {
-    const fs = require('fs');
-    fs.appendFileSync('sync-error.log', `Tasks Query Error: ${JSON.stringify(tasksError)}\n`);
+    console.error(`Tasks Query Error: ${JSON.stringify(tasksError)}\n`);
   }
 
-  
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const sevenDaysAgo = sevenDaysAgoDate.toISOString();
   const { data: sessions } = await supabase
     .from("study_sessions")
     .select("id, start_timestamp, end_timestamp, activity_type, google_event_id, subjects(name), topics(name)")
@@ -72,50 +74,63 @@ export async function POST() {
   const errors: string[] = [];
 
   try {
-    
     for (const task of tasks ?? []) {
+      const startDateObj = new Date(task.planned_date);
+      const endDateObj = new Date(startDateObj.getTime() + 86400000);
+      const endDateStr = endDateObj.toISOString().split("T")[0];
+
       const eventBody = {
         summary: `📚 ${task.title}`,
         description: `Study OS Task · Status: ${task.status}`,
         start: { date: task.planned_date, timeZone: tz },
-        end: { date: task.planned_date, timeZone: tz },
-        colorId: task.status === "completed" ? "2" : "9", 
+        end: { date: endDateStr, timeZone: tz },
+        colorId: task.status === "completed" ? "2" : "9",
       };
 
       try {
+        let inserted = false;
         if (task.google_event_id) {
-          
-          await calendar.events.update({
-            calendarId: "primary",
-            eventId: task.google_event_id,
-            requestBody: eventBody,
-          });
+          try {
+            await calendar.events.update({
+              calendarId: "primary",
+              eventId: task.google_event_id,
+              requestBody: eventBody,
+            });
+          } catch (updateErr: any) {
+            if (updateErr?.response?.status === 404 || updateErr?.code === 404) {
+              const res = await calendar.events.insert({
+                calendarId: "primary",
+                requestBody: eventBody,
+              });
+              if (res.data.id) {
+                await supabase.from("tasks").update({ google_event_id: res.data.id }).eq("id", task.id);
+                inserted = true;
+              }
+            } else {
+              throw updateErr;
+            }
+          }
         } else {
-          
           const res = await calendar.events.insert({
             calendarId: "primary",
             requestBody: eventBody,
           });
           if (res.data.id) {
-            await supabase
-              .from("tasks")
-              .update({ google_event_id: res.data.id })
-              .eq("id", task.id);
+            await supabase.from("tasks").update({ google_event_id: res.data.id }).eq("id", task.id);
+            inserted = true;
           }
         }
-        syncedCount++;
+        if (!inserted) syncedCount++;
       } catch (e: any) {
         if (e?.response?.status === 403) {
            errors.push(`Calendar forbidden: Reconnect Google account to grant new permissions.`);
         } else {
-           errors.push(`Calendar Task "${task.title}" failed`);
+           errors.push(`Calendar Task "${task.title}" failed: ${e?.message}`);
         }
       }
     }
 
-    
     try {
-      
       let taskListId = "";
       const lists = await tasksApi.tasklists.list();
       const studyOsList = lists.data.items?.find(l => l.title === "Study OS");
@@ -129,30 +144,45 @@ export async function POST() {
 
       for (const task of tasks ?? []) {
         const isCompleted = task.status === "completed";
-        const taskBody = {
+        const taskBody: any = {
           title: task.title,
           notes: `Status: ${task.status}`,
           status: isCompleted ? "completed" : "needsAction",
           due: new Date(task.planned_date).toISOString(),
         };
+        
+        if (isCompleted) {
+          taskBody.completed = new Date().toISOString();
+        }
 
         try {
           if (task.google_task_id) {
-            await tasksApi.tasks.update({
-              tasklist: taskListId,
-              task: task.google_task_id,
-              requestBody: { ...taskBody, id: task.google_task_id },
-            });
+            try {
+              await tasksApi.tasks.update({
+                tasklist: taskListId,
+                task: task.google_task_id,
+                requestBody: { ...taskBody, id: task.google_task_id },
+              });
+            } catch (updateErr: any) {
+              if (updateErr?.response?.status === 404 || updateErr?.code === 404) {
+                const res = await tasksApi.tasks.insert({
+                  tasklist: taskListId,
+                  requestBody: taskBody,
+                });
+                if (res.data.id) {
+                  await supabase.from("tasks").update({ google_task_id: res.data.id }).eq("id", task.id);
+                }
+              } else {
+                throw updateErr;
+              }
+            }
           } else {
             const res = await tasksApi.tasks.insert({
               tasklist: taskListId,
               requestBody: taskBody,
             });
             if (res.data.id) {
-              await supabase
-                .from("tasks")
-                .update({ google_task_id: res.data.id })
-                .eq("id", task.id);
+              await supabase.from("tasks").update({ google_task_id: res.data.id }).eq("id", task.id);
             }
           }
           syncedCount++;
@@ -168,7 +198,6 @@ export async function POST() {
       }
     }
 
-    
     for (const s of sessions ?? []) {
       const sub = (s.subjects as { name: string } | null)?.name;
       const topic = (s.topics as { name: string } | null)?.name;
@@ -187,12 +216,31 @@ export async function POST() {
       };
 
       try {
+        let inserted = false;
         if (s.google_event_id) {
-          await calendar.events.update({
-            calendarId: "primary",
-            eventId: s.google_event_id,
-            requestBody: eventBody,
-          });
+          try {
+            await calendar.events.update({
+              calendarId: "primary",
+              eventId: s.google_event_id,
+              requestBody: eventBody,
+            });
+          } catch (updateErr: any) {
+             if (updateErr?.response?.status === 404 || updateErr?.code === 404) {
+              const res = await calendar.events.insert({
+                calendarId: "primary",
+                requestBody: eventBody,
+              });
+              if (res.data.id) {
+                await supabase
+                  .from("study_sessions")
+                  .update({ google_event_id: res.data.id })
+                  .eq("id", s.id);
+                inserted = true;
+              }
+             } else {
+               throw updateErr;
+             }
+          }
         } else {
           const res = await calendar.events.insert({
             calendarId: "primary",
@@ -203,15 +251,15 @@ export async function POST() {
               .from("study_sessions")
               .update({ google_event_id: res.data.id })
               .eq("id", s.id);
+            inserted = true;
           }
         }
-        syncedCount++;
+        if (!inserted) syncedCount++;
       } catch {
         errors.push(`Session at ${s.start_timestamp} failed`);
       }
     }
 
-    
     await supabase
       .from("profiles")
       .update({ google_last_synced_at: new Date().toISOString() })

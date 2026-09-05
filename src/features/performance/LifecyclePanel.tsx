@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { TopicLifecycleBadges } from "@/features/performance/TopicLifecycleBadges";
-
+import { updateTopicStatus } from "@/app/(dashboard)/syllabus/actions";
 
 interface Subject {
   id: string;
@@ -61,6 +61,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   weak:        { label: "Weak",        color: "#ef4444", bg: "#ef444418" },
 };
 
+const STATUS_ORDER = ["not_started", "learning", "learned", "revising", "strong", "weak"];
+
 function pctColor(n: number) {
   if (n >= 80) return "#34d399";
   if (n >= 60) return "#f59e0b";
@@ -83,6 +85,95 @@ function lifecycleProgress(lc: Lifecycle | undefined): number {
   if (lc.dpp_done) done++;
   if (lc.pyq_done) done++;
   return done; 
+}
+
+
+function TopicRow({ 
+  t, tIdx, lc, practice, s 
+}: { 
+  t: Topic; tIdx: number; lc: Lifecycle | undefined; practice: PracticeStats | undefined; s: Subject; 
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [status, setStatus] = useState(t.status);
+
+  const acc =
+    practice && practice.attempted >= 10
+      ? Math.round((practice.correct / practice.attempted) * 100)
+      : null;
+  const sc = STATUS_CONFIG[status] ?? STATUS_CONFIG.not_started;
+  const progress = lifecycleProgress(lc);
+
+  const cycleStatus = () => {
+    const idx = STATUS_ORDER.indexOf(status);
+    const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
+    setStatus(next);
+    startTransition(() => updateTopicStatus(t.id, next as any));
+  };
+
+  return (
+    <div
+      className="px-3 py-3 rounded-xl flex flex-col gap-3 transition-colors"
+      style={{ background: tIdx % 2 === 0 ? "transparent" : "#0c0c0c" }}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className="text-[10px] tabular-nums font-mono mt-0.5 shrink-0 w-5 text-right"
+          style={{ color: "#444" }}
+        >
+          {tIdx + 1}.
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <p className="text-sm font-medium text-neutral-200 leading-snug">
+              {t.name}
+            </p>
+            <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+              {acc !== null && (
+                <span
+                  className="text-[10px] tabular-nums font-semibold px-2 py-0.5 rounded-md"
+                  style={{ color: pctColor(acc), background: `${pctColor(acc)}15` }}
+                >
+                  {acc}%
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={cycleStatus}
+                disabled={isPending}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-md transition-all hover:opacity-80 active:scale-95 disabled:opacity-40"
+                style={{ color: sc.color, background: sc.bg, border: `1px solid ${sc.color}33` }}
+                title="Click to cycle status"
+              >
+                {sc.label}
+              </button>
+            </div>
+          </div>
+
+          
+          <div className="flex items-center gap-1 mb-2.5">
+            {["Learn", "Book", "DPP", "PYQ"].map((label, i) => (
+              <div key={i} className="flex-1 flex flex-col gap-0.5">
+                <div
+                  className="h-1 rounded-full transition-all"
+                  style={{ background: i < progress ? (s.color ?? "#38bdf8") : "#1f1f1f" }}
+                />
+                <span className="text-[8px] text-center" style={{ color: i < progress ? (s.color ?? "#38bdf8") : "#333" }}>
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          
+          <TopicLifecycleBadges
+            topicId={t.id}
+            topicName={t.name}
+            lifecycle={lc as any}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 
@@ -310,73 +401,15 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
                         {chapterTopics.map((t, tIdx) => {
                           const lc = lcMap.get(t.id) ?? undefined;
                           const practice = practiceMap[t.id];
-                          const acc =
-                            practice && practice.attempted >= 10
-                              ? Math.round((practice.correct / practice.attempted) * 100)
-                              : null;
-                          const sc = STATUS_CONFIG[t.status] ?? STATUS_CONFIG.not_started;
-                          const progress = lifecycleProgress(lc);
-
                           return (
-                            <div
+                            <TopicRow
                               key={t.id}
-                              className="px-3 py-3 rounded-xl flex flex-col gap-3 transition-colors"
-                              style={{ background: tIdx % 2 === 0 ? "transparent" : "#0c0c0c" }}
-                            >
-                              <div className="flex items-start gap-3">
-                                <span
-                                  className="text-[10px] tabular-nums font-mono mt-0.5 shrink-0 w-5 text-right"
-                                  style={{ color: "#444" }}
-                                >
-                                  {tIdx + 1}.
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between gap-2 mb-2">
-                                    <p className="text-sm font-medium text-neutral-200 leading-snug">
-                                      {t.name}
-                                    </p>
-                                    <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
-                                      {acc !== null && (
-                                        <span
-                                          className="text-[10px] tabular-nums font-semibold px-2 py-0.5 rounded-md"
-                                          style={{ color: pctColor(acc), background: `${pctColor(acc)}15` }}
-                                        >
-                                          {acc}%
-                                        </span>
-                                      )}
-                                      <span
-                                        className="text-[10px] font-medium px-2 py-0.5 rounded-md"
-                                        style={{ color: sc.color, background: sc.bg }}
-                                      >
-                                        {sc.label}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  
-                                  <div className="flex items-center gap-1 mb-2.5">
-                                    {["Learn", "Book", "DPP", "PYQ"].map((label, i) => (
-                                      <div key={i} className="flex-1 flex flex-col gap-0.5">
-                                        <div
-                                          className="h-1 rounded-full transition-all"
-                                          style={{ background: i < progress ? (s.color ?? "#38bdf8") : "#1f1f1f" }}
-                                        />
-                                        <span className="text-[8px] text-center" style={{ color: i < progress ? (s.color ?? "#38bdf8") : "#333" }}>
-                                          {label}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-
-                                  
-                                  <TopicLifecycleBadges
-                                    topicId={t.id}
-                                    topicName={t.name}
-                                    lifecycle={lc ?? null}
-                                  />
-                                </div>
-                              </div>
-                            </div>
+                              t={t}
+                              tIdx={tIdx}
+                              lc={lc}
+                              practice={practice}
+                              s={s}
+                            />
                           );
                         })}
                       </div>

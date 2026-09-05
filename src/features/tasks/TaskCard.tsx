@@ -60,6 +60,7 @@ export function TaskCard({ task, userId }: TaskCardProps) {
         taskId: task.id,
         subjectId: task.subjects?.id,
         topicId: task.topics?.id,
+        notes: task.title,
         activityType: "practice",
       });
     });

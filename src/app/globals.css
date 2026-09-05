@@ -37,11 +37,11 @@
 
   
   --color-heat-0: #111111;
-  --color-heat-1: #1e1e1e;
-  --color-heat-2: #2d2d2d;
-  --color-heat-3: #404040;
-  --color-heat-4: #525252;
-  --color-heat-5: #737373;
+  --color-heat-1: #064e3b;
+  --color-heat-2: #047857;
+  --color-heat-3: #10b981;
+  --color-heat-4: #34d399;
+  --color-heat-5: #6ee7b7;
   --color-heat-annotated: #f59e0b;
 
   
@@ -272,34 +272,24 @@ body {
 
 .heat-cell {
   border-radius: 3px;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: opacity 0.12s ease, box-shadow 0.12s ease;
   cursor: default;
 }
 .heat-cell:hover {
-  transform: scale(1.5);
-  z-index: 10;
-  position: relative;
-  box-shadow: 0 0 8px rgba(99,102,241,0.5);
+  opacity: 0.8;
+  stroke: #ffffff;
+  stroke-width: 1px;
 }
-.heat-0         { background: var(--color-heat-0); }
-.heat-1         { background: var(--color-heat-1); }
-.heat-2         { background: var(--color-heat-2); }
-.heat-3         { background: var(--color-heat-3); }
-.heat-4         { background: var(--color-heat-4); }
-.heat-5         { background: var(--color-heat-5); }
+.heat-0         { fill: var(--color-heat-0); }
+.heat-1         { fill: var(--color-heat-1); }
+.heat-2         { fill: var(--color-heat-2); }
+.heat-3         { fill: var(--color-heat-3); }
+.heat-4         { fill: var(--color-heat-4); }
+.heat-5         { fill: var(--color-heat-5); }
 .heat-annotated {
-  background: repeating-linear-gradient(
-    45deg,
-    var(--color-heat-annotated),
-    var(--color-heat-annotated) 2px,
-    transparent 2px,
-    transparent 6px
-  );
-  border: 1px solid var(--color-heat-annotated);
+  fill: var(--color-heat-annotated);
   opacity: 0.8;
 }
 .heat-missing {
-  background: var(--color-heat-0);
-  opacity: 0.25;
-  border: 1px dashed rgba(255,255,255,0.06);
+  fill: var(--color-heat-0);
 }
