@@ -2,6 +2,7 @@
 
 import { useState, useActionState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signIn, signUp, signInWithGoogle } from "./actions";
 import type { AuthState } from "./actions";
 
@@ -36,8 +37,40 @@ export function LoginForm() {
   const formAction = isSignUp ? signUpAction : signInAction;
   const pending = isSignUp ? signUpPending : signInPending;
 
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.success && isSignUp) {
+      const timer = setTimeout(() => {
+        if (state.session) {
+          router.push("/");
+        } else {
+          setIsSignUp(false); // switch to sign in if they need to verify email
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [state, isSignUp, router]);
+
   return (
-    <div className="w-full">
+    <div className="w-full relative">
+      {/* Success Popup */}
+      {state?.success && isSignUp && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-xl shadow-2xl flex flex-col items-center text-center max-w-70">
+            <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-neutral-100 font-semibold text-lg mb-2">Account Created!</h3>
+            <p className="text-neutral-400 text-sm">
+              {state.session ? "Redirecting to your dashboard..." : "Please check your email to sign in."}
+            </p>
+          </div>
+        </div>
+      )}
+
       <form action={formAction} onSubmit={handleEmailSubmit} className="space-y-4">
         <div>
           <label
@@ -106,7 +139,7 @@ export function LoginForm() {
           </p>
         )}
 
-        {state?.message && (
+        {state?.message && !isSignUp && (
           <p
             role="status"
             className="text-xs px-3 py-2 rounded-lg"

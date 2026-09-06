@@ -7,6 +7,7 @@ export type AuthState = {
   error?: string;
   message?: string;
   success?: boolean;
+  session?: boolean;
   email?: string;
 } | null;
 
@@ -59,11 +60,11 @@ export async function signUp(
   }
 
   // If email confirmation is disabled, user is immediately logged in
-  if (data?.session) {
-    redirect("/");
-  }
-
-  return { message: "Account created successfully! You can now sign in." };
+  return { 
+    success: true, 
+    message: "Account created successfully!",
+    session: !!data?.session 
+  };
 }
 
 export async function signOut() {
