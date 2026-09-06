@@ -46,7 +46,7 @@ export async function signUp(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -58,7 +58,12 @@ export async function signUp(
     return { error: error.message };
   }
 
-  return { message: "Check your email for a confirmation link." };
+  // If email confirmation is disabled, user is immediately logged in
+  if (data?.session) {
+    redirect("/");
+  }
+
+  return { message: "Account created successfully! You can now sign in." };
 }
 
 export async function signOut() {
@@ -104,4 +109,23 @@ export async function updatePassword(
   if (error) return { error: error.message };
 
   redirect("/");
+}
+
+export async function signInWithGoogle() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    console.error("Google Auth Error:", error.message);
+    redirect("/login?error=Could not sign in with Google");
+  }
+
+  if (data.url) {
+    redirect(data.url);
+  }
 }

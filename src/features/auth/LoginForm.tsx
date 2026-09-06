@@ -1,14 +1,27 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useActionState, useEffect } from "react";
 import Link from "next/link";
-import { signIn, signUp } from "./actions";
+import { signIn, signUp, signInWithGoogle } from "./actions";
 import type { AuthState } from "./actions";
 
 const INITIAL_STATE: AuthState = null;
 
 export function LoginForm() {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [lastUsed, setLastUsed] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLastUsed(localStorage.getItem("lastUsedAuth"));
+  }, []);
+
+  const handleEmailSubmit = () => {
+    localStorage.setItem("lastUsedAuth", "email");
+  };
+
+  const handleGoogleSubmit = () => {
+    localStorage.setItem("lastUsedAuth", "google");
+  };
 
   const [signInState, signInAction, signInPending] = useActionState(
     signIn,
@@ -24,127 +37,177 @@ export function LoginForm() {
   const pending = isSignUp ? signUpPending : signInPending;
 
   return (
-    <form action={formAction} className="space-y-4">
-      <div>
-        <label
-          htmlFor="email"
-          className="block text-xs font-medium mb-1.5"
-          style={{ color: "rgba(226,226,240,0.7)" }}
-        >
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="you@example.com"
-          className="w-full px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-1 focus:ring-white"
-          style={{
-            background: "#171717",
-            border: "1px solid var(--border)",
-            color: "var(--foreground)",
-          }}
-          aria-describedby={state?.error ? "auth-error" : undefined}
-        />
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
+    <div className="w-full">
+      <form action={formAction} onSubmit={handleEmailSubmit} className="space-y-4">
+        <div>
           <label
-            htmlFor="password"
-            className="block text-xs font-medium"
+            htmlFor="email"
+            className="block text-xs font-medium mb-1.5"
             style={{ color: "rgba(226,226,240,0.7)" }}
           >
-            Password
+            Email
           </label>
-          {!isSignUp && (
-            <Link href="/forgot-password" className="text-[10px] text-neutral-500 hover:text-neutral-300 transition-colors">
-              Forgot password?
-            </Link>
-          )}
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="w-full px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-1 focus:ring-white"
+            style={{
+              background: "#171717",
+              border: "1px solid var(--border)",
+              color: "var(--foreground)",
+            }}
+            aria-describedby={state?.error ? "auth-error" : undefined}
+          />
         </div>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          autoComplete={isSignUp ? "new-password" : "current-password"}
-          placeholder="••••••••"
-          className="w-full px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-1 focus:ring-white"
+
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label
+              htmlFor="password"
+              className="block text-xs font-medium"
+              style={{ color: "rgba(226,226,240,0.7)" }}
+            >
+              Password
+            </label>
+            {!isSignUp && (
+              <Link href="/forgot-password" className="text-[10px] text-neutral-500 hover:text-neutral-300 transition-colors">
+                Forgot password?
+              </Link>
+            )}
+          </div>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            autoComplete={isSignUp ? "new-password" : "current-password"}
+            placeholder="••••••••"
+            className="w-full px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-1 focus:ring-white"
+            style={{
+              background: "#171717",
+              border: "1px solid var(--border)",
+              color: "var(--foreground)",
+            }}
+          />
+        </div>
+
+        {state?.error && (
+          <p
+            id="auth-error"
+            role="alert"
+            className="text-xs px-3 py-2 rounded-lg"
+            style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5" }}
+          >
+            {state.error}
+          </p>
+        )}
+
+        {state?.message && (
+          <p
+            role="status"
+            className="text-xs px-3 py-2 rounded-lg"
+            style={{ background: "rgba(34,197,94,0.12)", color: "#86efac" }}
+          >
+            {state.message}
+          </p>
+        )}
+
+        <button
+          id="submit-auth"
+          type="submit"
+          disabled={pending}
+          className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all hover:bg-neutral-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: "#171717",
-            border: "1px solid var(--border)",
-            color: "var(--foreground)",
+            background: "#ededed",
+            color: "#0a0a0a",
           }}
-        />
+        >
+          {pending ? (
+            <span className="inline-flex items-center gap-2">
+              <svg
+                className="animate-spin h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                />
+              </svg>
+              {isSignUp ? "Creating account..." : "Signing in..."}
+            </span>
+          ) : isSignUp ? (
+            "Create account"
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              Sign in
+              {lastUsed === "email" && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 font-medium tracking-wide border border-neutral-700">Last used</span>
+              )}
+            </span>
+          )}
+        </button>
+      </form>
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-neutral-800"></div>
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="px-2 bg-[#0a0a0a] text-neutral-500 rounded-lg">Or continue with</span>
+        </div>
       </div>
 
-      {state?.error && (
-        <p
-          id="auth-error"
-          role="alert"
-          className="text-xs px-3 py-2 rounded-lg"
-          style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5" }}
+      <form action={signInWithGoogle} onSubmit={handleGoogleSubmit}>
+        <button
+          type="submit"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-neutral-800 active:scale-[0.98] border border-neutral-800"
+          style={{
+            background: "#171717",
+            color: "#ededed",
+          }}
         >
-          {state.error}
-        </p>
-      )}
-
-      {state?.message && (
-        <p
-          role="status"
-          className="text-xs px-3 py-2 rounded-lg"
-          style={{ background: "rgba(34,197,94,0.12)", color: "#86efac" }}
-        >
-          {state.message}
-        </p>
-      )}
-
-      <button
-        id="submit-auth"
-        type="submit"
-        disabled={pending}
-        className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all hover:bg-neutral-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{
-          background: "#ededed",
-          color: "#0a0a0a",
-        }}
-      >
-        {pending ? (
-          <span className="inline-flex items-center gap-2">
-            <svg
-              className="animate-spin h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8H4z"
-              />
-            </svg>
-            {isSignUp ? "Creating account..." : "Signing in..."}
-          </span>
-        ) : isSignUp ? (
-          "Create account"
-        ) : (
-          "Sign in"
-        )}
-      </button>
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="currentColor"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="currentColor"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+            />
+            <path
+              fill="currentColor"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+            />
+          </svg>
+          Google
+          {lastUsed === "google" && (
+            <span className="text-[10px] px-1.5 py-0.5 ml-1 rounded-full bg-neutral-800 text-neutral-400 font-medium tracking-wide border border-neutral-700">Last used</span>
+          )}
+        </button>
+      </form>
 
       <p
-        className="text-center text-xs"
+        className="text-center text-xs mt-6"
         style={{ color: "rgba(226,226,240,0.45)" }}
       >
         {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
@@ -157,6 +220,6 @@ export function LoginForm() {
           {isSignUp ? "Sign in" : "Create one"}
         </button>
       </p>
-    </form>
+    </div>
   );
 }
