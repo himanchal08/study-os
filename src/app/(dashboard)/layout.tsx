@@ -42,7 +42,7 @@ export default async function DashboardLayout({
     .is("deleted_at", null)
     .order("name", { ascending: true });
 
-  // Deduplicate by lowercase name — keep first occurrence (highest id = most recently active)
+  // Deduplicate by lowercase name — keep first occurrence
   const subjectsSeen = new Set<string>();
   const subjects = (rawSubjects ?? []).filter(s => {
     const key = s.name.toLowerCase().trim();
@@ -74,30 +74,32 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>
+      {/* Desktop sidebar */}
       <Sidebar userEmail={safeUser.email ?? ""} />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <TopBar
           profile={profile as Tables<"profiles"> | null}
           userId={safeUser.id}
+          userEmail={safeUser.email ?? ""}
         />
-        <GlobalTimer 
-          userId={safeUser.id} 
-          activeSession={activeSession} 
+        <GlobalTimer
+          userId={safeUser.id}
+          activeSession={activeSession}
           subjects={subjects ?? []}
           topics={topics ?? []}
         />
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto p-6"
+          className="flex-1 overflow-y-auto p-4 md:p-6"
           tabIndex={-1}
         >
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             {children}
           </div>
         </main>
       </div>
-      <SiteTutorial userId={safeUser.id} startImmediately={profile?.tutorial_completed === false} />
+      <SiteTutorial userId={safeUser.id} startImmediately={false} />
     </div>
   );
 }

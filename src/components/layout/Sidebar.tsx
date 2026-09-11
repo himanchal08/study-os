@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { NavLinks } from "./NavLinks";
-import { TourButton } from "./TourButton";
 
 interface SidebarProps {
   userEmail: string;
@@ -10,21 +9,20 @@ export function Sidebar({ userEmail }: SidebarProps) {
   return (
     <nav
       aria-label="Main navigation"
-      className="w-56 shrink-0 flex flex-col border-r h-full"
+      className="hidden md:flex w-48 shrink-0 flex-col border-r h-full"
       style={{
         background: "var(--surface)",
         borderColor: "var(--border)",
       }}
     >
-      
       <div
-        className="px-5 py-5 flex items-center gap-3 border-b"
+        className="px-4 py-4 flex items-center gap-3 border-b"
         style={{ borderColor: "var(--border-subtle)" }}
       >
-        <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center shrink-0 shadow-sm">
+        <div className="w-7 h-7 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center shrink-0 shadow-sm">
           <svg
-            width="16"
-            height="16"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
             stroke="white"
@@ -49,11 +47,6 @@ export function Sidebar({ userEmail }: SidebarProps) {
         <NavLinks />
       </Suspense>
 
-      <div className="px-3 py-3">
-        <TourButton />
-      </div>
-
-      
       <div
         className="px-3 py-4 border-t"
         style={{ borderColor: "var(--border-subtle)" }}
@@ -72,9 +65,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
             {userEmail.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <span
-              className="text-[11px] truncate block text-neutral-400"
-            >
+            <span className="text-[11px] truncate block text-neutral-400">
               {userEmail}
             </span>
           </div>
@@ -85,7 +76,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
 }
 
 function NavLinksSkeleton() {
-  const items = Array.from({ length: 9 });
+  const items = Array.from({ length: 8 });
   return (
     <ul
       className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5"

@@ -97,9 +97,8 @@ export async function stopSession(params: {
     return { error: error.message };
   }
 
-  
-  
-  if (data && data.topic_id) {
+    // Only create revisions when a specific topic was studied
+    if (data && data.topic_id) {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -145,7 +144,8 @@ export async function stopSession(params: {
 
     let nextStatus = null;
     if (data.activity_type === "lecture") nextStatus = "learning";
-    else if (data.activity_type === "practice" || data.activity_type === "mock") nextStatus = "learned";
+    else if (data.activity_type === "practice") nextStatus = "learned";
+    else if (data.activity_type === "mock") nextStatus = "strong";
     else if (data.activity_type === "revision") nextStatus = "revising";
 
     if (nextStatus) {

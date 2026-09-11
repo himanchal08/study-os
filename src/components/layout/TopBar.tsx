@@ -1,31 +1,35 @@
 import type { Tables } from "@/types/database";
 import { signOut } from "@/features/auth/actions";
 import { getFormattedToday } from "@/lib/calculations/time";
+import { MobileSidebar } from "./MobileSidebar";
 
 interface TopBarProps {
   profile: Tables<"profiles"> | null;
   userId: string;
+  userEmail: string;
 }
 
-export function TopBar({ profile }: TopBarProps) {
+export function TopBar({ profile, userEmail }: TopBarProps) {
   const today = getFormattedToday(profile);
-
   const dailyTarget = profile?.daily_target_hours ?? 8;
 
   return (
     <header
-      className="h-14 flex items-center justify-between px-6 border-b shrink-0"
+      className="h-14 flex items-center justify-between px-4 md:px-6 border-b shrink-0"
       style={{
         background: "var(--surface)",
         borderColor: "var(--border-subtle)",
       }}
     >
-      <div className="flex items-center gap-4">
-        <p className="text-sm" style={{ color: "rgba(226,226,240,0.5)" }}>
+      <div className="flex items-center gap-3">
+        {/* Mobile hamburger + drawer */}
+        <MobileSidebar userEmail={userEmail} />
+
+        <p className="text-sm hidden sm:block" style={{ color: "rgba(226,226,240,0.5)" }}>
           {today}
         </p>
         <span
-          className="text-xs px-2 py-1 rounded-full"
+          className="text-xs px-2 py-1 rounded-full hidden sm:inline-flex"
           style={{
             background: "rgba(255,255,255,0.08)",
             color: "#ededed",
