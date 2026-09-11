@@ -27,14 +27,14 @@ export function TimeOfDayChart({ data }: { data: TimeOfDayData[] }) {
               className="h-full rounded-md transition-all duration-700"
               style={{
                 width: `${(row.hours / max) * 100}%`,
-                background: `linear-gradient(90deg, ${row.color}88, ${row.color})`,
+                background: `linear-gradient(90deg, ${row.color ?? "#555"}88, ${row.color ?? "#555"})`,
                 minWidth: row.hours > 0 ? 4 : 0,
               }}
             />
           </div>
           <span
             className="text-xs tabular-nums w-10 text-right shrink-0"
-            style={{ color: row.hours > 0 ? row.color : "rgba(232,232,240,0.2)" }}
+            style={{ color: row.hours > 0 ? (row.color ?? "#555") : "rgba(232,232,240,0.2)" }}
           >
             {row.hours > 0 ? `${row.hours.toFixed(1)}h` : "—"}
           </span>
