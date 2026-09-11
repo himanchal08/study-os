@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import type { Tables } from "@/types/database";
-import { SiteTutorial } from "@/components/layout/SiteTutorial";
 import { GlobalTimer } from "@/features/study-timer/GlobalTimer";
 
 export default async function DashboardLayout({
@@ -99,7 +98,6 @@ export default async function DashboardLayout({
           </div>
         </main>
       </div>
-      <SiteTutorial userId={safeUser.id} startImmediately={false} />
     </div>
   );
 }
