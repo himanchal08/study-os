@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { deleteStudySession } from "@/features/study-timer/actions";
 import { useTransition } from "react";
+import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
 const ACTIVITY_COLORS: Record<string, string> = {
   practice: "#818cf8",
@@ -27,7 +28,7 @@ export interface HistorySession {
 
 interface HistoryClientProps {
   sessions: HistorySession[];
-  subjects: Array<{ id: string; name: string; color: string | null }>;
+  subjects: Array<{ id: string; name: string; color: string | null; exam_type?: string | null }>;
   totalAllTimeSecs: number;
   totalSessions: number;
   bestDaySecs: number;
@@ -158,9 +159,7 @@ export function HistoryClient({
           style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: filterSubject ? "#ededed" : "#555" }}
         >
           <option value="">All Subjects</option>
-          {subjects.map(s => (
-            <option key={s.id} value={s.name}>{s.name}</option>
-          ))}
+          <SubjectOptions subjects={subjects} />
         </select>
 
         {/* Activity filter */}

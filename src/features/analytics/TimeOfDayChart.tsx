@@ -5,7 +5,7 @@ interface TimeOfDayData {
   label: string;
   hours: number;
   emoji: string;
-  color: string;
+  color: string | null;
 }
 
 export function TimeOfDayChart({ data }: { data: TimeOfDayData[] }) {

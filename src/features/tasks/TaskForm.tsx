@@ -2,6 +2,7 @@
 
 import { useState, useActionState, useEffect } from "react";
 import { createTask, type TaskActionState } from "./actions";
+import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
 interface SubjectOption {
   id: string;
@@ -62,9 +63,7 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
           className="select-premium"
         >
           <option value="">Subject</option>
-          {subjects.map(sub => (
-            <option key={sub.id} value={sub.id}>{sub.name}</option>
-          ))}
+          <SubjectOptions subjects={subjects} />
         </select>
 
         <select

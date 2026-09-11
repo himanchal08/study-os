@@ -2,8 +2,9 @@
 
 import { useActionState } from "react";
 import { addTopic } from "@/app/(dashboard)/syllabus/actions";
+import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
-interface Subject { id: string; name: string; color: string | null; }
+interface Subject { id: string; name: string; color: string | null; exam_type?: string | null; }
 
 const inputCls = "w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/30 placeholder:text-neutral-600 transition-all";
 const inputStyle = { background: "#111111", border: "1px solid #262626", color: "#ededed" };
@@ -18,9 +19,7 @@ export function AddTopicForm({ subjects }: { subjects: Subject[] }) {
         <label className={labelCls}>Subject</label>
         <select name="subject_id" className="select-premium" required>
           <option value="">— Select subject —</option>
-          {subjects.map(s => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
+          <SubjectOptions subjects={subjects} />
         </select>
       </div>
 

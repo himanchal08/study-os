@@ -44,7 +44,7 @@ export default async function QuestionsPage() {
   const todayStr = dayBoundaryAwareDate(new Date().getTime(), offsetMin, timezone);
 
   const [{ data: subjectsRaw }, { data: topicsRaw }, { data: batchesRaw }] = await Promise.all([
-    supabase.from("subjects").select("id, name, color").order("name"),
+    supabase.from("subjects").select("id, name, color, exam_type").order("name"),
     supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("name"),
     supabase
       .from("question_batches")

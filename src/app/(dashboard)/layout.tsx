@@ -36,7 +36,7 @@ export default async function DashboardLayout({
 
   const { data: rawSubjects } = await supabase
     .from("subjects")
-    .select("id, name, color")
+    .select("id, name, color, exam_type")
     .eq("user_id", safeUser.id)
     .is("deleted_at", null)
     .order("name", { ascending: true });

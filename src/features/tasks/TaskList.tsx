@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { TaskCard, type TaskItem } from "./TaskCard";
 import { taskCompletionRate } from "@/lib/calculations";
+import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
 interface SubjectOption {
   id: string;
@@ -137,9 +138,7 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
           className="select-premium text-xs truncate flex-1 min-w-0"
         >
           <option value="all">All Subjects</option>
-          {subjects.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
+          <SubjectOptions subjects={subjects} />
         </select>
 
         <div className="relative flex-1 min-w-0">

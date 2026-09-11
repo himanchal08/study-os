@@ -27,7 +27,7 @@ export default async function TasksPage() {
 
   const { data: rawSubjects } = await supabase
     .from("subjects")
-    .select("id, name, color")
+    .select("id, name, color, exam_type")
     .order("name", { ascending: true });
 
   const subjects = rawSubjects

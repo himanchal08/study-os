@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
 type ErrorCategory = "concept" | "calculation" | "silly" | "time" | "reading" | "other";
 
@@ -82,7 +83,7 @@ export function VaultUploadForm({
         className="select-premium text-xs"
       >
         <option value="">Subject (optional)</option>
-        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        <SubjectOptions subjects={subjects} />
       </select>
 
       {selSubject && (

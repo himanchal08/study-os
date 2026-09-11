@@ -7,7 +7,7 @@ type ExamTab = "all" | "banking" | "ssc";
 
 interface Topic { id: string; name: string; status: string; subject_id: string; chapter_id: string | null; }
 interface Chapter { id: string; name: string; subject_id: string; sort_order: number | null; }
-interface Subject { id: string; name: string; color: string; exam_type: string | null; topics: Topic[]; chapters: Chapter[]; }
+interface Subject { id: string; name: string; color: string | null; exam_type: string | null; topics: Topic[]; chapters: Chapter[]; }
 
 const TABS: { key: ExamTab; label: string; accent: string }[] = [
   { key: "all",     label: "All",     accent: "#94a3b8" },

@@ -13,7 +13,7 @@ import {
 interface SubjectSlice {
   name: string;
   hours: number;
-  color: string;
+  color: string | null;
 }
 
 const FALLBACK_COLORS = [
@@ -50,7 +50,7 @@ export function SubjectAllocationChart({ data }: { data: SubjectSlice[] }) {
 
   if (enriched.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[200px]">
+      <div className="flex items-center justify-center h-50">
         <p className="text-sm" style={{ color: "rgba(232,232,240,0.3)" }}>No sessions recorded yet</p>
       </div>
     );

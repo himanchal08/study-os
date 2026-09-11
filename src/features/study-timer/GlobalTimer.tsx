@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { startSession, stopSession } from "./actions";
 import type { Tables } from "@/types/database";
+import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
 interface GlobalTimerProps {
   userId: string;
   activeSession: Tables<"study_sessions"> | null;
-  subjects: Array<{ id: string; name: string; color: string | null }>;
+  subjects: Array<{ id: string; name: string; color: string | null; exam_type?: string | null }>;
   topics: Array<{ id: string; name: string; subject_id: string }>;
 }
 
@@ -229,9 +230,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
               className="text-xs bg-transparent text-neutral-300 outline-none cursor-pointer appearance-none"
             >
               <option value="" className="bg-neutral-900 text-neutral-400">No Subject</option>
-              {subjects.map(s => (
-                <option key={s.id} value={s.id} className="bg-neutral-900 text-white">{s.name}</option>
-              ))}
+              <SubjectOptions subjects={subjects} />
             </select>
           )}
         </div>

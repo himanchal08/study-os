@@ -2,8 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { logQuestionBatch } from "@/app/(dashboard)/questions/actions";
+import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
-interface Subject { id: string; name: string; color: string | null; }
+interface Subject { id: string; name: string; color: string | null; exam_type?: string | null; }
 interface Topic   { id: string; name: string; subject_id: string;  }
 
 interface LogBatchFormProps {
@@ -38,7 +39,7 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         style={inpS}
       >
         <option value="">Subject (optional)</option>
-        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        <SubjectOptions subjects={subjects} />
       </select>
 
       {/* Topic — only if subject chosen */}

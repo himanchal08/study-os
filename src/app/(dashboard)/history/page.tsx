@@ -40,7 +40,7 @@ export default async function HistoryPage() {
     // Subjects for filter dropdown
     supabase
       .from("subjects")
-      .select("id, name, color")
+      .select("id, name, color, exam_type")
       .eq("user_id", user.id)
       .is("deleted_at", null)
       .order("name"),

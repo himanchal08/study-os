@@ -127,7 +127,7 @@ export default async function AnalyticsPage() {
   const totalPhonePickups = phoneEventsRaw?.length ?? 0;
 
   
-  const subjectMap = new Map<string, { name: string; color: string; seconds: number }>();
+  const subjectMap = new Map<string, { name: string; color: string | null; seconds: number }>();
   sessions.forEach((s) => {
     if (!s.end_timestamp || !s.subject_id) return;
     const secs = Math.max(0,
