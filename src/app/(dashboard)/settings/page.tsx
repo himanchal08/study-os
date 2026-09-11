@@ -56,26 +56,6 @@ export default async function SettingsPage(props: { searchParams: Promise<{ [key
           isConnected={!!profile?.google_refresh_token}
           lastSyncedAt={profile?.google_last_synced_at ?? null}
         />
-
-        <div className="rounded-xl p-5 space-y-5" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-          <h2 className="text-sm font-semibold text-neutral-200">Dashboard Tour</h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-neutral-300">Restart Site Tutorial</p>
-              <p className="text-xs text-neutral-500 mt-1">Run the guided onboarding tour again.</p>
-            </div>
-            <form action={async () => {
-              "use server";
-              const supabaseClient = await createClient();
-              await supabaseClient.from("profiles").update({ tutorial_completed: false }).eq("user_id", user.id);
-              redirect("/");
-            }}>
-              <button type="submit" className="px-4 py-2 rounded-lg border text-xs font-medium hover:bg-white hover:text-black transition-colors" style={{ borderColor: "#262626", color: "#a1a1aa" }}>
-                Restart Tour
-              </button>
-            </form>
-          </div>
-        </div>
       </div>
     </div>
   );
