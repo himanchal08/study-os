@@ -12,17 +12,22 @@ export default async function SyllabusPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: subjects }, { data: topics }, { data: chapters }] = await Promise.all([
+  const [{ data: subjects }, { data: topics }, { data: chapters }, { data: lifecycles }] = await Promise.all([
     supabase.from("subjects").select("id, name, color, exam_type").eq("user_id", user.id).is("deleted_at", null).order("name"),
     supabase.from("topics").select("id, name, status, subject_id, chapter_id").eq("user_id", user.id).is("deleted_at", null).is("archived_at", null).order("name"),
     supabase.from("chapters").select("id, name, subject_id, sort_order").eq("user_id", user.id).is("deleted_at", null).order("sort_order"),
+    supabase.from("topic_lifecycle").select("topic_id, book_practice_done, dpp_done, pyq_done, tests_attempted_count").eq("user_id", user.id),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const subjectWithTopics = ((subjects as any[]) ?? []).map(s => ({
     ...s,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    topics:   ((topics   as any[]) ?? []).filter(t  => t.subject_id  === s.id),
+    topics:   ((topics   as any[]) ?? []).filter(t  => t.subject_id  === s.id).map(t => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lc = ((lifecycles as any[]) ?? []).find(l => l.topic_id === t.id);
+      return { ...t, lifecycle: lc || null };
+    }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chapters: ((chapters as any[]) ?? []).filter(ch => ch.subject_id === s.id),
   }));

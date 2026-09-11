@@ -1,11 +1,23 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { SubjectCard } from "./SubjectCard";
 
 type ExamTab = "all" | "banking" | "ssc";
 
-interface Topic { id: string; name: string; status: string; subject_id: string; chapter_id: string | null; }
+interface Topic { 
+  id: string; 
+  name: string; 
+  status: string; 
+  subject_id: string; 
+  chapter_id: string | null; 
+  lifecycle: { 
+    book_practice_done: boolean; 
+    dpp_done: boolean; 
+    pyq_done: boolean; 
+    tests_attempted_count: number; 
+  } | null;
+}
 interface Chapter { id: string; name: string; subject_id: string; sort_order: number | null; }
 interface Subject { id: string; name: string; color: string | null; exam_type: string | null; topics: Topic[]; chapters: Chapter[]; }
 

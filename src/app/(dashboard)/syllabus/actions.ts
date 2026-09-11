@@ -96,3 +96,42 @@ export async function archiveTopic(topicId: string) {
     .eq("user_id", user.id);
   revalidatePath("/syllabus");
 }
+
+export async function updateTopicLifecycle(
+  topicId: string,
+  updates: {
+    book_practice_done?: boolean;
+    dpp_done?: boolean;
+    pyq_done?: boolean;
+    tests_attempted_count?: number;
+  }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: existing } = await supabase
+    .from("topic_lifecycle")
+    .select("id")
+    .eq("topic_id", topicId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (existing) {
+    await supabase
+      .from("topic_lifecycle")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("topic_id", topicId)
+      .eq("user_id", user.id);
+  } else {
+    await supabase
+      .from("topic_lifecycle")
+      .insert({
+        user_id: user.id,
+        topic_id: topicId,
+        ...updates,
+      });
+  }
+
+  revalidatePath("/syllabus");
+}
