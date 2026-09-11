@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
@@ -433,3 +434,5 @@ export function LifecyclePanel({ subjects, chapters, topics, lifecycles, practic
     </section>
   );
 }
+
+

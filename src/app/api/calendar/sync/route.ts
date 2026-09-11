@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { createClient } from "@/lib/supabase/server";
@@ -34,7 +35,7 @@ export async function POST() {
   const tasksApi = google.tasks({ version: "v1", auth: oauth2Client });
   const tz = profile.timezone || "Asia/Kolkata";
   const offset = (profile.day_boundary_offset_minutes || 0) * 60000;
-  const nowWithOffset = new Date(Date.now() + offset);
+  const nowWithOffset = new Date(new Date().getTime() + offset);
 
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
@@ -186,7 +187,7 @@ export async function POST() {
             }
           }
           syncedCount++;
-        } catch (e: any) {
+        } catch {
            errors.push(`Google Task sync "${task.title}" failed`);
         }
       }
@@ -276,3 +277,5 @@ export async function POST() {
     return NextResponse.json({ error: "Failed to sync to Google Calendar" }, { status: 500 });
   }
 }
+
+

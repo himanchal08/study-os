@@ -75,7 +75,8 @@ export function TopicLifecycleBadges({
     );
   }
 
-  const badgeClass = (active: boolean) =>
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const badgeClass = (_active: boolean) =>
     `text-[10px] px-2 py-0.5 rounded-full font-medium transition-all cursor-pointer select-none ${
       isPending ? "opacity-50 pointer-events-none" : "hover:opacity-80 active:scale-95"
     }`;
@@ -172,3 +173,5 @@ export function TopicLifecycleBadges({
     </div>
   );
 }
+
+

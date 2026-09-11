@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { TaskCard, type TaskItem } from "./TaskCard";
-import { taskCompletionRate, postponementRate } from "@/lib/calculations";
+import { taskCompletionRate } from "@/lib/calculations";
 
 interface SubjectOption {
   id: string;
@@ -17,7 +17,7 @@ interface TaskListProps {
   subjects: SubjectOption[];
 }
 
-type FilterTab = "today" | "upcoming" | "completed" | "postponed" | "all";
+type FilterTab = "today" | "upcoming" | "completed" | "all";
 
 export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("today");
@@ -28,34 +28,25 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
     () => tasks.filter((t) => t.planned_date === todayDate && t.status !== "completed"),
     [tasks, todayDate]
   );
-
   const completedTasks = useMemo(
     () => tasks.filter((t) => t.status === "completed"),
     [tasks]
   );
-
   const upcomingTasks = useMemo(
     () => tasks.filter((t) => t.planned_date > todayDate && t.status !== "completed"),
     [tasks, todayDate]
   );
 
-  const postponedTasks = useMemo(
-    () => tasks.filter((t) => t.postpone_count > 0 || (t.planned_date < todayDate && t.status !== "completed")),
-    [tasks, todayDate]
-  );
-
   const filteredTasks = useMemo(() => {
     let list: TaskItem[];
-    if (activeTab === "today") list = todayTasks;
-    else if (activeTab === "upcoming") list = upcomingTasks;
+    if (activeTab === "today")     list = todayTasks;
+    else if (activeTab === "upcoming")  list = upcomingTasks;
     else if (activeTab === "completed") list = completedTasks;
-    else if (activeTab === "postponed") list = postponedTasks;
     else list = tasks;
 
     if (selectedSubject !== "all") {
       list = list.filter((t) => t.subjects?.id === selectedSubject);
     }
-
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
@@ -65,154 +56,119 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
           t.topics?.name.toLowerCase().includes(q)
       );
     }
-
     return list;
-  }, [activeTab, selectedSubject, searchQuery, todayTasks, upcomingTasks, completedTasks, postponedTasks, tasks]);
+  }, [activeTab, selectedSubject, searchQuery, todayTasks, upcomingTasks, completedTasks, tasks]);
 
-  const totalPlannedToday = tasks.filter((t) => t.planned_date === todayDate).length;
-  const totalCompletedToday = tasks.filter(
-    (t) => t.planned_date === todayDate && t.status === "completed"
-  ).length;
+  const totalPlannedToday   = tasks.filter((t) => t.planned_date === todayDate).length;
+  const totalCompletedToday = tasks.filter((t) => t.planned_date === todayDate && t.status === "completed").length;
   const completionRate = taskCompletionRate(totalCompletedToday, totalPlannedToday);
 
-  const totalPostponedToday = tasks.filter(
-    (t) => t.planned_date === todayDate && t.status === "postponed"
-  ).length;
-  const postRate = postponementRate(totalPostponedToday, totalPlannedToday);
-
+  const tabs = [
+    { key: "today",     label: "Today",     count: todayTasks.length },
+    { key: "upcoming",  label: "Upcoming",  count: upcomingTasks.length },
+    { key: "completed", label: "Done",      count: completedTasks.length },
+    { key: "all",       label: "All",       count: tasks.length },
+  ] as const;
 
   return (
-    <div className="space-y-5">
-      
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="glass rounded-2xl p-3.5">
-          <p className="text-[11px] font-medium" style={{ color: "rgba(226,226,240,0.45)" }}>
-            Today&apos;s Tasks
-          </p>
-          <p className="text-xl font-bold mt-1 tabular-nums" style={{ color: "var(--foreground)" }}>
-            {totalCompletedToday} / {totalPlannedToday}
-          </p>
-          <p className="text-[11px] mt-0.5" style={{ color: "rgba(226,226,240,0.35)" }}>
-            {totalPlannedToday - totalCompletedToday} remaining
-          </p>
-        </div>
+    <div className="space-y-4 overflow-x-hidden">
 
-        <div className="glass rounded-2xl p-3.5">
-          <p className="text-[11px] font-medium" style={{ color: "rgba(226,226,240,0.45)" }}>
-            Completion Rate
+      {/* ── Stats strip ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-xl p-3" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+          <p className="text-[9px] uppercase tracking-wider text-neutral-600 mb-1">Today</p>
+          <p className="text-lg font-bold tabular-nums text-neutral-100">
+            {totalCompletedToday}<span className="text-neutral-600 text-sm font-normal"> / {totalPlannedToday}</span>
           </p>
-          <p className="text-xl font-bold mt-1 tabular-nums" style={{ color: "#22c55e" }}>
+          <p className="text-[9px] text-neutral-600 mt-0.5">done</p>
+        </div>
+        <div className="rounded-xl p-3" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+          <p className="text-[9px] uppercase tracking-wider text-neutral-600 mb-1">Rate</p>
+          <p className="text-lg font-bold tabular-nums" style={{ color: "#22c55e" }}>
             {completionRate !== null ? `${Math.round(completionRate)}%` : "—"}
           </p>
-          <p className="text-[11px] mt-0.5" style={{ color: "rgba(226,226,240,0.35)" }}>
-            Planned vs Done
-          </p>
+          <p className="text-[9px] text-neutral-600 mt-0.5">completed</p>
         </div>
-
-
-
-        <div className="glass rounded-2xl p-3.5">
-          <p className="text-[11px] font-medium" style={{ color: "rgba(226,226,240,0.45)" }}>
-            Postponed
+        <div className="rounded-xl p-3" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+          <p className="text-[9px] uppercase tracking-wider text-neutral-600 mb-1">Upcoming</p>
+          <p className="text-lg font-bold tabular-nums" style={{ color: "#818cf8" }}>
+            {upcomingTasks.length}
           </p>
-          <p className="text-xl font-bold mt-1 tabular-nums" style={{ color: "#f59e0b" }}>
-            {postponedTasks.length}
-          </p>
-          <p className="text-[11px] mt-0.5" style={{ color: "rgba(226,226,240,0.35)" }}>
-            {postRate !== null ? `${Math.round(postRate)}% rate` : "0% rate"}
-          </p>
+          <p className="text-[9px] text-neutral-600 mt-0.5">scheduled</p>
         </div>
       </div>
 
-      
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-3" style={{ borderColor: "var(--border-subtle)" }}>
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          {(
-            [
-              { key: "today", label: "Today", count: todayTasks.length },
-              { key: "upcoming", label: "Upcoming", count: upcomingTasks.length },
-              { key: "completed", label: "Completed", count: completedTasks.length },
-              { key: "postponed", label: "Backlog / Postponed", count: postponedTasks.length },
-              { key: "all", label: "All", count: tasks.length },
-            ] as const
-          ).map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setActiveTab(tab.key)}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5"
+      {/* ── Tab bar — horizontal scroll ───────────────────────────── */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className="px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5"
+              style={{
+                background: isActive ? "rgba(99,102,241,0.18)" : "rgba(255,255,255,0.03)",
+                color:      isActive ? "#818cf8" : "rgba(226,226,240,0.45)",
+                border:     isActive ? "1px solid rgba(99,102,241,0.3)" : "1px solid transparent",
+              }}
+            >
+              {tab.label}
+              <span
+                className="px-1.5 rounded-full text-[10px]"
                 style={{
-                  background: isActive ? "rgba(99,102,241,0.18)" : "rgba(255,255,255,0.03)",
-                  color: isActive ? "#818cf8" : "rgba(226,226,240,0.55)",
-                  border: isActive ? "1px solid rgba(99,102,241,0.3)" : "1px solid transparent",
+                  background: isActive ? "rgba(99,102,241,0.3)" : "rgba(255,255,255,0.06)",
+                  color: isActive ? "#fff" : "rgba(226,226,240,0.3)",
                 }}
               >
-                {tab.label}
-                <span
-                  className="px-1.5 py-0.2 rounded-full text-[10px]"
-                  style={{
-                    background: isActive ? "rgba(99,102,241,0.3)" : "rgba(255,255,255,0.06)",
-                    color: isActive ? "#fff" : "rgba(226,226,240,0.4)",
-                  }}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <select
-            value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            className="px-2.5 py-1.5 rounded-xl text-xs"
-            style={{
-              background: "rgba(30,30,40,0.9)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
-          >
-            <option value="all">All Subjects</option>
-            {subjects.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+      {/* ── Filters row ───────────────────────────────────────────── */}
+      <div className="flex gap-2 overflow-hidden">
+        <select
+          value={selectedSubject}
+          onChange={(e) => setSelectedSubject(e.target.value)}
+          className="flex-1 min-w-0 px-3 py-2.5 rounded-xl text-xs outline-none appearance-none truncate"
+          style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: selectedSubject !== "all" ? "#ededed" : "#555" }}
+        >
+          <option value="all">All Subjects</option>
+          {subjects.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
 
+        <div className="relative flex-1 min-w-0">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
           <input
             type="text"
-            placeholder="Search tasks..."
+            placeholder="Search…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-2.5 py-1.5 rounded-xl text-xs w-36 sm:w-44"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
+            className="w-full pl-8 pr-3 py-2.5 rounded-xl text-xs outline-none"
+            style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: "#ededed" }}
           />
         </div>
       </div>
 
-      
+      {/* ── Task list ─────────────────────────────────────────────── */}
       {filteredTasks.length === 0 ? (
-        <div className="glass rounded-2xl p-10 text-center flex flex-col items-center justify-center">
-          <div className="text-3xl mb-2">📋</div>
-          <p className="text-sm font-medium" style={{ color: "rgba(226,226,240,0.6)" }}>
-            No tasks found in this view
-          </p>
-          <p className="text-xs mt-1" style={{ color: "rgba(226,226,240,0.35)" }}>
-            {activeTab === "today"
-              ? "Plan your day by adding tasks on the right!"
-              : "Try switching to another tab or creating a new task."}
+        <div className="rounded-xl p-10 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+          <p className="text-2xl mb-2">📋</p>
+          <p className="text-sm text-neutral-500">No tasks here</p>
+          <p className="text-xs text-neutral-700 mt-1">
+            {activeTab === "today" ? "Tap + to plan your day" : "Try a different filter"}
           </p>
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {filteredTasks.map((task) => (
             <TaskCard key={task.id} task={task} userId={userId} />
           ))}

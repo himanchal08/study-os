@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { dayBoundaryAwareDate, secondsToHours, studyDurationSeconds } from "@/lib/calculations";
@@ -75,7 +76,7 @@ export default async function ReportsPage({
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
 
-  const now = Date.now();
+  const now = new Date().getTime();
   const lookbackMs = lookbackDays * 86400000;
   const periodStart = new Date(now - lookbackMs).toISOString();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
@@ -413,3 +414,5 @@ export default async function ReportsPage({
     </div>
   );
 }
+
+

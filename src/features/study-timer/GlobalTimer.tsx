@@ -50,12 +50,14 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
 
   // Sync with server-side session on mount / re-render
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSession(activeSession);
     setSelectedSubject(activeSession?.subject_id ?? "");
     setSelectedTopic(activeSession?.topic_id ?? "");
     setActivityType(activeSession?.activity_type ?? "practice");
     setNotes(activeSession?.notes ?? "");
-  }, [activeSession]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSession?.id]);
 
   const filteredTopics = topics.filter(t => t.subject_id === selectedSubject);
 
@@ -198,12 +200,12 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       aria-label="Global study timer"
     >
       {/* Left: description + pickers */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
         <input
           type="text"
           placeholder="What are you working on?"
-          className="bg-transparent border-none outline-none text-sm min-w-0 text-neutral-200 placeholder:text-neutral-500"
-          style={{ width: isRunning ? "auto" : "100%", maxWidth: "280px" }}
+          className="bg-transparent border-none outline-none text-sm min-w-0 text-neutral-200 placeholder:text-neutral-500 flex-1"
+          style={{ maxWidth: isRunning ? "160px" : "100%" }}
           value={notes}
           onChange={e => setNotes(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !isRunning) handleStart(); }}

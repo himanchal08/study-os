@@ -91,10 +91,10 @@ export default async function DashboardLayout({
         />
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto p-4 md:p-6"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6"
           tabIndex={-1}
         >
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full max-w-screen-2xl mx-auto">
             {children}
           </div>
         </main>

@@ -127,7 +127,7 @@ function SessionRow({
   }
 
   return (
-    <div className="px-4 py-3 flex items-center justify-between hover:bg-white/[0.02] transition-colors group">
+    <div className="px-4 py-3 flex items-center justify-between hover:bg-white/2 transition-colors group">
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: color }} />
         <div className="min-w-0 flex-1">

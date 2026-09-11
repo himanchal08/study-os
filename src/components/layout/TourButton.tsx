@@ -1,11 +1,15 @@
 "use client";
 
+declare global {
+  interface Window { startProductTour?: () => void; }
+}
+
 export function TourButton() {
   return (
     <button
       onClick={() => {
-        if (typeof window !== "undefined" && (window as any).startProductTour) {
-          (window as any).startProductTour();
+        if (typeof window !== "undefined" && window.startProductTour) {
+          window.startProductTour();
         } else {
           alert("Tour is loading... please try again in a moment.");
         }

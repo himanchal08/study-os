@@ -293,3 +293,19 @@ body {
 .heat-missing {
   fill: var(--color-heat-0);
 }
+
+/* ── Mobile utilities ─────────────────────────────────────── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Larger tap targets on touch devices */
+@media (pointer: coarse) {
+  select, input[type="date"], input[type="number"] {
+    min-height: 44px;
+  }
+}

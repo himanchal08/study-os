@@ -77,7 +77,7 @@ export async function stopSession(params: {
   const supabase = await createClient();
   const { sessionId, userId, pauseDurationSeconds = 0, notes } = params;
 
-  const updateData: any = {
+  const updateData: { end_timestamp: string; pause_duration_seconds: number; notes?: string } = {
     end_timestamp: new Date().toISOString(),
     pause_duration_seconds: pauseDurationSeconds,
   };
@@ -151,7 +151,7 @@ export async function stopSession(params: {
     if (nextStatus) {
       await supabase
         .from("topics")
-        .update({ status: nextStatus as any })
+        .update({ status: nextStatus as Database["public"]["Enums"]["topic_status_enum"] })
         .eq("id", data.topic_id);
     }
 

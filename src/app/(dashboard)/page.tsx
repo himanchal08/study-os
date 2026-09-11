@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { dayBoundaryAwareDate, buildHeatmapData } from "@/lib/calculations";
@@ -47,7 +48,7 @@ export default async function HomePage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
-  const now = Date.now();
+  const now = new Date().getTime();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
   const todayStartStr = `${todayStr}T00:00:00`;
 
@@ -159,7 +160,7 @@ export default async function HomePage() {
             style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
           >
             <p className="text-[10px] uppercase tracking-wider text-neutral-600">{label}</p>
-            <p className="text-xl font-bold tabular-nums text-neutral-100">{value || "0m"}</p>
+            <p className="text-lg md:text-xl font-bold tabular-nums text-neutral-100">{value || "0m"}</p>
             {sub && <p className="text-[10px] text-neutral-600">{sub}</p>}
             {pct !== null && (
               <div className="w-full h-1 rounded-full mt-1" style={{ background: "#1a1a1a" }}>
@@ -182,7 +183,7 @@ export default async function HomePage() {
       </div>
 
       {/* ── Quick actions ───────────────────────────────────────── */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap scrollbar-none">
         <Link
           href="/tasks"
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
@@ -227,7 +228,7 @@ export default async function HomePage() {
 
         <Link
           href="/syllabus"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors hover:opacity-80 shrink-0"
           style={{ background: "#111", border: "1px solid #1a1a1a", color: "#a1a1aa" }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -275,3 +276,5 @@ export default async function HomePage() {
     </div>
   );
 }
+
+

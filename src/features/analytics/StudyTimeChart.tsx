@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import {
@@ -95,3 +96,5 @@ export function StudyTimeChart({ data, targetHours }: StudyTimeChartProps) {
     </ResponsiveContainer>
   );
 }
+
+

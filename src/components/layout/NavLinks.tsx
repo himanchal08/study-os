@@ -66,6 +66,16 @@ const navItems = [
     ),
   },
   {
+    href: "/history",
+    label: "History",
+    accent: "#94a3b8",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+    ),
+  },
+  {
     href: "/analytics",
     label: "Analytics",
     accent: "#38bdf8",
