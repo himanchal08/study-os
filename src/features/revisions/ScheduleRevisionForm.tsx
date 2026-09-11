@@ -26,7 +26,7 @@ export function ScheduleRevisionForm({ topics, subjects, defaultDate }: Schedule
     <form action={action} className="space-y-4">
       <div>
         <label className={labelCls}>Topic</label>
-        <select name="topic_id" className={inputCls} style={inputStyle} required>
+        <select name="topic_id" className="select-premium" required>
           <option value="">— Select topic —</option>
           {topics.map(t => (
             <option key={t.id} value={t.id}>
@@ -38,7 +38,7 @@ export function ScheduleRevisionForm({ topics, subjects, defaultDate }: Schedule
 
       <div>
         <label className={labelCls}>Cycle</label>
-        <select name="cycle_type" className={inputCls} style={inputStyle} defaultValue="weekly">
+        <select name="cycle_type" className="select-premium" defaultValue="weekly">
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>

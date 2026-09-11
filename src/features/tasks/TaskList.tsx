@@ -134,8 +134,7 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
         <select
           value={selectedSubject}
           onChange={(e) => setSelectedSubject(e.target.value)}
-          className="flex-1 min-w-0 px-3 py-2.5 rounded-xl text-xs outline-none appearance-none truncate"
-          style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: selectedSubject !== "all" ? "#ededed" : "#555" }}
+          className="select-premium text-xs truncate flex-1 min-w-0"
         >
           <option value="all">All Subjects</option>
           {subjects.map((s) => (

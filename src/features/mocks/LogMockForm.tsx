@@ -44,7 +44,7 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
 
         <div>
           <label className={labelCls}>Exam Type</label>
-          <select name="exam_type" defaultValue={defaultExamType} className={inputCls + " appearance-none"} style={inputStyle}>
+          <select name="exam_type" defaultValue={defaultExamType} className="select-premium">
             <option value="banking">Banking</option>
             <option value="ssc">SSC</option>
             <option value="other">Other</option>
@@ -79,11 +79,11 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Score</label>
-          <input name="score" type="number" step="0.25" placeholder="0" className={inputCls} style={inputStyle} required />
+          <input name="score" type="number" step="0.25" placeholder="0" className="select-premium" required />
         </div>
         <div>
           <label className={labelCls}>Max Marks</label>
-          <input name="maximum_marks" type="number" defaultValue={100} className={inputCls} style={inputStyle} required />
+          <input name="maximum_marks" type="number" defaultValue={100} className="select-premium" required />
         </div>
       </div>
 
@@ -96,7 +96,7 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
         ].map(({ name, label }) => (
           <div key={name}>
             <label className={labelCls}>{label}</label>
-            <input name={name} type="number" min="0" placeholder="0" className={inputCls} style={inputStyle} required />
+            <input name={name} type="number" min="0" placeholder="0" className="select-premium" required />
           </div>
         ))}
       </div>
@@ -104,19 +104,19 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Actual Duration (min)</label>
-          <input name="actual_duration_minutes" type="number" placeholder="60" className={inputCls} style={inputStyle} required />
+          <input name="actual_duration_minutes" type="number" placeholder="60" className="select-premium" required />
         </div>
         <div>
           <label className={labelCls}>Recommended Duration (min)</label>
-          <input name="recommended_duration_minutes" type="number" placeholder="60 — enables ⚠️ flags" className={inputCls} style={inputStyle} />
+          <input name="recommended_duration_minutes" type="number" placeholder="60 — enables ⚠️ flags" className="select-premium" />
         </div>
         <div>
           <label className={labelCls}>Percentile</label>
-          <input name="percentile" type="number" step="0.01" min="0" max="100" placeholder="optional" className={inputCls} style={inputStyle} />
+          <input name="percentile" type="number" step="0.01" min="0" max="100" placeholder="optional" className="select-premium" />
         </div>
         <div>
           <label className={labelCls}>Rank</label>
-          <input name="rank" type="number" placeholder="optional" className={inputCls} style={inputStyle} />
+          <input name="rank" type="number" placeholder="optional" className="select-premium" />
         </div>
       </div>
 

@@ -43,7 +43,7 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
 
       {/* Topic — only if subject chosen */}
       {filteredTopics.length > 0 && (
-        <select name="topic_id" className={inp + " appearance-none"} style={inpS}>
+        <select name="topic_id" className="select-premium">
           <option value="">Topic (optional)</option>
           {filteredTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>

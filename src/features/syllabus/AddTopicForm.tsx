@@ -16,7 +16,7 @@ export function AddTopicForm({ subjects }: { subjects: Subject[] }) {
     <form action={action} className="space-y-3">
       <div>
         <label className={labelCls}>Subject</label>
-        <select name="subject_id" className={inputCls + " appearance-none"} style={inputStyle} required>
+        <select name="subject_id" className="select-premium" required>
           <option value="">— Select subject —</option>
           {subjects.map(s => (
             <option key={s.id} value={s.id}>{s.name}</option>

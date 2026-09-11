@@ -28,7 +28,7 @@ export function AddSubjectForm() {
 
       <div>
         <label className={labelCls}>Exam</label>
-        <select name="exam_type" className={inputCls + " appearance-none"} style={inputStyle} defaultValue="both">
+        <select name="exam_type" className="select-premium" defaultValue="both">
           <option value="banking">Banking</option>
           <option value="ssc">SSC</option>
           <option value="both">Both</option>

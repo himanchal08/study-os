@@ -79,15 +79,14 @@ export function VaultUploadForm({
         name="subject_id"
         value={selSubject}
         onChange={e => setSelSubject(e.target.value)}
-        className="w-full px-3 py-2.5 rounded-xl text-xs outline-none appearance-none"
-        style={inputStyle}
+        className="select-premium text-xs"
       >
         <option value="">Subject (optional)</option>
         {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
       </select>
 
       {selSubject && (
-        <select name="topic_id" className="w-full px-3 py-2.5 rounded-xl text-xs outline-none appearance-none" style={inputStyle}>
+        <select name="topic_id" className="select-premium text-xs">
           <option value="">Topic (optional)</option>
           {filteredTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
@@ -100,7 +99,7 @@ export function VaultUploadForm({
         style={inputStyle}
       />
 
-      <select name="error_category" className="w-full px-3 py-2.5 rounded-xl text-xs outline-none appearance-none" style={inputStyle}>
+      <select name="error_category" className="select-premium text-xs">
         <option value="">Error type (optional)</option>
         {ERROR_LABELS.map(({ value, label }) => (
           <option key={value} value={value}>{label}</option>

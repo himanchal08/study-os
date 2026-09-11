@@ -59,7 +59,7 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
           name="subject_id"
           value={selectedSubject}
           onChange={e => setSelectedSubject(e.target.value)}
-          className="input-premium appearance-none"
+          className="select-premium"
         >
           <option value="">Subject</option>
           {subjects.map(sub => (
@@ -70,7 +70,7 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
         <select
           id="task-topic"
           name="topic_id"
-          className="input-premium appearance-none"
+          className="select-premium"
         >
           <option value="">Topic</option>
           {filteredTopics.map(top => (
