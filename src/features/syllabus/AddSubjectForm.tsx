@@ -30,7 +30,7 @@ export function AddSubjectForm() {
         <label className={labelCls}>Exam</label>
         <select name="exam_type" className="select-premium" defaultValue="both">
           <option value="banking">Banking</option>
-          <option value="ssc">SSC</option>
+          <option value="ssc">SSC CGL</option>
           <option value="both">Both</option>
         </select>
       </div>

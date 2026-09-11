@@ -46,7 +46,7 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
           <label className={labelCls}>Exam Type</label>
           <select name="exam_type" defaultValue={defaultExamType} className="select-premium">
             <option value="banking">Banking</option>
-            <option value="ssc">SSC</option>
+            <option value="ssc">SSC CGL</option>
             <option value="other">Other</option>
           </select>
         </div>
