@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { SubjectCard } from "@/features/syllabus/SubjectCard";
 import { AddSubjectForm } from "@/features/syllabus/AddSubjectForm";
 import { AddTopicForm } from "@/features/syllabus/AddTopicForm";
+import { SyllabusTabs } from "@/features/syllabus/SyllabusTabs";
 
 export const metadata: Metadata = { title: "Syllabus Coverage" };
 
@@ -27,11 +27,6 @@ export default async function SyllabusPage() {
     chapters: ((chapters as any[]) ?? []).filter(ch => ch.subject_id === s.id),
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allTopics = (topics as any[]) ?? [];
-  const learnedCount = allTopics.filter(t => ["learned", "strong"].includes(t.status)).length;
-  const coverage = allTopics.length > 0 ? Math.round((learnedCount / allTopics.length) * 100) : 0;
-
   return (
     <div className="space-y-5 animate-fade-in pb-24">
       <div>
@@ -39,33 +34,10 @@ export default async function SyllabusPage() {
         <p className="text-xs mt-1 text-neutral-500">Track topic status — tap a badge to update it.</p>
       </div>
 
-      {/* Stats strip */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: "Subjects", value: (subjects ?? []).length },
-          { label: "Topics",   value: allTopics.length },
-          { label: "Coverage", value: `${coverage}%` },
-        ].map(({ label, value }) => (
-          <div key={label} className="rounded-xl p-3 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-            <p className="text-[9px] uppercase tracking-wider text-neutral-600 mb-1">{label}</p>
-            <p className="text-lg font-bold text-neutral-100 tabular-nums">{value}</p>
-          </div>
-        ))}
-      </div>
+      {/* Tabbed subject list with per-exam filtering */}
+      <SyllabusTabs subjects={subjectWithTopics} />
 
-      {/* Subject list — full width on all screens */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Subjects &amp; Topics</p>
-        {subjectWithTopics.length === 0 ? (
-          <div className="rounded-xl p-8 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-            <p className="text-neutral-600 text-sm">No subjects yet. Add your first subject below.</p>
-          </div>
-        ) : (
-          subjectWithTopics.map(s => <SubjectCard key={s.id} subject={s} />)
-        )}
-      </div>
-
-      {/* Add forms — always visible below the list */}
+      {/* Add forms — always below */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">Add Subject</p>

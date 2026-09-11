@@ -23,7 +23,7 @@ interface Subject {
   id: string;
   name: string;
   color: string | null;
-  exam_type: "banking" | "ssc" | "both";
+  exam_type: string | null;
   topics: Topic[];
   chapters: Chapter[];
 }
