@@ -70,6 +70,27 @@ export async function markRevisionDone(id: string, recallScore: number) {
   return { success: true };
 }
 
+export async function undoRevision(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("revisions")
+    .update({
+      completed_at: null,
+      recall_score: null,
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/revisions");
+  revalidatePath("/");
+  return { success: true };
+}
+
 export async function scheduleRevision(prevState: unknown, formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

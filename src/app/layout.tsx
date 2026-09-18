@@ -23,7 +23,8 @@ export const metadata: Metadata = {
     "mock test tracker",
   ],
   authors: [{ name: "Study OS" }],
-  robots: { index: false, follow: false }, 
+  robots: { index: false, follow: false },
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {

@@ -532,6 +532,33 @@ export function GlobalTimer({
     if (wasInPomodoro) startBreak();
 
   }, [pomodoroMode, pomodoroPhase, startBreak, handleStopInner]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      if (e.key === " " && !postLog) {
+        e.preventDefault(); 
+        if (isRunning) {
+          handleStop();
+        } else {
+          handleStart();
+        }
+      } else if (e.key === "Escape" && postLog) {
+        setPostLog(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isRunning, handleStart, handleStop, postLog]);
+
   const handlePracticeSubmit = useCallback(() => {
     if (!postLog) return;
     const attempted = Number(postAttempted);
@@ -750,7 +777,13 @@ export function GlobalTimer({
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
             {isRunning ? (
-              <span className="text-xs text-neutral-300">
+              <span className="text-xs text-neutral-300 flex items-center gap-1.5">
+                {subjects.find((s) => s.id === selectedSubject)?.color && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: subjects.find((s) => s.id === selectedSubject)?.color || undefined }}
+                  />
+                )}
                 {subjects.find((s) => s.id === selectedSubject)?.name ||
                   "No Subject"}
               </span>

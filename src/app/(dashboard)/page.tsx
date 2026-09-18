@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { dayBoundaryAwareDate, buildHeatmapData } from "@/lib/calculations";
+import { dayBoundaryAwareDate, buildHeatmapData, computeStreaks } from "@/lib/calculations";
 import { WeeklyTimesheet } from "@/features/study-timer/WeeklyTimesheet";
 import { HeatmapGrid } from "@/features/analytics/HeatmapGrid";
 import { TaskCard, type TaskItem } from "@/features/tasks/TaskCard";
@@ -41,7 +41,7 @@ export default async function HomePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("daily_target_hours, day_boundary_offset_minutes, timezone")
+    .select("daily_target_hours, daily_goal_minutes, day_boundary_offset_minutes, timezone")
     .eq("user_id", user.id)
     .single();
 
@@ -113,21 +113,31 @@ export default async function HomePage() {
   const todaySecs = calcTotalSecs(todaySessionsRaw ?? []);
   const weekSecs = calcTotalSecs(weekSessionsRaw ?? []);
   const monthSecs = calcTotalSecs(monthSessionsRaw ?? []);
-  const targetHours = profile?.daily_target_hours ?? 8;
-  const targetPct = Math.min(100, (todaySecs / 3600 / targetHours) * 100);
+  
+  const targetMinutes = profile?.daily_goal_minutes ?? (profile?.daily_target_hours ? profile.daily_target_hours * 60 : 480);
+  const targetPct = Math.min(100, (todaySecs / 60 / targetMinutes) * 100);
+  const targetLabel = `${Math.round(targetMinutes / 60)}h target`;
 
   const revisionsCount = revisionsDue?.length ?? 0;
   const todayTasks = (todayTasksRaw ?? []) as unknown as TaskItem[];
 
+  const heatSessions = (heatSessionsRaw ?? []) as unknown as Array<{
+    start_timestamp: string;
+    end_timestamp: string | null;
+    pause_duration_seconds: number;
+  }>;
+
+  const { current: currentStreak } = computeStreaks(heatSessions, offsetMin, timezone);
+
   const knownDates = new Set(
-    (heatSessionsRaw ?? []).map(s =>
+    heatSessions.map(s =>
       dayBoundaryAwareDate(new Date(s.start_timestamp).getTime(), offsetMin, timezone)
     )
   );
   const heatCells = buildHeatmapData({
     startDate: heatmapStart,
     endDate: todayStr,
-    sessions: heatSessionsRaw ?? [],
+    sessions: heatSessions,
     metric: "hours",
     dayBoundaryOffsetMin: offsetMin,
     timezone,
@@ -137,19 +147,27 @@ export default async function HomePage() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         {[
-          { label: "Today", value: formatHours(todaySecs), sub: `of ${targetHours}h target`, pct: targetPct },
+          { label: "Today", value: formatHours(todaySecs), sub: `of ${targetLabel}`, pct: targetPct },
           { label: "This Week", value: formatHours(weekSecs), sub: null, pct: null },
           { label: "This Month", value: formatHours(monthSecs), sub: null, pct: null },
-        ].map(({ label, value, sub, pct }) => (
+          { label: "Streak", value: `${currentStreak} day${currentStreak !== 1 ? 's' : ''}`, sub: null, pct: null, isStreak: true },
+        ].map(({ label, value, sub, pct, isStreak }) => (
           <div
             key={label}
-            className="rounded-xl p-4 flex flex-col gap-1"
+            className="rounded-xl p-4 flex flex-col gap-1 relative overflow-hidden"
             style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
           >
+            {isStreak && currentStreak > 0 && (
+              <div className="absolute -right-2 -top-2 text-5xl opacity-10 blur-sm pointer-events-none">🔥</div>
+            )}
             <p className="text-[10px] uppercase tracking-wider text-neutral-600">{label}</p>
-            <p className="text-lg md:text-xl font-bold tabular-nums text-neutral-100">{value || "0m"}</p>
+            <p className="text-lg md:text-xl font-bold tabular-nums text-neutral-100 flex items-center gap-2">
+              {value || "0m"}
+              {isStreak && currentStreak > 2 && <span className="text-orange-500 text-sm">🔥</span>}
+            </p>
+
             {sub && <p className="text-[10px] text-neutral-600">{sub}</p>}
             {pct !== null && (
               <div className="w-full h-1 rounded-full mt-1" style={{ background: "#1a1a1a" }}>

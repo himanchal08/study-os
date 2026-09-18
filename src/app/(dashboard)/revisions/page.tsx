@@ -120,19 +120,12 @@ export default async function RevisionsPage() {
         ))}
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-          Due — {due.length} remaining
-        </p>
-
-        {due.length === 0 ? (
-          <div className="rounded-xl p-10 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-            <p className="text-3xl mb-2">🎉</p>
-            <p className="text-sm font-medium text-neutral-300">All caught up!</p>
-            <p className="text-xs text-neutral-600 mt-1">No revisions due today.</p>
-          </div>
-        ) : (
-          due.map(r => {
+      {overdue.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-red-500 uppercase tracking-wider">
+            Overdue — {overdue.length}
+          </p>
+          {overdue.map(r => {
             const topic   = r.topics as { name: string; subjects: { name: string; color: string | null } | null } | null;
             const subject = topic?.subjects ?? null;
             return (
@@ -144,7 +137,39 @@ export default async function RevisionsPage() {
                 subjectColor={subject?.color ?? null}
                 cycleType={r.cycle_type}
                 dueDate={r.due_date}
-                isOverdue={r.due_date < todayStr}
+                isOverdue={true}
+                completedAt={r.completed_at}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+          Due Today — {due.length - overdue.length} remaining
+        </p>
+
+        {due.length === overdue.length ? (
+          <div className="rounded-xl p-10 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+            <p className="text-3xl mb-2">🎉</p>
+            <p className="text-sm font-medium text-neutral-300">All caught up for today!</p>
+            <p className="text-xs text-neutral-600 mt-1">No new revisions due today.</p>
+          </div>
+        ) : (
+          due.filter(r => !overdue.includes(r)).map(r => {
+            const topic   = r.topics as { name: string; subjects: { name: string; color: string | null } | null } | null;
+            const subject = topic?.subjects ?? null;
+            return (
+              <RevisionCard
+                key={r.id}
+                id={r.id}
+                topicName={topic?.name ?? "Unknown topic"}
+                subjectName={subject?.name ?? null}
+                subjectColor={subject?.color ?? null}
+                cycleType={r.cycle_type}
+                dueDate={r.due_date}
+                isOverdue={false}
                 completedAt={r.completed_at}
               />
             );

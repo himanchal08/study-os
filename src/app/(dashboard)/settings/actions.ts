@@ -32,6 +32,7 @@ export async function updateProfile(prevState: unknown, formData: FormData) {
         full_name: fullName,
         exam_targets: examTargets.length > 0 ? examTargets : null,
         daily_target_hours: targetHours,
+        daily_goal_minutes: targetHours * 60,
         day_boundary_offset_minutes: isNaN(offsetMin) ? 0 : offsetMin,
         timezone: timezone || "Asia/Kolkata",
         updated_at: new Date().toISOString(),

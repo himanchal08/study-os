@@ -1,2 +1,2 @@
 "use server";
-export { markRevisionDone as completeRevision } from "@/app/(dashboard)/revisions/actions";
+export { markRevisionDone as completeRevision, undoRevision } from "@/app/(dashboard)/revisions/actions";

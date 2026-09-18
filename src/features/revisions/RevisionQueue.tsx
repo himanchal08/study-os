@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { completeRevision } from "./actions";
+import { useEffect, useState, useTransition } from "react";
+import { completeRevision, undoRevision } from "./actions";
 
 interface RevisionQueueProps {
   revisions: Array<{
@@ -37,8 +37,46 @@ function RevisionItem({
 }) {
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
-  if (done) return null;
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (done) {
+      timeout = setTimeout(() => {
+        setHidden(true);
+      }, 4000);
+    }
+    return () => clearTimeout(timeout);
+  }, [done]);
+
+  if (hidden) return null;
+
+  if (done) {
+    return (
+      <li
+        className="p-3 rounded-xl flex items-center justify-between transition-all"
+        style={{
+          background: "rgba(255,255,255,0.02)",
+          border: "1px dashed var(--border-subtle)",
+          opacity: isPending ? 0.5 : 0.8,
+        }}
+      >
+        <span className="text-xs italic text-neutral-500">Marked as completed</span>
+        <button
+          onClick={() => {
+            startTransition(async () => {
+              await undoRevision(rev.id);
+              setDone(false);
+            });
+          }}
+          disabled={isPending}
+          className="text-xs font-medium px-3 py-1 rounded bg-neutral-800 hover:bg-neutral-700 transition-all text-neutral-300 disabled:opacity-50"
+        >
+          Undo ↩
+        </button>
+      </li>
+    );
+  }
 
   return (
     <li

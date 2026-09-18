@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { markRevisionDone, deleteRevision } from "@/app/(dashboard)/revisions/actions";
+import { markRevisionDone, deleteRevision, undoRevision } from "@/app/(dashboard)/revisions/actions";
 
 interface RevisionCardProps {
   id: string;
@@ -50,7 +50,6 @@ export function RevisionCard({
   const handleDelete = () => {
     if (!confirmDelete) {
       setConfirmDelete(true);
-      // auto-cancel confirmation after 3s
       setTimeout(() => setConfirmDelete(false), 3000);
       return;
     }
@@ -59,7 +58,12 @@ export function RevisionCard({
     });
   };
 
-  // ── Completed card ───────────────────────────────────────────────
+  const handleUndo = () => {
+    startTransition(async () => {
+      await undoRevision(id);
+    });
+  };
+
   if (completedAt) {
     return (
       <div
@@ -73,21 +77,31 @@ export function RevisionCard({
         </div>
         <span className="text-xs text-neutral-600 shrink-0">done</span>
 
-        {/* Delete on hover */}
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={handleDelete}
-          title="Delete this revision"
-          className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-neutral-600 hover:text-red-400 shrink-0 w-5 h-5 flex items-center justify-center rounded"
-        >
-          ✕
-        </button>
+        {/* Actions on hover */}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={handleUndo}
+            title="Undo completion"
+            className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 transition-all text-neutral-300 disabled:opacity-50"
+          >
+            Undo ↩
+          </button>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={handleDelete}
+            title="Delete this revision"
+            className="text-neutral-600 hover:text-red-400 w-6 h-6 flex items-center justify-center rounded bg-neutral-900"
+          >
+            ✕
+          </button>
+        </div>
       </div>
     );
   }
 
-  // ── Pending card ─────────────────────────────────────────────────
   return (
     <div
       className="group rounded-xl overflow-hidden"
@@ -103,7 +117,6 @@ export function RevisionCard({
           <div className="flex items-center gap-2 shrink-0 mt-0.5">
             <span className="text-[10px] text-neutral-600">{dueDate}</span>
 
-            {/* Delete button — shows on hover, turns red on confirm */}
             <button
               type="button"
               disabled={isPending}

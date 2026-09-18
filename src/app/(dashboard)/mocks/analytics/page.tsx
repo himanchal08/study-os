@@ -60,9 +60,14 @@ export default async function MockAnalyticsPage() {
     D: classifications.filter(c => c.classification?.case === "D"), 
   };
 
-  
-  const recentMocks = validMocks.slice(-20);
-  const maxScoreScale = Math.max(100, ...recentMocks.map(m => (m.score / m.maximum_marks) * 100));
+  const mocksByExamType = validMocks.reduce((acc, m) => {
+    const type = m.exam_type || "default";
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(m);
+    return acc;
+  }, {} as Record<string, typeof validMocks>);
+
+  const examTypes = Object.keys(mocksByExamType);
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
@@ -78,55 +83,64 @@ export default async function MockAnalyticsPage() {
         </div>
       </div>
 
-      {recentMocks.length === 0 ? (
+      {validMocks.length === 0 ? (
         <div className="rounded-xl p-8 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <p className="text-neutral-500 text-sm">Log some mock tests to see your performance matrix.</p>
         </div>
       ) : (
         <>
-          
-          <div className="rounded-xl p-6 relative" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-            <h2 className="text-sm font-semibold text-neutral-300 mb-6 uppercase tracking-wider">Score Trend (Last {recentMocks.length})</h2>
-            <div className="h-48 flex items-end gap-2 sm:gap-4 w-full px-2 relative">
-              
-              {safetyTargetPct !== null && (
-                <div 
-                  className="absolute w-full border-t border-dashed border-emerald-500/50 z-0 pointer-events-none"
-                  style={{ bottom: `${(safetyTargetPct / maxScoreScale) * 100}%` }}
-                >
-                  <span className="absolute -top-4 right-0 text-[10px] text-emerald-400 font-medium">
-                    Safety Target
-                  </span>
-                </div>
-              )}
-              {recentMocks.map((m, i) => {
-                const scorePct = (m.score / m.maximum_marks) * 100;
-                const accPct = m.attempted > 0 ? (m.correct / m.attempted) * 100 : 0;
-                const height = `${(scorePct / maxScoreScale) * 100}%`;
-                return (
-                  <div key={m.id} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {examTypes.map((examType) => {
+              const recent = mocksByExamType[examType].slice(-20);
+              const maxScoreScale = Math.max(100, ...recent.map(m => (m.score / m.maximum_marks) * 100));
+              const title = examType === "default" ? "Score Trend" : `${examType.toUpperCase()} Score Trend`;
+
+              return (
+                <div key={examType} className="rounded-xl p-6 relative" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+                  <h2 className="text-sm font-semibold text-neutral-300 mb-6 uppercase tracking-wider">{title} (Last {recent.length})</h2>
+                  <div className="h-48 flex items-end gap-2 sm:gap-4 w-full px-2 relative">
                     
-                    <div className="absolute -top-12 bg-neutral-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      {m.name}<br/>Score: {scorePct.toFixed(1)}% | Acc: {accPct.toFixed(1)}%
-                    </div>
-                    
-                    <div className="w-full relative rounded-t-sm transition-all" style={{ height, background: "#262626" }}>
-                      
-                      <div className="absolute bottom-0 w-full rounded-t-sm opacity-50" style={{ height: `${accPct}%`, background: "#38bdf8" }} />
-                    </div>
-                    
-                    <span className="text-[9px] text-neutral-600 mt-2 truncate w-full text-center">#{i + 1}</span>
+                    {safetyTargetPct !== null && (
+                      <div 
+                        className="absolute w-full border-t border-dashed border-emerald-500/50 z-0 pointer-events-none"
+                        style={{ bottom: `${(safetyTargetPct / maxScoreScale) * 100}%` }}
+                      >
+                        <span className="absolute -top-4 right-0 text-[10px] text-emerald-400 font-medium">
+                          Safety Target
+                        </span>
+                      </div>
+                    )}
+                    {recent.map((m, i) => {
+                      const scorePct = (m.score / m.maximum_marks) * 100;
+                      const accPct = m.attempted > 0 ? (m.correct / m.attempted) * 100 : 0;
+                      const height = `${(scorePct / maxScoreScale) * 100}%`;
+                      return (
+                        <div key={m.id} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+                          
+                          <div className="absolute -top-12 bg-neutral-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                            {m.name}<br/>Score: {scorePct.toFixed(1)}% | Acc: {accPct.toFixed(1)}%
+                          </div>
+                          
+                          <div className="w-full relative rounded-t-sm transition-all" style={{ height, background: "#262626" }}>
+                            
+                            <div className="absolute bottom-0 w-full rounded-t-sm opacity-50" style={{ height: `${accPct}%`, background: "#38bdf8" }} />
+                          </div>
+                          
+                          <span className="text-[9px] text-neutral-600 mt-2 truncate w-full text-center">#{i + 1}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center gap-4 mt-6 pt-4 border-t" style={{ borderColor: "#1a1a1a" }}>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-[#262626]" /><span className="text-xs text-neutral-500">Score %</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded opacity-50 bg-accent-sky" /><span className="text-xs text-neutral-500">Accuracy %</span></div>
-              {safetyTargetPct !== null && (
-                <div className="flex items-center gap-1.5"><div className="w-3 border-t-2 border-dashed border-emerald-500/50" /><span className="text-xs text-neutral-500">Safety Target</span></div>
-              )}
-            </div>
+                  <div className="flex items-center gap-4 mt-6 pt-4 border-t" style={{ borderColor: "#1a1a1a" }}>
+                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-[#262626]" /><span className="text-xs text-neutral-500">Score %</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded opacity-50 bg-accent-sky" /><span className="text-xs text-neutral-500">Accuracy %</span></div>
+                    {safetyTargetPct !== null && (
+                      <div className="flex items-center gap-1.5"><div className="w-3 border-t-2 border-dashed border-emerald-500/50" /><span className="text-xs text-neutral-500">Target</span></div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           

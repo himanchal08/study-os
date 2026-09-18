@@ -11,6 +11,7 @@ import {
 import type { Tables } from "@/types/database";
 import { StudyTimeChart } from "@/features/analytics/StudyTimeChart";
 import { SubjectAllocationChart } from "@/features/analytics/SubjectAllocationChart";
+import { TopicAllocationChart } from "@/features/analytics/TopicAllocationChart";
 import { TimeOfDayChart } from "@/features/analytics/TimeOfDayChart";
 import { TaskPlanningAnalytics } from "@/features/analytics/TaskPlanningAnalytics";
 
@@ -46,13 +47,14 @@ export default async function AnalyticsPage() {
   const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 
-  type SessionRow = Pick<Tables<"study_sessions">, "start_timestamp" | "end_timestamp" | "pause_duration_seconds" | "subject_id"> & {
+  type SessionRow = Pick<Tables<"study_sessions">, "start_timestamp" | "end_timestamp" | "pause_duration_seconds" | "subject_id" | "topic_id"> & {
     subjects: { id: string; name: string; color: string } | null;
+    topics: { id: string; name: string } | null;
   };
 
   const { data: rawSessions } = await supabase
     .from("study_sessions")
-    .select("start_timestamp, end_timestamp, pause_duration_seconds, subject_id, subjects(id, name, color)")
+    .select("start_timestamp, end_timestamp, pause_duration_seconds, subject_id, topic_id, subjects(id, name, color), topics(id, name)")
     .eq("user_id", user.id)
     .gte("start_timestamp", thirtyDaysAgo)
     .not("end_timestamp", "is", null)
@@ -132,11 +134,13 @@ export default async function AnalyticsPage() {
 
   const totalPhonePickups = phoneEventsRaw?.length ?? 0;
 
-  
-  const subjectMap = new Map<string, { name: string; color: string | null; seconds: number }>();
+  const subjectMap = new Map<string, { name: string; color: string; seconds: number }>();
+  const topicMap = new Map<string, { name: string; subjectName: string | null; color: string | null; seconds: number }>();
+
   sessions.forEach((s) => {
     if (!s.end_timestamp || !s.subject_id) return;
-    const secs = Math.max(0,
+    const secs = Math.max(
+      0,
       (new Date(s.end_timestamp).getTime() - new Date(s.start_timestamp).getTime()) / 1000
       - (s.pause_duration_seconds ?? 0)
     );
@@ -145,11 +149,30 @@ export default async function AnalyticsPage() {
       subjectMap.set(s.subject_id, { name: sub?.name ?? "Unknown", color: sub?.color ?? "#ededed", seconds: 0 });
     }
     subjectMap.get(s.subject_id)!.seconds += secs;
+
+    if (s.topic_id) {
+      const top = s.topics as { id: string; name: string } | null;
+      if (!topicMap.has(s.topic_id)) {
+        topicMap.set(s.topic_id, { 
+          name: top?.name ?? "Unknown Topic", 
+          subjectName: sub?.name ?? null,
+          color: sub?.color ?? null, 
+          seconds: 0 
+        });
+      }
+      topicMap.get(s.topic_id)!.seconds += secs;
+    }
   });
+
   const subjectSlices = Array.from(subjectMap.values())
     .map((v) => ({ name: v.name, hours: secondsToHours(v.seconds), color: v.color }))
     .sort((a, b) => b.hours - a.hours)
     .slice(0, 8);
+
+  const topicSlices = Array.from(topicMap.values())
+    .map((v) => ({ name: v.name, subjectName: v.subjectName, hours: secondsToHours(v.seconds), color: v.color }))
+    .sort((a, b) => b.hours - a.hours)
+    .slice(0, 10);
 
   
   const todMap = new Map<string, number>();
@@ -235,14 +258,21 @@ export default async function AnalyticsPage() {
           <StudyTimeChart data={last7} targetHours={target} />
         </div>
 
-        <div className="glass rounded-2xl p-5">
-          <h2 className="text-sm font-semibold mb-1" style={{ color: "rgba(232,232,240,0.85)" }}>Subject Allocation</h2>
-          <p className="text-xs mb-4" style={{ color: "rgba(232,232,240,0.35)" }}>30 days</p>
-          <SubjectAllocationChart data={subjectSlices} />
+        <div className="flex flex-col gap-6">
+          <div className="glass rounded-2xl p-5">
+            <h2 className="text-sm font-semibold mb-1" style={{ color: "rgba(232,232,240,0.85)" }}>Subject Allocation</h2>
+            <p className="text-xs mb-4" style={{ color: "rgba(232,232,240,0.35)" }}>30 days</p>
+            <SubjectAllocationChart data={subjectSlices} />
+          </div>
+
+          <div className="glass rounded-2xl p-5">
+            <h2 className="text-sm font-semibold mb-1" style={{ color: "rgba(232,232,240,0.85)" }}>Top Topics</h2>
+            <p className="text-xs mb-4" style={{ color: "rgba(232,232,240,0.35)" }}>Most time spent — 30 days</p>
+            <TopicAllocationChart data={topicSlices} />
+          </div>
         </div>
       </div>
 
-      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="glass rounded-2xl p-5">
           <h2 className="text-sm font-semibold mb-1" style={{ color: "rgba(232,232,240,0.85)" }}>Time-of-Day Study Breakdown</h2>
