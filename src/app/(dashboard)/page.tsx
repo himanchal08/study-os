@@ -273,9 +273,7 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="overflow-x-auto pb-4 scrollbar-none -mx-5 px-5 md:mx-0 md:px-0">
-            <div className="min-w-[800px]">
-              <HeatmapGrid cells={heatCells} metric="hours" weeks={52} />
-            </div>
+            <HeatmapGrid cells={heatCells} metric="hours" weeks={52} />
           </div>
         </div>
       </section>
