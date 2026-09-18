@@ -31,7 +31,9 @@ export default async function RevisionsPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
-  const todayStr  = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now();
+  const todayStr = dayBoundaryAwareDate(nowMs, offsetMin, timezone);
 
   // Split into two targeted queries so the 100-row limit can't be consumed by
   // old completed revisions, silently dropping today's due items.
@@ -53,13 +55,14 @@ export default async function RevisionsPage() {
       .gte("completed_at", new Date(
         new Date(todayStr + "T00:00:00.000Z").getTime() - offsetMin * 60 * 1000
       ).toISOString())
-      .order("completed_at", { ascending: false }),
+      .order("completed_at", { ascending: false })
+      .limit(500),
     supabase
       .from("revisions")
       .select("id, topic_id, due_date, completed_at, cycle_type, recall_score, topics(name, subjects(name, color))")
       .eq("user_id", user.id)
       .not("completed_at", "is", null)
-      .gte("completed_at", new Date(Date.now() - 30 * 86400000).toISOString())
+      .gte("completed_at", new Date(nowMs - 30 * 86400000).toISOString())
       .order("completed_at", { ascending: false })
       .limit(500),
   ]);

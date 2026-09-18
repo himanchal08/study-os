@@ -14,7 +14,8 @@ export async function TaskPlanningAnalytics() {
     .select("status, planned_date, updated_at")
     .eq("user_id", user.id)
     .is("deleted_at", null)
-    .not("planned_date", "is", null);
+    .not("planned_date", "is", null)
+    .gte("planned_date", fourteenDaysAgo.toISOString().split("T")[0]);
 
   const validTasks = tasks ?? [];
 

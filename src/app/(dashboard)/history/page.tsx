@@ -28,15 +28,24 @@ export default async function HistoryPage() {
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
 
-  const [{ data: rawSessions }, { data: rawSubjects }] = await Promise.all([
-    // All completed sessions (no limit — it's their full history)
+  const [{ data: rawStatsSessions }, { data: rawDisplaySessions }, { data: rawSubjects }] = await Promise.all([
+    // Lightweight query for all-time stats (no joins, tiny payload)
+    supabase
+      .from("study_sessions")
+      .select("start_timestamp, end_timestamp, pause_duration_seconds")
+      .eq("user_id", user.id)
+      .not("end_timestamp", "is", null)
+      .is("deleted_at", null)
+      .order("start_timestamp", { ascending: false }),
+    // Full detail query for UI list (bounded to prevent OOM)
     supabase
       .from("study_sessions")
       .select("id, start_timestamp, end_timestamp, pause_duration_seconds, activity_type, notes, subjects(name, color), topics(name)")
       .eq("user_id", user.id)
       .not("end_timestamp", "is", null)
       .is("deleted_at", null)
-      .order("start_timestamp", { ascending: false }),
+      .order("start_timestamp", { ascending: false })
+      .limit(300),
     // Subjects for filter dropdown
     supabase
       .from("subjects")
@@ -46,19 +55,21 @@ export default async function HistoryPage() {
       .order("name"),
   ]);
 
-  const sessions = (rawSessions ?? []) as unknown as HistorySession[];
+  const statsSessions = (rawStatsSessions ?? []) as unknown as { start_timestamp: string; end_timestamp: string; pause_duration_seconds: number }[];
+  const displaySessions = (rawDisplaySessions ?? []) as unknown as HistorySession[];
   const subjects = rawSubjects ?? [];
 
   // ── Compute all-time stats ──────────────────────────────────────────────
 
   // Total all-time seconds
-  const totalAllTimeSecs = sessions.reduce((acc, s) => acc + sessionSecs(s), 0);
+  const totalAllTimeSecs = statsSessions.reduce((acc, s) => acc + sessionSecs(s), 0);
 
   // Group by boundary-aware date for streak + best day
   const dailySecsMap = new Map<string, number>();
-  sessions.forEach(s => {
+  statsSessions.forEach(s => {
     const dateKey = dayBoundaryAwareDate(new Date(s.start_timestamp).getTime(), offsetMin, timezone);
-    dailySecsMap.set(dateKey, (dailySecsMap.get(dateKey) ?? 0) + sessionSecs(s));
+    const secs = sessionSecs(s);
+    dailySecsMap.set(dateKey, (dailySecsMap.get(dateKey) ?? 0) + secs);
   });
 
   // Best day
@@ -107,10 +118,10 @@ export default async function HistoryPage() {
 
   return (
     <HistoryClient
-      sessions={sessions}
+      sessions={displaySessions}
       subjects={subjects}
       totalAllTimeSecs={totalAllTimeSecs}
-      totalSessions={sessions.length}
+      totalSessions={statsSessions.length}
       bestDaySecs={bestDaySecs}
       bestDayDate={bestDayDate}
       currentStreak={liveStreak}

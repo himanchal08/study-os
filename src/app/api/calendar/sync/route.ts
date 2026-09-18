@@ -43,10 +43,19 @@ export async function POST() {
     month: "2-digit",
     day: "2-digit",
   });
+  
+  const toYYYYMMDD = (d: Date) => {
+    const parts = formatter.formatToParts(d);
+    const y = parts.find((p) => p.type === "year")?.value;
+    const m = parts.find((p) => p.type === "month")?.value;
+    const day = parts.find((p) => p.type === "day")?.value;
+    return `${y}-${m}-${day}`;
+  };
+
   const sevenDaysAgoDate = new Date(nowWithOffset.getTime() - 7 * 86400000);
   const next14DaysDate = new Date(nowWithOffset.getTime() + 14 * 86400000);
-  const startRange = formatter.format(sevenDaysAgoDate);
-  const endRange = formatter.format(next14DaysDate);
+  const startRange = toYYYYMMDD(sevenDaysAgoDate);
+  const endRange = toYYYYMMDD(next14DaysDate);
 
   const { data: tasks, error: tasksError } = await supabase
     .from("tasks")

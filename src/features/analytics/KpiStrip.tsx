@@ -125,14 +125,26 @@ export async function KpiStrip({
   const todayAccuracy =
     totalAttempted > 0 ? (totalCorrect / totalAttempted) * 100 : null;
 
-  const { data: revisions } = await supabase
+  // Bounded query 1: Pending revisions due today or overdue
+  const { count: pendingCount } = await supabase
     .from("revisions")
-    .select("completed_at")
+    .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
-    .lte("due_date", todayStr);
+    .lte("due_date", todayStr)
+    .is("completed_at", null);
 
-  const totalRevisionsDue = revisions?.length ?? 0;
-  const completedRevisions = revisions?.filter((r) => r.completed_at).length ?? 0;
+  // Bounded query 2: Revisions completed today (local time)
+  // Re-use dayBoundaryAwareDate logic for local start of day
+  const localStartOfDayMs = new Date(`${todayStr}T00:00:00`).getTime();
+  const { count: completedCount } = await supabase
+    .from("revisions")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .not("completed_at", "is", null)
+    .gte("completed_at", new Date(localStartOfDayMs - (dayBoundaryOffsetMin * 60000)).toISOString());
+
+  const completedRevisions = completedCount ?? 0;
+  const totalRevisionsDue = (pendingCount ?? 0) + completedRevisions;
 
   const progressPct = Math.min(100, (totalHours / dailyTargetHours) * 100);
 
