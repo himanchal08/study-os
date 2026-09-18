@@ -220,6 +220,7 @@ export function GlobalTimer({
       if (left <= 0) {
         setPomodoroPhase(null);
         notify("☕ Break over — ready for the next one!");
+        try { new Audio("/bell.wav").play().catch(() => {}); } catch(e) {}
         return;
       }
       breakRafRef.current = requestAnimationFrame(tick);
@@ -320,6 +321,7 @@ export function GlobalTimer({
             { action: "extend5",  title: "+5 min"  },
             { action: "extend10", title: "+10 min" },
           ]);
+          try { new Audio("/bell.wav").play().catch(() => {}); } catch(e) {}
         }
         rafRef.current = requestAnimationFrame(tick);
       };
