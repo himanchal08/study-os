@@ -74,7 +74,7 @@ export function TaskList({ tasks, userId, todayDate, subjects, offsetMin, timezo
   }, [activeTab, selectedSubject, searchQuery, todayTasks, upcomingTasks, completedTasks, tasks]);
 
   const totalPlannedToday   = tasks.filter((t) => t.planned_date === todayDate).length;
-  const totalCompletedToday = tasks.filter((t) => t.planned_date === todayDate && t.status === "completed").length;
+  const totalCompletedToday = completedTasks.length;
   const completionRate = taskCompletionRate(totalCompletedToday, totalPlannedToday);
 
   const tabs = [

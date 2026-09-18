@@ -118,11 +118,19 @@ export async function stopSession(params: {
         .single();
       const userTimezone  = userProfile?.timezone ?? "Asia/Kolkata";
 
-      // toLocaleDateString with en-CA returns "YYYY-MM-DD" in the user's TZ.
-      const toUserDateStr = (msFromNow: number) =>
-        new Date(Date.now() + msFromNow).toLocaleDateString("en-CA", {
+      // Intl.DateTimeFormat returns reliable "YYYY-MM-DD" given en-CA locale.
+      const toUserDateStr = (msFromNow: number) => {
+        const parts = new Intl.DateTimeFormat("en-CA", {
           timeZone: userTimezone,
-        });
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).formatToParts(new Date(Date.now() + msFromNow));
+        const y = parts.find(p => p.type === "year")?.value;
+        const m = parts.find(p => p.type === "month")?.value;
+        const d = parts.find(p => p.type === "day")?.value;
+        return `${y}-${m}-${d}`;
+      };
 
       const revisionsToInsert: Database["public"]["Tables"]["revisions"]["Insert"][] = [
         {

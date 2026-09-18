@@ -92,7 +92,7 @@ export async function deleteSubject(subjectId: string) {
   if (topicIds.length > 0) {
     await supabase
       .from("revisions")
-      .update({ completed_at: now })
+      .delete()
       .eq("user_id", user.id)
       .in("topic_id", topicIds)
       .is("completed_at", null);
@@ -116,7 +116,7 @@ export async function archiveTopic(topicId: string) {
   // Archived topics must not leave ghost entries in the revision queue.
   await supabase
     .from("revisions")
-    .update({ completed_at: now })
+    .delete()
     .eq("user_id", user.id)
     .eq("topic_id", topicId)
     .is("completed_at", null);
@@ -141,7 +141,7 @@ export async function deleteTopic(topicId: string) {
 
   await supabase
     .from("revisions")
-    .update({ completed_at: now })
+    .delete()
     .eq("user_id", user.id)
     .eq("topic_id", topicId)
     .is("completed_at", null);
