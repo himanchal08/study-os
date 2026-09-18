@@ -94,7 +94,6 @@ export default async function HistoryPage() {
     lastDate = d;
   }
 
-  const todayStr = dayBoundaryAwareDate(new Date().getTime(), offsetMin, timezone);
   let liveStreak = 0;
   {
     let checkMs = new Date().getTime();
@@ -118,6 +117,7 @@ export default async function HistoryPage() {
       bestStreak={bestStreak}
       offsetMin={offsetMin}
       timezone={timezone}
+      todayStr={dayBoundaryAwareDate(new Date().getTime(), offsetMin, timezone)}
     />
   );
 }

@@ -5,7 +5,6 @@ import { format } from "date-fns";
 import { deleteStudySession } from "@/features/study-timer/actions";
 import { useTransition } from "react";
 import { SubjectOptions } from "@/components/ui/SubjectOptions";
-import { dayBoundaryAwareDate } from "@/lib/calculations";
 
 const ACTIVITY_COLORS: Record<string, string> = {
   practice: "#818cf8",
@@ -39,6 +38,8 @@ interface HistoryClientProps {
   // User timezone settings — needed for boundary-aware day grouping
   offsetMin: number;
   timezone: string;
+  // Pre-computed by the server component to avoid impure Date.now() in render
+  todayStr: string;
 }
 
 function formatHMS(secs: number): string {
@@ -66,6 +67,7 @@ export function HistoryClient({
   bestStreak,
   offsetMin,
   timezone,
+  todayStr,
 }: HistoryClientProps) {
   const [search, setSearch]       = useState("");
   const [filterSubject, setFilterSubject] = useState("");
@@ -109,6 +111,7 @@ export function HistoryClient({
     () => filtered.reduce((acc, s) => acc + sessionDurationSecs(s), 0),
     [filtered]
   );
+  // todayStr is passed from the server — no Date.now() needed in the client.
 
   const handleDelete = (id: string) => {
     if (!confirm("Delete this session?")) return;
@@ -206,7 +209,7 @@ export function HistoryClient({
         <div className="space-y-5">
           {grouped.map(({ date, items, totalSecs }) => {
             const dateObj  = new Date(date + "T12:00:00");
-            const isToday  = date === dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
+            const isToday  = date === todayStr;
             const dayHours = totalSecs / 3600;
             const dayColor = dayHours >= 6 ? "#34d399" : dayHours >= 3 ? "#818cf8" : "#52525b";
 

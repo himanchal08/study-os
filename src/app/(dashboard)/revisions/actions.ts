@@ -20,7 +20,7 @@ function cycleTypeForScore(score: number): "daily" | "weekly" | "monthly" {
 
 function addDays(date: Date, days: number): string {
   const d = new Date(date);
-  d.setDate(d.getDate() + days);
+  d.setUTCDate(d.getUTCDate() + days); // UTC arithmetic — stable regardless of server TZ
   return d.toISOString().split("T")[0];
 }
 

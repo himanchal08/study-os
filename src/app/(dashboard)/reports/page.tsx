@@ -50,9 +50,7 @@ const STATE_META: Record<StrategicState, { label: string; color: string; recomme
   },
 };
 
-const ADEQUATE_TIME_PCT = 5;   
-const OVER_STUDIED_PCT = 15;   
-const STRONG_ACCURACY = 75;    
+const STRONG_ACCURACY = 75;    // accuracy % threshold to be considered "strong"
 
 export default async function ReportsPage({
   searchParams,
@@ -167,15 +165,21 @@ export default async function ReportsPage({
       : null;
     const attempted = practice?.attempted ?? 0;
 
+    // Dynamic thresholds: scale with the number of topics so a large syllabus
+    // doesn’t flag every topic as under-studied. Fair share = 100/N%.
+    const fairSharePct = diagnoses.length > 0 ? 100 / diagnoses.length : 20;
+    const adequatePct   = fairSharePct * 0.4;   // studied < 40% of fair share → under-studied
+    const overStudiedPct = fairSharePct * 2.5;  // studied > 2.5× fair share → over-studied
+
     let strategicState: StrategicState | "no_data";
 
     if (accuracy === null) {
-      
-      strategicState = timeSharePct < ADEQUATE_TIME_PCT ? "weak_under_studied" : "no_data";
+      // No question batch data — cannot determine weakness without evidence.
+      strategicState = "no_data";
     } else {
       const isStrong = accuracy >= STRONG_ACCURACY;
-      const isOverStudied = timeSharePct > OVER_STUDIED_PCT;
-      const isUnderStudied = timeSharePct < ADEQUATE_TIME_PCT;
+      const isOverStudied = timeSharePct > overStudiedPct;
+      const isUnderStudied = timeSharePct < adequatePct;
 
       if (!isStrong && isUnderStudied) {
         strategicState = "weak_under_studied";

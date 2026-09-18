@@ -156,7 +156,7 @@ export default async function QuestionsPage() {
                   {b.notes && <p className="text-xs text-neutral-600 mt-2 leading-relaxed">{b.notes}</p>}
 
                   <p className="text-[10px] text-neutral-700 mt-2">
-                    {new Date(b.logged_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    {new Date(b.logged_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: timezone })}
                     {b.duration_minutes ? ` · ${b.duration_minutes} min` : ""}
                   </p>
                 </div>

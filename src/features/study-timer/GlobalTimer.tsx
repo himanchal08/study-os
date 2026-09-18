@@ -1,9 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useTransition } from "react";
 import { startSession, stopSession } from "./actions";
+import { logQuestionBatch } from "@/app/(dashboard)/questions/actions";
 import type { Tables } from "@/types/database";
 import { SubjectOptions } from "@/components/ui/SubjectOptions";
+
+// Defined at module scope so it’s not recreated on every render
+type PostLog = {
+  subjectId:    string | null;
+  subjectName:  string;
+  topicId:      string | null;
+  topicName:    string;
+  activityType: string;
+  durationSecs: number;
+};
 
 interface GlobalTimerProps {
   userId: string;
@@ -49,6 +60,23 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   );
   const [notes, setNotes] = useState<string>(activeSession?.notes ?? "");
 
+  // Post-session quick-log: populated when practice/mock ends, cleared on dismiss
+  const [postLog, setPostLog] = useState<PostLog | null>(null);
+  const [postAttempted, setPostAttempted] = useState("");
+  const [postCorrect, setPostCorrect] = useState("");
+  const [postSource, setPostSource] = useState("");
+  const [postPending, startPostTransition] = useTransition();
+  const [postError, setPostError] = useState<string | null>(null);
+  const [postSuccess, setPostSuccess] = useState(false);
+  const postSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cancel the auto-close timer on unmount to avoid setState on unmounted component
+  useEffect(() => {
+    return () => {
+      if (postSuccessTimerRef.current !== null) clearTimeout(postSuccessTimerRef.current);
+    };
+  }, []);
+
   // Sync with server-side session on mount / re-render
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -76,7 +104,12 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   // Mirror accumulatedSec in a ref so the rAF tick always reads the latest value
   // without triggering effect restarts (fixes stale-closure timer drift after pause/resume).
   const accumulatedSecRef = useRef(accumulatedSec);
-  accumulatedSecRef.current = accumulatedSec;
+  // Sync the ref in an effect so we never write .current during render
+  // (satisfies react-hooks/refs). The rAF tick only reads this after the
+  // effect has fired, which is before the next animation frame.
+  useEffect(() => {
+    accumulatedSecRef.current = accumulatedSec;
+  }, [accumulatedSec]);
 
   const isRunning = !!session;
   const isPaused = pausedAtMs !== null;
@@ -105,7 +138,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
         rafRef.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, isPaused]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -134,14 +166,16 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       notes: notes.trim() || null,
     }).then(result => {
       if ("error" in result && result.error) {
-        // Roll back
+        // Roll back — but only if the user hasn't already manually stopped
+        // (handleStop sets session=null; don't re-open a dead session)
         setError(result.error);
-        setSession(null);
+        setSession(prev => prev?.id === "__optimistic__" ? null : prev);
         setAccumulatedSec(0);
         setDisplayedSec(0);
       } else if ("session" in result && result.session) {
-        // Swap optimistic with real session
-        setSession(result.session);
+        // Functional update: only swap if user hasn’t already stopped the timer
+        // (stopped state = session is null). Prevents zombie open session in DB.
+        setSession(prev => prev === null ? null : result.session);
       }
     });
   }, [userId, selectedSubject, selectedTopic, notes, activityType]);
@@ -173,6 +207,13 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     }
     const finalNotes = notes.trim();
 
+    // Capture metadata BEFORE resetting state for the post-session form
+    const capturedSubjectId   = session.subject_id ?? null;
+    const capturedTopicId     = (session.topic_id ?? selectedTopic) || null;
+    const capturedActivityType = session.activity_type ?? activityType;
+    const capturedSubjectName = subjects.find(s => s.id === capturedSubjectId)?.name ?? "";
+    const capturedTopicName   = topics.find(t => t.id === capturedTopicId)?.name ?? "";
+
     setSession(null);
     setAccumulatedSec(0);
     setDisplayedSec(0);
@@ -185,6 +226,23 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     // Avoids spurious revision entries from accidental start taps.
     if (sessionId === "__optimistic__" || elapsedSecs < 30) return;
 
+    // Show quick-log form for practice and mock sessions
+    if (capturedActivityType === "practice" || capturedActivityType === "mock") {
+      setPostLog({
+        subjectId:    capturedSubjectId,
+        subjectName:  capturedSubjectName,
+        topicId:      capturedTopicId,
+        topicName:    capturedTopicName,
+        activityType: capturedActivityType,
+        durationSecs: Math.round(elapsedSecs),
+      });
+      setPostAttempted("");
+      setPostCorrect("");
+      setPostSource("");
+      setPostError(null);
+      setPostSuccess(false);
+    }
+
     // 2. Fire DB call in background
     stopSession({
       sessionId,
@@ -196,9 +254,45 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
         setError(result.error);
       }
     });
-  }, [session, userId, isPaused, pausedAtMs, totalPauseSec, notes]);
+  }, [session, userId, isPaused, pausedAtMs, totalPauseSec, notes, activityType, selectedTopic, subjects, topics]);
+
+  const handlePostSubmit = useCallback(() => {
+    if (!postLog) return;
+    const attempted = Number(postAttempted);
+    const correct   = Number(postCorrect || 0);
+    if (!attempted || attempted <= 0) {
+      setPostError("Attempted must be at least 1.");
+      return;
+    }
+    if (correct > attempted) {
+      setPostError("Correct cannot exceed attempted.");
+      return;
+    }
+    setPostError(null);
+    startPostTransition(async () => {
+      const fd = new FormData();
+      fd.set("attempted", String(attempted));
+      fd.set("correct",   String(correct));
+      fd.set("wrong",     String(Math.max(0, attempted - correct)));
+      fd.set("skipped",   "0");
+      if (postLog.subjectId) fd.set("subject_id", postLog.subjectId);
+      if (postLog.topicId)   fd.set("topic_id",   postLog.topicId);
+      if (postSource.trim()) fd.set("source",     postSource.trim());
+      fd.set("duration_minutes", String(Math.round(postLog.durationSecs / 60)));
+      const res = await logQuestionBatch(null, fd);
+      if (res && "error" in res) {
+        setPostError(res.error ?? "Failed to log.");
+      } else {
+        setPostSuccess(true);
+        // Auto-close after 1.5 s — cancel on unmount via postSuccessTimerRef
+        if (postSuccessTimerRef.current !== null) clearTimeout(postSuccessTimerRef.current);
+        postSuccessTimerRef.current = setTimeout(() => setPostLog(null), 1500);
+      }
+    });
+  }, [postLog, postAttempted, postCorrect, postSource, startPostTransition]);
 
   return (
+    <>
     <div
       id="global-timer-card"
       className="h-14 border-b shrink-0 flex items-center justify-between px-4 md:px-6 transition-all"
@@ -347,6 +441,136 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
         )}
       </div>
     </div>
+
+    {/* ── Post-session quick-log overlay ─────────────────────────── */}
+    {postLog && (
+      <div
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+        style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+        onClick={e => { if (e.target === e.currentTarget) setPostLog(null); }}
+      >
+        <div
+          className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4"
+          style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)" }}
+          role="dialog"
+          aria-label="Log questions from this session"
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: postLog.activityType === "mock" ? "#a78bfa" : "#34d399" }}>
+                {postLog.activityType === "mock" ? "🏆 Mock Ended" : "✅ Practice Ended"}
+              </p>
+              <h3 className="text-sm font-semibold text-neutral-100 mt-0.5">
+                Log your questions
+              </h3>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                {[postLog.subjectName, postLog.topicName].filter(Boolean).join(" · ")}
+                {" · "}{Math.round(postLog.durationSecs / 60)}m session
+              </p>
+            </div>
+            <button
+              onClick={() => setPostLog(null)}
+              className="text-neutral-600 hover:text-neutral-300 transition-colors text-lg leading-none mt-0.5"
+              aria-label="Skip logging"
+            >
+              ×
+            </button>
+          </div>
+
+          {postSuccess ? (
+            <div className="text-center py-6">
+              <p className="text-2xl mb-1">✅</p>
+              <p className="text-sm font-medium text-neutral-300">Questions logged!</p>
+              <button
+                onClick={() => setPostLog(null)}
+                className="mt-3 text-xs text-neutral-500 hover:text-neutral-300"
+              >Close</button>
+            </div>
+          ) : (
+            <>
+              {/* Attempted + Correct */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-1">Attempted *</label>
+                  <input
+                    id="post-log-attempted"
+                    type="number"
+                    min="1"
+                    autoFocus
+                    value={postAttempted}
+                    onChange={e => setPostAttempted(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") document.getElementById("post-log-correct")?.focus(); }}
+                    placeholder="e.g. 30"
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                    style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#ededed" }}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-1">Correct *</label>
+                  <input
+                    id="post-log-correct"
+                    type="number"
+                    min="0"
+                    value={postCorrect}
+                    onChange={e => setPostCorrect(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handlePostSubmit(); }}
+                    placeholder="e.g. 22"
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                    style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#ededed" }}
+                  />
+                </div>
+              </div>
+
+              {/* Source (optional) */}
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-1">
+                  {postLog.activityType === "mock" ? "Mock Name (optional)" : "Source / Book (optional)"}
+                </label>
+                <input
+                  type="text"
+                  value={postSource}
+                  onChange={e => setPostSource(e.target.value)}
+                  placeholder={postLog.activityType === "mock" ? "e.g. SBI PO Mock 12" : "e.g. Arun Sharma Chapter 4"}
+                  className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                  style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#ededed" }}
+                />
+              </div>
+
+              {/* Pre-filled info strip */}
+              <div className="flex items-center gap-3 text-[10px] text-neutral-600">
+                <span>⏱ {Math.round(postLog.durationSecs / 60)}m</span>
+                {postLog.subjectName && <span>📚 {postLog.subjectName}</span>}
+                {postLog.topicName   && <span>📌 {postLog.topicName}</span>}
+              </div>
+
+              {postError && (
+                <p className="text-xs text-red-400">{postError}</p>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handlePostSubmit}
+                  disabled={postPending || !postAttempted}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-40"
+                  style={{ background: postLog.activityType === "mock" ? "rgba(167,139,250,0.15)" : "rgba(52,211,153,0.15)", color: postLog.activityType === "mock" ? "#a78bfa" : "#34d399", border: `1px solid ${postLog.activityType === "mock" ? "rgba(167,139,250,0.3)" : "rgba(52,211,153,0.3)"}` }}
+                >
+                  {postPending ? "Saving…" : "Log Questions"}
+                </button>
+                <button
+                  onClick={() => setPostLog(null)}
+                  className="px-4 py-2.5 rounded-xl text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
+                >
+                  Skip
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

@@ -7,7 +7,7 @@ const ADAPTIVE_INTERVALS: Record<number, number> = { 1: 1, 2: 2, 3: 7, 4: 14, 5:
 
 function addDays(date: Date, days: number): string {
   const d = new Date(date);
-  d.setDate(d.getDate() + days);
+  d.setUTCDate(d.getUTCDate() + days); // UTC arithmetic — stable regardless of server TZ
   return d.toISOString().split("T")[0];
 }
 

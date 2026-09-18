@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { markRevisionDone } from "@/app/(dashboard)/revisions/actions";
 
 interface RevisionCardProps {
@@ -22,6 +22,7 @@ const CYCLE_COLORS = {
 
 const RECALL_LABELS = [
   { score: 1, label: "Forgot",  color: "#ef4444" },
+  { score: 2, label: "Vague",   color: "#fb923c" },
   { score: 3, label: "Hard",    color: "#f59e0b" },
   { score: 4, label: "Good",    color: "#10b981" },
   { score: 5, label: "Easy",    color: "#34d399" },
@@ -32,10 +33,17 @@ export function RevisionCard({
   cycleType, dueDate, isOverdue, completedAt,
 }: RevisionCardProps) {
   const [isPending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
   const cycleStyle = CYCLE_COLORS[cycleType];
 
   const done = (score: number) => {
-    startTransition(() => { markRevisionDone(id, score); });
+    setSaveError(null);
+    startTransition(async () => {
+      const result = await markRevisionDone(id, score);
+      if (result && "error" in result) {
+        setSaveError(result.error ?? "Failed to save. Please try again.");
+      }
+    });
   };
 
   if (completedAt) {
@@ -92,8 +100,14 @@ export function RevisionCard({
         </div>
       </div>
 
-      {/* Recall buttons — full width on mobile */}
-      <div className="grid grid-cols-4 gap-px border-t" style={{ borderColor: "#1a1a1a" }}>
+      {saveError && (
+        <div className="px-3.5 pb-3 text-xs text-red-400">
+          Failed to save — {saveError}. Please try again.
+        </div>
+      )}
+
+      {/* Recall buttons */}
+      <div className="grid grid-cols-5 gap-px border-t" style={{ borderColor: "#1a1a1a" }}>
         {RECALL_LABELS.map(({ score, label, color }) => (
           <button
             key={score}
