@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { deleteStudySession } from "@/features/study-timer/actions";
 import { useTransition } from "react";
 import { SubjectOptions } from "@/components/ui/SubjectOptions";
+import { dayBoundaryAwareDate } from "@/lib/calculations";
 
 const ACTIVITY_COLORS: Record<string, string> = {
   practice: "#818cf8",
