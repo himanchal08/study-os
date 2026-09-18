@@ -110,8 +110,9 @@ export default async function HistoryPage() {
 
   let liveStreak = 0;
   {
-    const now = new Date();
-    const todayNoonMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0).getTime();
+    const nowMs = Date.now();
+    const todayStrRaw = dayBoundaryAwareDate(nowMs, offsetMin, timezone);
+    const todayNoonMs = new Date(todayStrRaw + "T12:00:00Z").getTime();
     const todayKey = dayBoundaryAwareDate(todayNoonMs, offsetMin, timezone);
     const yesterdayMs = todayNoonMs - 86400000;
     const yesterdayKey = dayBoundaryAwareDate(yesterdayMs, offsetMin, timezone);

@@ -78,7 +78,7 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
     <div className="rounded-xl border flex flex-col overflow-hidden" style={{ background: "#0a0a0a", borderColor: "#1a1a1a" }}>
       
       <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: "#1a1a1a" }}>
-        <h2 className="text-lg font-semibold text-neutral-100">
+        <h2 className="text-lg font-semibold text-neutral-100" suppressHydrationWarning>
           {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
         </h2>
         <div className="flex items-center gap-2">
@@ -157,7 +157,7 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
               className={`min-h-25 p-2 flex flex-col ${cell.isCurrentMonth ? "bg-[#0a0a0a]" : "bg-[#0f0f0f]"}`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${
+                <span suppressHydrationWarning className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${
                   isToday 
                     ? "bg-white text-black" 
                     : cell.isCurrentMonth ? "text-neutral-300" : "text-neutral-600"

@@ -88,9 +88,13 @@ export default async function AnalyticsPage() {
 
   const dailyMap = groupSessionsByDay(sessions, offsetMin, timezone);
   const last7: Array<{ date: string; hours: number; target: number; hitTarget: boolean; allTasksDone: boolean }> = [];
+  const todayStrRaw = dayBoundaryAwareDate(now, offsetMin, timezone);
+  const todayNoonMs = new Date(todayStrRaw + "T12:00:00Z").getTime();
+  
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(now - i * 86400000);
-    const key = dayBoundaryAwareDate(d.getTime(), offsetMin, timezone);
+    const dMs = todayNoonMs - i * 86400000;
+    const d = new Date(dMs);
+    const key = dayBoundaryAwareDate(dMs, offsetMin, timezone);
     const hours = dailyMap.get(key) ?? 0;
     const tasksForDay = tasksMap.get(key);
     const allTasksDone = tasksForDay ? tasksForDay.total > 0 && tasksForDay.completed === tasksForDay.total : false;

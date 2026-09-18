@@ -66,6 +66,7 @@ export function buildHeatmapData(params: BuildHeatmapParams): HeatmapCell[] {
     hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + secondsToHours(Math.max(0, durationSec)));
   }
 
+  const todayStr = dayBoundaryAwareDate(Date.now(), dayBoundaryOffsetMin, timezone);
   const cells: HeatmapCell[] = [];
   const cursor = new Date(startDate);
   const end = new Date(endDate);
@@ -100,7 +101,7 @@ export function buildHeatmapData(params: BuildHeatmapParams): HeatmapCell[] {
       isAnnotated: !!annotation,
       annotationTag: annotation?.tag,
       
-      isMissing: !knownDates.has(dateStr) && !annotation && new Date(dateStr) < new Date(),
+      isMissing: !knownDates.has(dateStr) && !annotation && dateStr < todayStr,
     });
 
     cursor.setUTCDate(cursor.getUTCDate() + 1);
