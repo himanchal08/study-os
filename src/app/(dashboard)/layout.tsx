@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import type { Tables } from "@/types/database";
-import { GlobalTimer } from "@/features/study-timer/GlobalTimer";
+import { GlobalTimerLoader } from "@/features/study-timer/GlobalTimerLoader";
+import { Suspense } from "react";
 
 export default async function DashboardLayout({
   children,
@@ -21,27 +22,34 @@ export default async function DashboardLayout({
 
   const safeUser = user!;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("user_id", safeUser.id)
-    .single();
+  // Run independent queries in parallel — previously sequential, each adding
+  // a full round-trip latency to every page navigation.
+  const [
+    { data: profile },
+    { data: rawSubjects },
+    { data: rawTopics },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", safeUser.id)
+      .single(),
+    supabase
+      .from("subjects")
+      .select("id, name, color, exam_type")
+      .eq("user_id", safeUser.id)
+      .is("deleted_at", null)
+      .order("name", { ascending: true }),
+    supabase
+      .from("topics")
+      .select("id, name, subject_id")
+      .eq("user_id", safeUser.id)
+      .is("deleted_at", null)
+      .is("archived_at", null)
+      .order("name", { ascending: true }),
+  ]);
 
-  const { data: activeSession } = await supabase
-    .from("study_sessions")
-    .select("*")
-    .eq("user_id", safeUser.id)
-    .is("end_timestamp", null)
-    .maybeSingle();
-
-  const { data: rawSubjects } = await supabase
-    .from("subjects")
-    .select("id, name, color, exam_type")
-    .eq("user_id", safeUser.id)
-    .is("deleted_at", null)
-    .order("name", { ascending: true });
-
-  // Deduplicate by lowercase name — keep first occurrence
+  // Deduplicate subjects by lowercase name — keep first occurrence
   const subjectsSeen = new Set<string>();
   const subjects = (rawSubjects ?? []).filter(s => {
     const key = s.name.toLowerCase().trim();
@@ -51,14 +59,6 @@ export default async function DashboardLayout({
   });
 
   const subjectIds = new Set(subjects.map(s => s.id));
-
-  const { data: rawTopics } = await supabase
-    .from("topics")
-    .select("id, name, subject_id")
-    .eq("user_id", safeUser.id)
-    .is("deleted_at", null)
-    .is("archived_at", null)
-    .order("name", { ascending: true });
 
   // Only include topics belonging to the deduplicated subjects; remove "no specific topic"
   const topicsSeen = new Set<string>();
@@ -82,12 +82,15 @@ export default async function DashboardLayout({
           userId={safeUser.id}
           userEmail={safeUser.email ?? ""}
         />
-        <GlobalTimer
-          userId={safeUser.id}
-          activeSession={activeSession}
-          subjects={subjects ?? []}
-          topics={topics ?? []}
-        />
+        {/* GlobalTimerLoader in Suspense keeps the client timer state stable
+            across RSC re-renders — prevents "multiple clicks" to start timer */}
+        <Suspense fallback={<div className="h-14 border-b shrink-0" style={{ borderColor: "var(--border-subtle)" }} />}>
+          <GlobalTimerLoader
+            userId={safeUser.id}
+            subjects={subjects ?? []}
+            topics={topics ?? []}
+          />
+        </Suspense>
         <main
           id="main-content"
           className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6"
