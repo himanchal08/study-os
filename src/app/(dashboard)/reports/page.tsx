@@ -165,9 +165,7 @@ export default async function ReportsPage({
       : null;
     const attempted = practice?.attempted ?? 0;
 
-    // Dynamic thresholds: scale with the number of topics so a large syllabus
-    // doesn’t flag every topic as under-studied. Fair share = 100/N%.
-    const fairSharePct = diagnoses.length > 0 ? 100 / diagnoses.length : 20;
+    const fairSharePct  = topicTimeMap.size > 0 ? 100 / topicTimeMap.size : 20;
     const adequatePct   = fairSharePct * 0.4;   // studied < 40% of fair share → under-studied
     const overStudiedPct = fairSharePct * 2.5;  // studied > 2.5× fair share → over-studied
 

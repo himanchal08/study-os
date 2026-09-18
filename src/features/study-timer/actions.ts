@@ -183,27 +183,15 @@ export async function stopSession(params: {
     }
 
     if (Object.keys(lifecycleUpdates).length > 0) {
-      const { data: existingLc } = await supabase
+      // Upsert instead of select-then-insert/update to avoid TOCTOU race:
+      // two concurrent stopSession calls for the same topic both see no row
+      // and both attempt INSERT, the second violates the unique constraint.
+      await supabase
         .from("topic_lifecycle")
-        .select("id")
-        .eq("topic_id", data.topic_id)
-        .maybeSingle();
-
-      if (existingLc) {
-        await supabase
-          .from("topic_lifecycle")
-          .update(lifecycleUpdates)
-          .eq("topic_id", data.topic_id)
-          .eq("user_id", userId);
-      } else {
-        await supabase
-          .from("topic_lifecycle")
-          .insert({
-            user_id: userId,
-            topic_id: data.topic_id,
-            ...lifecycleUpdates,
-          });
-      }
+        .upsert(
+          { user_id: userId, topic_id: data.topic_id, ...lifecycleUpdates },
+          { onConflict: "user_id,topic_id", ignoreDuplicates: false },
+        );
     }
   }
 

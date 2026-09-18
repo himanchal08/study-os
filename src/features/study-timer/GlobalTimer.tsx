@@ -88,6 +88,8 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     setSelectedTopic(activeSession?.topic_id ?? "");
     setActivityType(activeSession?.activity_type ?? "practice");
     setNotes(activeSession?.notes ?? "");
+    // A new session from another device means the post-log form is now stale
+    setPostLog(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSession?.id]);
 
