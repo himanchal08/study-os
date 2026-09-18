@@ -27,6 +27,7 @@ interface GlobalTimerProps {
     exam_type?: string | null;
   }>;
   topics: Array<{ id: string; name: string; subject_id: string }>;
+  timezone: string;
 }
 
 function makeOptimisticSession(opts: {
@@ -54,9 +55,9 @@ function makeOptimisticSession(opts: {
   } as unknown as Tables<"study_sessions">;
 }
 
-function getTodayStr(): string {
+function getTodayStr(timezone: string): string {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
+    timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -68,6 +69,7 @@ export function GlobalTimer({
   activeSession,
   subjects,
   topics,
+  timezone,
 }: GlobalTimerProps) {
   const [session, setSession] = useState(activeSession);
   const [error, setError] = useState<string | null>(null);
@@ -83,10 +85,8 @@ export function GlobalTimer({
   >(activeSession?.activity_type ?? "practice");
   const [notes, setNotes] = useState<string>(activeSession?.notes ?? "");
 
-  // post-session log state
   const [postLog, setPostLog] = useState<PostLog | null>(null);
 
-  // Shared fields
   const [postAttempted, setPostAttempted] = useState("");
   const [postCorrect, setPostCorrect] = useState("");
   const [postWrong, setPostWrong] = useState("");
@@ -94,7 +94,6 @@ export function GlobalTimer({
   const [postSource, setPostSource] = useState("");
   const [postNotes, setPostNotes] = useState("");
 
-  // Mock-only fields
   const [postMockName, setPostMockName] = useState("");
   const [postScore, setPostScore] = useState("");
   const [postMaxMarks, setPostMaxMarks] = useState("200");
@@ -110,12 +109,15 @@ export function GlobalTimer({
   const [postError, setPostError] = useState<string | null>(null);
   const [postSuccess, setPostSuccess] = useState(false);
 
-  // Tracks if we need to show the form once the optimistic session resolves
   const pendingPostLogRef = useRef<PostLog | null>(null);
-  // Guard against double-clicking Stop
   const stoppingRef = useRef(false);
+  const pendingStopRef = useRef<{
+    endTimestamp: string;
+    notes: string;
+    elapsedSecs: number;
+    logData: PostLog | null;
+  } | null>(null);
 
-  // Sync server-side activeSession prop changes into local state (e.g. after router refresh)
   const prevSessionIdRef = useRef(activeSession?.id);
   useEffect(() => {
     if (activeSession?.id === prevSessionIdRef.current) return;
@@ -130,10 +132,9 @@ export function GlobalTimer({
 
   const filteredTopics = topics.filter((t) => t.subject_id === selectedSubject);
 
-  // ── Listen for prefill events fired by session history rows ──────────────────
   useEffect(() => {
     const handler = (e: Event) => {
-      if (session) return; // timer is running — don't clobber
+      if (session) return;
       const {
         subjectId,
         topicId,
@@ -249,9 +250,26 @@ export function GlobalTimer({
         });
       } else if ("session" in result && result.session) {
         setSession((prev) => {
-          if (prev === null) return null;
+          if (prev === null) {
+            const pending = pendingStopRef.current;
+            if (pending) {
+              pendingStopRef.current = null;
+              const realId = result.session!.id;
+              stopSession({
+                sessionId: realId,
+                userId,
+                pauseDurationSeconds: 0,
+                notes: pending.notes || undefined,
+                endTimestamp: pending.endTimestamp,
+              }).then((r) => {
+                stoppingRef.current = false;
+                if ("error" in r && r.error) setError(r.error);
+              });
+              if (pending.logData) openPostLog(pending.logData);
+            }
+            return null;
+          }
           const updated = result.session;
-          // If there was a pending post-log queued while optimistic, show it now
           if (pendingPostLogRef.current) {
             const pending = pendingPostLogRef.current;
             pendingPostLogRef.current = null;
@@ -272,12 +290,9 @@ export function GlobalTimer({
 
   const handleStop = useCallback(() => {
     if (!session) return;
-    // Prevent double-clicks from firing two stopSession calls
     if (stoppingRef.current) return;
     stoppingRef.current = true;
     setError(null);
-
-    // Capture the exact click moment BEFORE any async work
     const clickedAtMs = Date.now();
     const clickedAtIso = new Date(clickedAtMs).toISOString();
 
@@ -320,17 +335,31 @@ export function GlobalTimer({
         topicName: capturedTopicName,
         activityType: capturedActivityType,
         durationSecs: Math.round(elapsedSecs),
-        todayStr: getTodayStr(),
+        todayStr: getTodayStr(timezone),
       };
 
       if (sessionId === "__optimistic__") {
-        pendingPostLogRef.current = logData;
+        pendingStopRef.current = {
+          endTimestamp: clickedAtIso,
+          notes: finalNotes,
+          elapsedSecs,
+          logData,
+        };
+        return;
       } else {
         openPostLog(logData);
       }
     }
 
-    if (sessionId === "__optimistic__") return;
+    if (sessionId === "__optimistic__") {
+      pendingStopRef.current = {
+        endTimestamp: clickedAtIso,
+        notes: finalNotes,
+        elapsedSecs,
+        logData: null,
+      };
+      return;
+    }
 
     stopSession({
       sessionId,

@@ -5,12 +5,21 @@ import { useState } from "react";
 interface CalendarGridProps {
   tasks: Array<{ id: string; title: string; status: string; planned_date: string | null; due_date: string | null }>;
   sessions?: Array<{ id: string; start_timestamp: string; end_timestamp: string | null; pause_duration_seconds: number | null; activity_type: string; subjects: { name: string; color: string | null } | null; topics: { name: string } | null }>;
+  /** ISO date strings marking the inclusive bounds of server-fetched data */
+  loadedRange: { from: string; to: string };
 }
 
-export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
+export function CalendarGrid({ tasks, sessions = [], loadedRange }: CalendarGridProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  // Is the currently visible month outside the pre-fetched data window?
+  const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+    .toISOString().split("T")[0];
+  const currentMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+    .toISOString().split("T")[0];
+  const isOutOfRange = currentMonthEnd < loadedRange.from || currentMonthStart > loadedRange.to;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -132,6 +141,20 @@ export function CalendarGrid({ tasks, sessions = [] }: CalendarGridProps) {
           }}
         >
           {syncMsg.text}
+        </div>
+      )}
+
+      {isOutOfRange && (
+        <div
+          className="px-4 py-2 text-xs flex items-center gap-2"
+          style={{
+            background: "rgba(245,158,11,0.06)",
+            borderBottom: "1px solid rgba(245,158,11,0.15)",
+            color: "#f59e0b",
+          }}
+        >
+          <span>⚠</span>
+          <span>No data loaded for this period — only ±90 days from today are available.</span>
         </div>
       )}
 

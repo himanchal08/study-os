@@ -88,6 +88,7 @@ export default async function DashboardLayout({
           activeSession={activeSession}
           subjects={subjects ?? []}
           topics={topics ?? []}
+          timezone={profile?.timezone ?? "Asia/Kolkata"}
         />
         <main
           id="main-content"

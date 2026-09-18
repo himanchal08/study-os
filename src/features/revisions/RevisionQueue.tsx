@@ -16,28 +16,83 @@ interface RevisionQueueProps {
   }>;
 }
 
+const RECALL = [
+  { score: 1, label: "✗", title: "Forgot",  color: "#ef4444" },
+  { score: 2, label: "~", title: "Vague",   color: "#fb923c" },
+  { score: 3, label: "±", title: "Hard",    color: "#f59e0b" },
+  { score: 4, label: "✓", title: "Good",    color: "#10b981" },
+  { score: 5, label: "★", title: "Easy",    color: "#34d399" },
+] as const;
+
+const cycleLabels: Record<string, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
+};
+
+function RevisionItem({
+  rev,
+}: {
+  rev: RevisionQueueProps["revisions"][number];
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [done, setDone] = useState(false);
+
+  if (done) return null;
+
+  return (
+    <li
+      className="p-3 rounded-xl transition-all"
+      style={{
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid var(--border-subtle)",
+        opacity: isPending ? 0.5 : 1,
+      }}
+    >
+      <div className="flex items-center gap-3 mb-2">
+        <span
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ background: rev.topics?.subjects?.color ?? "#6366f1" }}
+          aria-hidden="true"
+        />
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-xs font-medium truncate"
+            style={{ color: "var(--foreground)" }}
+          >
+            {rev.topics?.name ?? "Unknown topic"}
+          </p>
+          <p className="text-[10px] mt-0.5" style={{ color: "rgba(226,226,240,0.4)" }}>
+            {rev.topics?.subjects?.name} · {cycleLabels[rev.cycle_type] ?? rev.cycle_type}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-5 gap-1">
+        {RECALL.map(({ score, label, title, color }) => (
+          <button
+            key={score}
+            type="button"
+            disabled={isPending}
+            title={title}
+            onClick={() => {
+              startTransition(async () => {
+                await completeRevision(rev.id, score);
+                setDone(true);
+              });
+            }}
+            className="py-1 rounded text-xs font-bold transition-all hover:opacity-80 active:scale-95 disabled:opacity-40"
+            style={{ background: `${color}18`, color }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </li>
+  );
+}
+
 export function RevisionQueue({ revisions }: RevisionQueueProps) {
-  const [completing, setCompleting] = useState<Set<string>>(new Set());
-  const [, startTransition] = useTransition();
-
-  function handleComplete(revisionId: string) {
-    setCompleting((prev) => new Set(prev).add(revisionId));
-    startTransition(async () => {
-      await completeRevision(revisionId, 4);
-      setCompleting((prev) => {
-        const next = new Set(prev);
-        next.delete(revisionId);
-        return next;
-      });
-    });
-  }
-
-  const cycleLabels: Record<string, string> = {
-    daily: "Daily",
-    weekly: "Weekly",
-    monthly: "Monthly",
-  };
-
   return (
     <div className="glass rounded-2xl p-5 h-full w-full min-w-0">
       <div className="flex items-center justify-between mb-4">
@@ -75,69 +130,20 @@ export function RevisionQueue({ revisions }: RevisionQueueProps) {
           </p>
         </div>
       ) : (
-        <ul className="space-y-2" aria-label="Revisions due today">
-          {revisions.map((rev) => (
-            <li
-              key={rev.id}
-              className="flex items-center gap-3 p-3 rounded-xl transition-all"
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid var(--border-subtle)",
-                opacity: completing.has(rev.id) ? 0.5 : 1,
-              }}
-            >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{
-                  background: rev.topics?.subjects?.color ?? "#6366f1",
-                }}
-                aria-hidden="true"
-              />
-
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-xs font-medium truncate"
-                  style={{ color: "var(--foreground)" }}
-                >
-                  {rev.topics?.name ?? "Unknown topic"}
-                </p>
-                <p
-                  className="text-xs mt-0.5"
-                  style={{ color: "rgba(226,226,240,0.4)" }}
-                >
-                  {rev.topics?.subjects?.name} ·{" "}
-                  {cycleLabels[rev.cycle_type] ?? rev.cycle_type}
-                </p>
-              </div>
-
-              <button
-                onClick={() => handleComplete(rev.id)}
-                disabled={completing.has(rev.id)}
-                aria-label={`Mark ${rev.topics?.name ?? "revision"} as complete`}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:opacity-80 shrink-0 disabled:opacity-40"
-                style={{
-                  background: "rgba(34,197,94,0.12)",
-                  border: "1px solid rgba(34,197,94,0.25)",
-                  color: "#86efac",
-                }}
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
+            {RECALL.map(({ label, title, color }) => (
+              <span key={title} className="flex items-center gap-1 text-[10px]" style={{ color }}>
+                <span className="font-bold">{label}</span> {title}
+              </span>
+            ))}
+          </div>
+          <ul className="space-y-2" aria-label="Revisions due today">
+            {revisions.map((rev) => (
+              <RevisionItem key={rev.id} rev={rev} />
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

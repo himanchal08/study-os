@@ -47,7 +47,11 @@ export default async function CalendarPage() {
       </div>
 
       <div className="flex-1 min-h-0">
-        <CalendarGrid tasks={tasks ?? []} sessions={(sessions ?? []) as Parameters<typeof CalendarGrid>[0]["sessions"]} />
+      <CalendarGrid
+        tasks={tasks ?? []}
+        sessions={(sessions ?? []) as Parameters<typeof CalendarGrid>[0]["sessions"]}
+        loadedRange={{ from: threeMonthsAgo, to: threeMonthsAhead }}
+      />
       </div>
     </div>
   );
