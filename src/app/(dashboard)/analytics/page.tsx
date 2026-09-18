@@ -332,7 +332,7 @@ export default async function AnalyticsPage() {
           border: "1px solid var(--border)",
         }}
       >
-        <p className="text-xs" style={{ color: "rgba(232,232,240,0.5)" }}>
+        <p suppressHydrationWarning className="text-xs" style={{ color: "rgba(232,232,240,0.5)" }}>
           Today is <span style={{ color: "#ededed" }}>{todayStr}</span> · Live KPIs on Home dashboard
         </p>
         <Link

@@ -24,7 +24,7 @@ export function TopBar({ profile, userEmail }: TopBarProps) {
       <div className="flex items-center gap-3">
         <MobileSidebar userEmail={userEmail} />
 
-        <p className="text-sm hidden sm:block" style={{ color: "rgba(226,226,240,0.5)" }}>
+        <p suppressHydrationWarning className="text-sm hidden sm:block" style={{ color: "rgba(226,226,240,0.5)" }}>
           {today}
         </p>
         <span
