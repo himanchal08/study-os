@@ -153,12 +153,13 @@ export async function updateTaskStatus(
     return { error: error.message };
   }
 
-  await supabase.from("task_events").insert({
+  const { error: eventError } = await supabase.from("task_events").insert({
     user_id: user.id,
     task_id: taskId,
     event_type: status,
     notes: failureReason ?? null,
   });
+  if (eventError) console.error("task_events insert failed:", eventError.message);
 
   revalidatePath("/tasks");
   revalidatePath("/");
@@ -201,12 +202,13 @@ export async function postponeTask(
     return { error: error.message };
   }
 
-  await supabase.from("task_events").insert({
+  const { error: eventError2 } = await supabase.from("task_events").insert({
     user_id: user.id,
     task_id: taskId,
     event_type: "postponed",
     notes: failureReason ? `Postponed to ${newPlannedDate}: ${failureReason}` : `Postponed to ${newPlannedDate}`,
   });
+  if (eventError2) console.error("task_events insert failed:", eventError2.message);
 
   revalidatePath("/tasks");
   revalidatePath("/");
@@ -231,12 +233,13 @@ export async function deleteTask(taskId: string) {
     return { error: error.message };
   }
 
-  await supabase.from("task_events").insert({
+  const { error: eventError3 } = await supabase.from("task_events").insert({
     user_id: user.id,
     task_id: taskId,
     event_type: "cancelled",
     notes: "Soft deleted",
   });
+  if (eventError3) console.error("task_events insert failed:", eventError3.message);
 
   revalidatePath("/tasks");
   revalidatePath("/");

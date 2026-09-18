@@ -76,10 +76,10 @@ export function timeOfDayBucket(
     }),
     10
   );
-  if (hour >= 4 && hour < 7) return "early_morning";
+  if (hour >= 4 && hour < 7)  return "early_morning";
   if (hour >= 7 && hour < 12) return "morning";
   if (hour >= 12 && hour < 17) return "afternoon";
   if (hour >= 17 && hour < 20) return "evening";
-  if (hour >= 20 && hour < 23) return "night";
-  return "late_night"; 
+  if (hour >= 20 && hour < 24) return "night";   // 8 PM – midnight
+  return "late_night"; // 0 AM – 4 AM
 }

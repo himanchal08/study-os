@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { completeRevision } from "./actions";
 
 interface RevisionQueueProps {
-  userId: string;
   revisions: Array<{
     id: string;
     topic_id: string;

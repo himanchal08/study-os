@@ -7,7 +7,7 @@ import type { Tables } from "@/types/database";
 
 type RevisionRow = Pick<
   Tables<"revisions">,
-  "id" | "due_date" | "completed_at" | "cycle_type" | "recall_score"
+  "id" | "due_date" | "completed_at" | "cycle_type" | "recall_score" | "grace_window_days"
 > & {
   topics: {
     name: string;
@@ -34,22 +34,35 @@ export default async function RevisionsPage() {
   const now       = new Date();
   const todayStr  = dayBoundaryAwareDate(now.getTime(), offsetMin, timezone);
 
-  const [{ data: revisionsRaw }, { data: historyRaw }] = await Promise.all([
+  // Split into two targeted queries so the 100-row limit can't be consumed by
+  // old completed revisions, silently dropping today's due items.
+  const [{ data: dueRaw }, { data: completedTodayRaw }, { data: historyRaw }] = await Promise.all([
+    // Pending revisions due on or before today
+    supabase
+      .from("revisions")
+      .select("id, due_date, completed_at, cycle_type, recall_score, grace_window_days, topics(name, subject_id, subjects(name, color))")
+      .eq("user_id", user.id)
+      .lte("due_date", todayStr)
+      .is("completed_at", null)
+      .order("due_date", { ascending: true })
+      .limit(100),
+    // Revisions completed today specifically
     supabase
       .from("revisions")
       .select("id, due_date, completed_at, cycle_type, recall_score, topics(name, subject_id, subjects(name, color))")
       .eq("user_id", user.id)
-      .lte("due_date", todayStr)
-      .order("due_date", { ascending: true })
-      .limit(100),
+      .not("completed_at", "is", null)
+      .gte("completed_at", new Date(now.getTime() - 86400000).toISOString()) // last 24h
+      .order("completed_at", { ascending: false }),
+    // 30-day history for the dot timeline
     supabase
       .from("revisions")
-      .select("id, due_date, completed_at, cycle_type, recall_score, topics(name, subjects(name, color))")
+      .select("id, topic_id, due_date, completed_at, cycle_type, recall_score, topics(name, subjects(name, color))")
       .eq("user_id", user.id)
       .not("completed_at", "is", null)
       .gte("completed_at", new Date(now.getTime() - 30 * 86400000).toISOString())
       .order("completed_at", { ascending: false })
-      .limit(200),
+      .limit(500),
   ]);
 
   type HistEntry    = { date: string; cycleType: string; recallScore: number | null };
@@ -59,27 +72,40 @@ export default async function RevisionsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (historyRaw ?? []).forEach((r: any) => {
     const topic = r.topics as { name: string; subjects: { name: string; color: string } | null } | null;
-    const key = topic?.name ?? "Unknown";
+    // Key by topic_id (not name) so renames don’t split history and same-named
+    // topics in different subjects don’t merge into one group.
+    const key = (r.topic_id as string) ?? topic?.name ?? "Unknown";
     if (!historyByTopic.has(key)) {
       historyByTopic.set(key, {
-        topicName:    key,
+        topicName:    topic?.name ?? "Unknown",
         subjectName:  topic?.subjects?.name  ?? "",
         subjectColor: topic?.subjects?.color ?? "#52525b",
         entries: [],
       });
     }
+    // Use boundary-aware date for completed_at so dots appear on the correct
+    // local day for IST users who complete revisions past midnight UTC.
+    const completedDate = r.completed_at
+      ? dayBoundaryAwareDate(new Date(r.completed_at).getTime(), offsetMin, timezone)
+      : r.due_date;
     historyByTopic.get(key)!.entries.push({
-      date:        r.completed_at ? r.completed_at.split("T")[0] : r.due_date,
+      date:        completedDate,
       cycleType:   r.cycle_type,
       recallScore: r.recall_score,
     });
   });
   const historyTopics = Array.from(historyByTopic.values());
 
-  const revisions = (revisionsRaw ?? []) as unknown as RevisionRow[];
-  const due       = revisions.filter(r => !r.completed_at);
-  const completed = revisions.filter(r =>  r.completed_at);
-  const overdue   = due.filter(r => r.due_date < todayStr);
+  const due       = (dueRaw ?? []) as unknown as RevisionRow[];
+  const completed = (completedTodayRaw ?? []) as unknown as RevisionRow[];
+  // A revision is only truly "overdue" once its grace window has also expired.
+  // e.g. a daily revision (grace=1d) due yesterday is still within grace today.
+  const overdue   = due.filter(r => {
+    const graceDays = r.grace_window_days ?? 0;
+    const deadline  = new Date(r.due_date);
+    deadline.setUTCDate(deadline.getUTCDate() + graceDays);
+    return deadline.toISOString().split("T")[0] < todayStr;
+  });
 
   return (
     <div className="space-y-5 animate-fade-in pb-24">
