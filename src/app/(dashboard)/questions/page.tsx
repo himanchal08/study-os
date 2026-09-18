@@ -59,7 +59,9 @@ export default async function QuestionsPage() {
   const topics   = topicsRaw ?? [];
   const batches  = (batchesRaw ?? []) as unknown as BatchRow[];
 
-  const todayBatches   = batches.filter(b => b.logged_at.startsWith(todayStr));
+  const todayBatches   = batches.filter(b =>
+    dayBoundaryAwareDate(new Date(b.logged_at).getTime(), offsetMin, timezone) === todayStr
+  );
   const totalAttempted = todayBatches.reduce((s, b) => s + b.attempted, 0);
   const totalCorrect   = todayBatches.reduce((s, b) => s + b.correct, 0);
   const todayAccuracy  = totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : null;
@@ -114,7 +116,7 @@ export default async function QuestionsPage() {
             batches.map(b => {
               const subject = b.subjects as { name: string; color: string | null } | null;
               const topic   = b.topics   as { name: string } | null;
-              const isToday = b.logged_at.startsWith(todayStr);
+              const isToday = dayBoundaryAwareDate(new Date(b.logged_at).getTime(), offsetMin, timezone) === todayStr;
               return (
                 <div
                   key={b.id}

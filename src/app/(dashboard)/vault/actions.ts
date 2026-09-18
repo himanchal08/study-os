@@ -60,10 +60,11 @@ export async function deleteSavedQuestion(id: string, imagePath: string | null) 
 
   if (error) return { error: error.message };
 
-  
   if (imagePath) {
-    
-    supabase.storage.from("question-images").remove([imagePath]).catch(console.error);
+    const { error: storageError } = await supabase.storage
+      .from("question-images")
+      .remove([imagePath]);
+    if (storageError) console.error("Storage cleanup failed:", storageError.message);
   }
 
   revalidatePath("/vault");

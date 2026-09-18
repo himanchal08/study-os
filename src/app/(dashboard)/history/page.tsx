@@ -94,16 +94,15 @@ export default async function HistoryPage() {
     lastDate = d;
   }
 
-  // Current streak: count backwards from today
   const todayStr = dayBoundaryAwareDate(new Date().getTime(), offsetMin, timezone);
   let liveStreak = 0;
   {
-    let checkDate = new Date(todayStr + "T12:00:00");
+    let checkMs = new Date().getTime();
     while (true) {
-      const key = checkDate.toISOString().split("T")[0];
+      const key = dayBoundaryAwareDate(checkMs, offsetMin, timezone);
       if (!dailySecsMap.has(key)) break;
       liveStreak++;
-      checkDate = new Date(checkDate.getTime() - 86400000);
+      checkMs -= 86400000;
     }
   }
 

@@ -80,9 +80,29 @@ export async function deleteSubject(subjectId: string) {
   if (!user) return;
   
   const now = new Date().toISOString();
+
+  const { data: topicRows } = await supabase
+    .from("topics")
+    .select("id")
+    .eq("subject_id", subjectId)
+    .eq("user_id", user.id)
+    .is("archived_at", null);
+
+  const topicIds = (topicRows ?? []).map(t => t.id);
+  if (topicIds.length > 0) {
+    await supabase
+      .from("revisions")
+      .update({ completed_at: now })
+      .eq("user_id", user.id)
+      .in("topic_id", topicIds)
+      .is("completed_at", null);
+  }
+
   await supabase.from("topics").update({ archived_at: now }).eq("subject_id", subjectId).eq("user_id", user.id);
   await supabase.from("subjects").update({ deleted_at: now }).eq("id", subjectId).eq("user_id", user.id);
   revalidatePath("/syllabus");
+  revalidatePath("/");
+  revalidatePath("/revisions");
 }
 
 export async function archiveTopic(topicId: string) {

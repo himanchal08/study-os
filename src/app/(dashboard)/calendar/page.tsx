@@ -10,15 +10,19 @@ export default async function CalendarPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  
+  const now = new Date();
+
+  const threeMonthsAgo = new Date(now.getTime() - 90 * 86400000).toISOString().split("T")[0];
+  const threeMonthsAhead = new Date(now.getTime() + 90 * 86400000).toISOString().split("T")[0];
+
   const { data: tasks } = await supabase
     .from("tasks")
     .select("id, title, status, planned_date, due_date")
     .eq("user_id", user.id)
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .gte("planned_date", threeMonthsAgo)
+    .lte("planned_date", threeMonthsAhead);
 
-  
-  const now = new Date(); 
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 86400000).toISOString();
   const { data: sessions } = await supabase
     .from("study_sessions")

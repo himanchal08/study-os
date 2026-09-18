@@ -132,7 +132,7 @@ export default async function AnalyticsPage() {
     if (!s.end_timestamp || !s.subject_id) return;
     const secs = Math.max(0,
       (new Date(s.end_timestamp).getTime() - new Date(s.start_timestamp).getTime()) / 1000
-      - s.pause_duration_seconds
+      - (s.pause_duration_seconds ?? 0)
     );
     const sub = s.subjects as { id: string; name: string; color: string } | null;
     if (!subjectMap.has(s.subject_id)) {
@@ -165,7 +165,13 @@ export default async function AnalyticsPage() {
   const totalAttempted30 = batches?.reduce((s, b) => s + b.attempted, 0) ?? 0;
   const totalCorrect30   = batches?.reduce((s, b) => s + b.correct, 0)   ?? 0;
   const accuracy30 = totalAttempted30 > 0 ? (totalCorrect30 / totalAttempted30) * 100 : null;
-  const qPerHour = totalHours7 > 0 ? totalAttempted30 / totalHours7 : null;
+  // Use matching 30-day windows for both numerator and denominator.
+  const totalSecs30 = sessions.reduce(
+    (s, sess) => s + studyDurationSeconds(sess.start_timestamp, sess.end_timestamp, sess.pause_duration_seconds ?? 0),
+    0
+  );
+  const totalHours30 = secondsToHours(totalSecs30);
+  const qPerHour = totalHours30 > 0 ? totalAttempted30 / totalHours30 : null;
 
   const summaryCards = [
     { label: "Hours This Week",    value: `${totalHours7.toFixed(1)}h`,                      sub: `${daysStudied7}/7 days active`,           color: "#ededed" },

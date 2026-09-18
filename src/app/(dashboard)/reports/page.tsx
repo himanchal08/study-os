@@ -126,7 +126,7 @@ export default async function ReportsPage({
 
   (rawSessions ?? []).forEach((s: any) => {
     if (!s.end_timestamp || !s.topic_id) return;
-    const secs = studyDurationSeconds(s.start_timestamp, s.end_timestamp, s.pause_duration_seconds);
+    const secs = studyDurationSeconds(s.start_timestamp, s.end_timestamp, s.pause_duration_seconds ?? 0);
     totalSeconds += secs;
 
     const topic = s.topics as { name: string; subjects: { name: string; color: string } | null } | null;
@@ -242,7 +242,7 @@ export default async function ReportsPage({
 
     const parts: string[] = [];
 
-    parts.push(`You studied ${totalHours.toFixed(1)}h across ${diagnoses.length} topic${diagnoses.length !== 1 ? "s" : ""} in the last 30 days.`);
+    parts.push(`You studied ${totalHours.toFixed(1)}h across ${diagnoses.length} topic${diagnoses.length !== 1 ? "s" : ""} in the last ${lookbackDays} days.`);
 
     if (weakUnder.length > 0) {
       const names = weakUnder.slice(0, 2).map(d => d.topicName).join(", ");

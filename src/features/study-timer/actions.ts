@@ -97,7 +97,6 @@ export async function stopSession(params: {
     return { error: error.message };
   }
 
-    // Only create revisions when a specific topic was studied
     if (data && data.topic_id) {
     const today = new Date();
     const tomorrow = new Date(today);
@@ -140,7 +139,12 @@ export async function stopSession(params: {
       }
     ];
 
-    await supabase.from("revisions").insert(revisionsToInsert);
+    await supabase
+      .from("revisions")
+      .upsert(revisionsToInsert, {
+        onConflict: "user_id,topic_id,cycle_type,due_date",
+        ignoreDuplicates: true,
+      });
 
     let nextStatus = null;
     if (data.activity_type === "lecture") nextStatus = "learning";
@@ -152,7 +156,8 @@ export async function stopSession(params: {
       await supabase
         .from("topics")
         .update({ status: nextStatus as Database["public"]["Enums"]["topic_status_enum"] })
-        .eq("id", data.topic_id);
+        .eq("id", data.topic_id)
+        .eq("user_id", userId);
     }
 
     const lifecycleUpdates: Database["public"]["Tables"]["topic_lifecycle"]["Update"] = {};
@@ -173,7 +178,8 @@ export async function stopSession(params: {
         await supabase
           .from("topic_lifecycle")
           .update(lifecycleUpdates)
-          .eq("topic_id", data.topic_id);
+          .eq("topic_id", data.topic_id)
+          .eq("user_id", userId);
       } else {
         await supabase
           .from("topic_lifecycle")
@@ -190,7 +196,8 @@ export async function stopSession(params: {
     await supabase
       .from("tasks")
       .update({ status: "completed" })
-      .eq("id", data.task_id);
+      .eq("id", data.task_id)
+      .eq("user_id", userId);
   }
 
   revalidatePath("/", "layout");

@@ -30,9 +30,7 @@ export default async function TasksPage() {
     .select("id, name, color, exam_type")
     .order("name", { ascending: true });
 
-  const subjects = rawSubjects
-    ? [...rawSubjects].sort((a, b) => a.name.localeCompare(b.name))
-    : [];
+  const subjects = rawSubjects ?? [];
 
   const { data: rawTopics } = await supabase
     .from("topics")

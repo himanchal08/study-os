@@ -43,7 +43,7 @@ export function groupSessionsByDay(
       (new Date(s.end_timestamp).getTime() -
         new Date(s.start_timestamp).getTime()) /
         1000 -
-      s.pause_duration_seconds;
+      (s.pause_duration_seconds ?? 0);
     const hours = secondsToHours(Math.max(0, durationSec));
     result.set(dateKey, (result.get(dateKey) ?? 0) + hours);
   }
