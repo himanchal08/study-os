@@ -81,13 +81,16 @@ export async function scheduleRevision(prevState: unknown, formData: FormData) {
 
   if (!topicId || !cycleType || !dueDate) return { error: "All fields are required." };
 
-  const { error } = await supabase.from("revisions").insert({
-    user_id: user.id,
-    topic_id: topicId,
-    cycle_type: cycleType,
-    due_date: dueDate,
-    grace_window_days: cycleType === "daily" ? 1 : cycleType === "weekly" ? 2 : 5,
-  });
+  const { error } = await supabase.from("revisions").upsert(
+    {
+      user_id: user.id,
+      topic_id: topicId,
+      cycle_type: cycleType,
+      due_date: dueDate,
+      grace_window_days: cycleType === "daily" ? 1 : cycleType === "weekly" ? 2 : 5,
+    },
+    { onConflict: "user_id,topic_id,cycle_type,due_date", ignoreDuplicates: true },
+  );
 
   if (error) return { error: error.message };
 

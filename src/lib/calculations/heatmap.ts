@@ -71,7 +71,7 @@ export function buildHeatmapData(params: BuildHeatmapParams): HeatmapCell[] {
   const end = new Date(endDate);
 
   while (cursor <= end) {
-    const dateStr = cursor.toISOString().split("T")[0];
+    const dateStr = dayBoundaryAwareDate(cursor.getTime(), dayBoundaryOffsetMin, timezone);
     const annotation = annotations.get(dateStr);
 
     let value = 0;

@@ -116,6 +116,8 @@ export default async function HistoryPage() {
       bestDayDate={bestDayDate}
       currentStreak={liveStreak}
       bestStreak={bestStreak}
+      offsetMin={offsetMin}
+      timezone={timezone}
     />
   );
 }

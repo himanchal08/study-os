@@ -54,11 +54,11 @@ export async function createTask(
   const datesToInsert: string[] = [plannedDate];
 
   if (isRecurring) {
-    const baseDate = new Date(plannedDate);
+    const baseDate = new Date(plannedDate + "T00:00:00Z"); // parse as UTC midnight
     if (recurrencePattern === "daily") {
       for (let i = 1; i <= 7; i++) {
         const next = new Date(baseDate);
-        next.setDate(baseDate.getDate() + i);
+        next.setUTCDate(baseDate.getUTCDate() + i);
         datesToInsert.push(next.toISOString().split("T")[0]);
       }
     } else if (recurrencePattern === "weekdays") {
@@ -66,8 +66,8 @@ export async function createTask(
       let i = 1;
       while (count < 5 && i < 14) {
         const next = new Date(baseDate);
-        next.setDate(baseDate.getDate() + i);
-        const day = next.getDay();
+        next.setUTCDate(baseDate.getUTCDate() + i);
+        const day = next.getUTCDay();
         if (day >= 1 && day <= 5) {
           datesToInsert.push(next.toISOString().split("T")[0]);
           count++;
@@ -77,7 +77,7 @@ export async function createTask(
     } else if (recurrencePattern === "weekly") {
       for (let i = 1; i <= 3; i++) {
         const next = new Date(baseDate);
-        next.setDate(baseDate.getDate() + i * 7);
+        next.setUTCDate(baseDate.getUTCDate() + i * 7);
         datesToInsert.push(next.toISOString().split("T")[0]);
       }
     }

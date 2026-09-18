@@ -56,6 +56,8 @@ export default async function AnalyticsPage() {
     .select("start_timestamp, end_timestamp, pause_duration_seconds, subject_id, subjects(id, name, color)")
     .eq("user_id", user.id)
     .gte("start_timestamp", thirtyDaysAgo)
+    .not("end_timestamp", "is", null)  // exclude active sessions
+    .is("deleted_at", null);            // exclude soft-deleted sessions
   const sessions = (rawSessions ?? []) as unknown as SessionRow[];
 
   
@@ -105,8 +107,10 @@ export default async function AnalyticsPage() {
   const domainDistractions = new Map<string, number>();
   let totalDistractionSecs = 0;
   (distractionsRaw ?? []).forEach(d => {
+    // Skip events with no recorded duration — avoids fabricating focus-loss time.
+    if (!d.duration_seconds) return;
     const domain = d.domain;
-    const dur = d.duration_seconds ?? 10;
+    const dur = d.duration_seconds;
     domainDistractions.set(domain, (domainDistractions.get(domain) ?? 0) + dur);
     totalDistractionSecs += dur;
   });
@@ -151,7 +155,7 @@ export default async function AnalyticsPage() {
   sessions.forEach((s) => {
     if (!s.end_timestamp) return;
     const bucket = timeOfDayBucket(new Date(s.start_timestamp).getTime(), timezone);
-    const secs = studyDurationSeconds(s.start_timestamp, s.end_timestamp, s.pause_duration_seconds);
+    const secs = studyDurationSeconds(s.start_timestamp, s.end_timestamp, s.pause_duration_seconds ?? 0);
     todMap.set(bucket, (todMap.get(bucket) ?? 0) + secs);
   });
   const todData = TOD_CONFIG.map((c) => ({ ...c, hours: secondsToHours(todMap.get(c.bucket) ?? 0) }));
@@ -160,7 +164,7 @@ export default async function AnalyticsPage() {
   const totalHours7 = last7.reduce((s, d) => s + d.hours, 0);
   const daysStudied7 = last7.filter((d) => d.hours > 0).length;
   const avgBlockSec = sessions.length > 0
-    ? sessions.reduce((s, sess) => s + studyDurationSeconds(sess.start_timestamp, sess.end_timestamp, sess.pause_duration_seconds), 0) / sessions.length
+    ? sessions.reduce((s, sess) => s + studyDurationSeconds(sess.start_timestamp, sess.end_timestamp, sess.pause_duration_seconds ?? 0), 0) / sessions.length
     : 0;
   const totalAttempted30 = batches?.reduce((s, b) => s + b.attempted, 0) ?? 0;
   const totalCorrect30   = batches?.reduce((s, b) => s + b.correct, 0)   ?? 0;

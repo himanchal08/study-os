@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { deleteStudySession } from "@/features/study-timer/actions";
 import { useTransition } from "react";
 import { SubjectOptions } from "@/components/ui/SubjectOptions";
+import { dayBoundaryAwareDate } from "@/lib/calculations";
 
 const ACTIVITY_COLORS: Record<string, string> = {
   practice: "#818cf8",
@@ -35,6 +36,9 @@ interface HistoryClientProps {
   bestDayDate: string;
   currentStreak: number;
   bestStreak: number;
+  // User timezone settings — needed for boundary-aware day grouping
+  offsetMin: number;
+  timezone: string;
 }
 
 function formatHMS(secs: number): string {
@@ -60,6 +64,8 @@ export function HistoryClient({
   bestDayDate,
   currentStreak,
   bestStreak,
+  offsetMin,
+  timezone,
 }: HistoryClientProps) {
   const [search, setSearch]       = useState("");
   const [filterSubject, setFilterSubject] = useState("");
@@ -84,7 +90,7 @@ export function HistoryClient({
   const grouped = useMemo(() => {
     const map = new Map<string, HistorySession[]>();
     filtered.forEach(s => {
-      const key = s.start_timestamp.split("T")[0];
+      const key = dayBoundaryAwareDate(new Date(s.start_timestamp).getTime(), offsetMin, timezone);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(s);
     });
@@ -97,7 +103,7 @@ export function HistoryClient({
         ),
         totalSecs: items.reduce((acc, s) => acc + sessionDurationSecs(s), 0),
       }));
-  }, [filtered]);
+  }, [filtered, offsetMin, timezone]);
 
   const filteredTotalSecs = useMemo(
     () => filtered.reduce((acc, s) => acc + sessionDurationSecs(s), 0),
@@ -200,7 +206,7 @@ export function HistoryClient({
         <div className="space-y-5">
           {grouped.map(({ date, items, totalSecs }) => {
             const dateObj  = new Date(date + "T12:00:00");
-            const isToday  = date === new Date().toISOString().split("T")[0];
+            const isToday  = date === dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
             const dayHours = totalSecs / 3600;
             const dayColor = dayHours >= 6 ? "#34d399" : dayHours >= 3 ? "#818cf8" : "#52525b";
 

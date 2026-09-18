@@ -73,6 +73,10 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   const [totalPauseSec, setTotalPauseSec] = useState(activeSession?.pause_duration_seconds ?? 0);
   const [displayedSec, setDisplayedSec] = useState(accumulatedSec);
   const rafRef = useRef<number | null>(null);
+  // Mirror accumulatedSec in a ref so the rAF tick always reads the latest value
+  // without triggering effect restarts (fixes stale-closure timer drift after pause/resume).
+  const accumulatedSecRef = useRef(accumulatedSec);
+  accumulatedSecRef.current = accumulatedSec;
 
   const isRunning = !!session;
   const isPaused = pausedAtMs !== null;
@@ -84,7 +88,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       const tick = () => {
         if (segmentStartMonoRef.current === null) return;
         const monoElapsed = (performance.now() - segmentStartMonoRef.current) / 1000;
-        setDisplayedSec(Math.floor(accumulatedSec + monoElapsed));
+        setDisplayedSec(Math.floor(accumulatedSecRef.current + monoElapsed));
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -157,6 +161,12 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
 
     // 1. Optimistic update — hide timer immediately
     const sessionId = session.id;
+
+    // Compute elapsed from timestamps — avoids stale displayedSec in closure.
+    const elapsedSecs = sessionId === "__optimistic__"
+      ? 0
+      : Math.max(0, (Date.now() - new Date(session.start_timestamp).getTime()) / 1000 - totalPauseSec);
+
     let finalPauseSec = totalPauseSec;
     if (isPaused && pausedAtMs !== null) {
       finalPauseSec += Math.floor((Date.now() - pausedAtMs) / 1000);
@@ -171,19 +181,21 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     setNotes("");
     setSelectedTopic("");
 
-    // 2. Fire DB call in background (skip optimistic sessions)
-    if (sessionId !== "__optimistic__") {
-      stopSession({
-        sessionId,
-        userId,
-        pauseDurationSeconds: finalPauseSec,
-        notes: finalNotes || undefined,
-      }).then(result => {
-        if ("error" in result && result.error) {
-          setError(result.error);
-        }
-      });
-    }
+    // Skip the DB write for very short or still-optimistic sessions.
+    // Avoids spurious revision entries from accidental start taps.
+    if (sessionId === "__optimistic__" || elapsedSecs < 30) return;
+
+    // 2. Fire DB call in background
+    stopSession({
+      sessionId,
+      userId,
+      pauseDurationSeconds: finalPauseSec,
+      notes: finalNotes || undefined,
+    }).then(result => {
+      if ("error" in result && result.error) {
+        setError(result.error);
+      }
+    });
   }, [session, userId, isPaused, pausedAtMs, totalPauseSec, notes]);
 
   return (

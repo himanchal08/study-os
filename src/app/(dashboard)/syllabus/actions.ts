@@ -109,12 +109,27 @@ export async function archiveTopic(topicId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
+
+  const now = new Date().toISOString();
+
+  // Close pending revisions first — same pattern as deleteSubject.
+  // Archived topics must not leave ghost entries in the revision queue.
+  await supabase
+    .from("revisions")
+    .update({ completed_at: now })
+    .eq("user_id", user.id)
+    .eq("topic_id", topicId)
+    .is("completed_at", null);
+
   await supabase
     .from("topics")
-    .update({ archived_at: new Date().toISOString() })
+    .update({ archived_at: now })
     .eq("id", topicId)
     .eq("user_id", user.id);
+
   revalidatePath("/syllabus");
+  revalidatePath("/");
+  revalidatePath("/revisions");
 }
 
 export async function updateTopicLifecycle(

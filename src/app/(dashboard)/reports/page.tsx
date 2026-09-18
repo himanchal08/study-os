@@ -214,10 +214,9 @@ export default async function ReportsPage({
   const ORDER: Record<string, number> = {
     weak_under_studied: 0,
     weak_adequately_studied: 1,
-    slow_and_inaccurate: 2,
-    strong_over_studied: 3,
-    strong_appropriately_studied: 4,
-    no_data: 5,
+    strong_over_studied: 2,
+    strong_appropriately_studied: 3,
+    no_data: 4,
   };
   diagnoses.sort((a, b) => (ORDER[a.strategicState] ?? 5) - (ORDER[b.strategicState] ?? 5));
 

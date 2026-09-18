@@ -33,11 +33,19 @@ export function TaskCard({ task, userId }: TaskCardProps) {
   const [postponeDate, setPostponeDate] = useState(() => {
     const next = new Date();
     next.setDate(next.getDate() + 1);
-    return next.toISOString().split("T")[0];
+    // Use local date parts (not toISOString which is UTC) so the default
+    // is always tomorrow in the user's browser timezone.
+    const y = next.getFullYear();
+    const m = String(next.getMonth() + 1).padStart(2, "0");
+    const d = String(next.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
   });
   const [postponeReason, setPostponeReason] = useState("");
 
   const isCompleted = task.status === "completed";
+  // Disable the start-session shortcut when a task has no subject and no topic.
+  // A session without both creates an empty history entry with no metadata.
+  const canStartSession = !!(task.subjects || task.topics);
 
   function handleToggleComplete() {
     const newStatus: TaskStatus = isCompleted ? "pending" : "completed";
@@ -152,9 +160,9 @@ export function TaskCard({ task, userId }: TaskCardProps) {
             <button
               type="button"
               onClick={handleStartStudy}
-              disabled={isPending}
-              title="Start study session"
-              className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all hover:opacity-90 active:scale-95 flex items-center gap-1"
+              disabled={isPending || !canStartSession}
+              title={canStartSession ? "Start study session" : "Add a subject or topic to enable"}
+              className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all hover:opacity-90 active:scale-95 flex items-center gap-1 disabled:opacity-40"
               style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.25)" }}
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -208,8 +216,8 @@ export function TaskCard({ task, userId }: TaskCardProps) {
           <button
             type="button"
             onClick={handleStartStudy}
-            disabled={isPending}
-            className="flex-1 text-xs py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95"
+            disabled={isPending || !canStartSession}
+            className="flex-1 text-xs py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-40"
             style={{ background: "rgba(99,102,241,0.18)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
