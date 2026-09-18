@@ -42,7 +42,7 @@ export default async function AnalyticsPage() {
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
   const target    = profile?.daily_target_hours ?? 8;
 
-  const now = Date.now();
+  const now = new Date().getTime();
   const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
 

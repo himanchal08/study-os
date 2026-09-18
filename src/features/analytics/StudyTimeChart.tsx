@@ -51,7 +51,7 @@ export function StudyTimeChart({ data, targetHours }: StudyTimeChartProps) {
       <BarChart data={data} barSize={20} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
         <XAxis
           dataKey="date"
-          tick={(props: any) => {
+          tick={(props: { x: number | string; y: number | string; payload: { value: string } }) => {
             const { x, y, payload } = props;
             const dataItem = data.find(d => d.date === payload.value);
             return (

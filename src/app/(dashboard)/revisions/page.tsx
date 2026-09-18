@@ -31,7 +31,7 @@ export default async function RevisionsPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
-  const nowMs = Date.now();
+  const nowMs = new Date().getTime();
   const todayStr = dayBoundaryAwareDate(nowMs, offsetMin, timezone);
 
   const [{ data: dueRaw }, { data: completedTodayRaw }, { data: historyRaw }] = await Promise.all([
@@ -67,7 +67,7 @@ export default async function RevisionsPage() {
   type TopicHistory = { topicName: string; subjectName: string; subjectColor: string; entries: HistEntry[] };
 
   const historyByTopic = new Map<string, TopicHistory>();
-  (historyRaw ?? []).forEach((r: any) => {
+  (historyRaw ?? []).forEach((r: { completed_at: string | null; due_date: string; cycle_type: string; recall_score: number | null; topic_id?: string; topics?: { name: string; subjects: { name: string; color: string } | null } | null | unknown }) => {
     const topic = r.topics as { name: string; subjects: { name: string; color: string } | null } | null;
     const key = (r.topic_id as string) ?? topic?.name ?? "Unknown";
     if (!historyByTopic.has(key)) {

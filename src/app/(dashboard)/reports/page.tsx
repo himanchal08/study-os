@@ -107,7 +107,7 @@ export default async function ReportsPage({
   
   type MockAccData = { attempted: number; correct: number; count: number };
   const mockSectionAccMap = new Map<string, MockAccData>();
-  (rawMockSections ?? []).forEach((ms: any) => {
+  (rawMockSections ?? []).forEach((ms: { name: string; attempted: number; correct: number; mock_id: string }) => {
     const key = ms.name.toLowerCase().trim();
     if (!mockSectionAccMap.has(key)) mockSectionAccMap.set(key, { attempted: 0, correct: 0, count: 0 });
     const d = mockSectionAccMap.get(key)!;
@@ -122,7 +122,7 @@ export default async function ReportsPage({
 
   let totalSeconds = 0;
 
-  (rawSessions ?? []).forEach((s: any) => {
+  (rawSessions ?? []).forEach((s: { end_timestamp: string | null; topic_id: string | null; start_timestamp: string; pause_duration_seconds: number | null; topics: { name: string; subjects: { name: string; color: string } | null } | null | unknown }) => {
     if (!s.end_timestamp || !s.topic_id) return;
     const secs = studyDurationSeconds(s.start_timestamp, s.end_timestamp, s.pause_duration_seconds ?? 0);
     totalSeconds += secs;
@@ -142,7 +142,7 @@ export default async function ReportsPage({
   type PracticeData = { attempted: number; correct: number };
   const topicPracticeMap = new Map<string, PracticeData>();
 
-  (rawBatches ?? []).forEach((b: any) => {
+  (rawBatches ?? []).forEach((b: { topic_id: string | null; attempted: number; correct: number }) => {
     if (!b.topic_id) return;
     if (!topicPracticeMap.has(b.topic_id)) {
       topicPracticeMap.set(b.topic_id, { attempted: 0, correct: 0 });

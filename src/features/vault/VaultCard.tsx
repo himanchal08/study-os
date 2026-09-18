@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { format } from "date-fns";
 
 const ERROR_COLORS: Record<string, string> = {
@@ -62,8 +63,8 @@ export function VaultCard({
       style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderTop: `3px solid ${errColor}` }}
     >
       {imageUrl && (
-        <div className="w-full aspect-video overflow-hidden bg-neutral-900">
-          <img src={imageUrl} alt="Question screenshot" className="w-full h-full object-cover" />
+        <div className="w-full aspect-video relative overflow-hidden bg-neutral-900">
+          <Image src={imageUrl} alt="Question screenshot" fill unoptimized className="object-cover" />
         </div>
       )}
 

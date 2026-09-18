@@ -111,8 +111,9 @@ export async function POST() {
               eventId: task.google_event_id,
               requestBody: eventBody,
             });
-          } catch (updateErr: any) {
-            if (updateErr?.response?.status === 404 || updateErr?.code === 404) {
+          } catch (updateErr) {
+            const err = updateErr as { response?: { status?: number }; code?: number };
+            if (err?.response?.status === 404 || err?.code === 404) {
               const res = await calendar.events.insert({
                 calendarId: "primary",
                 requestBody: eventBody,
@@ -136,11 +137,12 @@ export async function POST() {
           }
         }
         if (!inserted) syncedCount++;
-      } catch (e: any) {
-        if (e?.response?.status === 403) {
+      } catch (e) {
+        const err = e as { response?: { status?: number }; message?: string };
+        if (err?.response?.status === 403) {
            errors.push(`Calendar forbidden: Reconnect Google account to grant new permissions.`);
         } else {
-           errors.push(`Calendar Task "${task.title}" failed: ${e?.message}`);
+           errors.push(`Calendar Task "${task.title}" failed: ${err?.message}`);
         }
       }
     });
@@ -159,7 +161,7 @@ export async function POST() {
 
       await processInBatches(tasks ?? [], 5, async (task) => {
         const isCompleted = task.status === "completed";
-        const taskBody: any = {
+        const taskBody: { title: string; notes: string; status: string; due: string; completed?: string; id?: string } = {
           title: task.title,
           notes: `Status: ${task.status}`,
           status: isCompleted ? "completed" : "needsAction",
@@ -178,8 +180,9 @@ export async function POST() {
                 task: task.google_task_id,
                 requestBody: { ...taskBody, id: task.google_task_id },
               });
-            } catch (updateErr: any) {
-              if (updateErr?.response?.status === 404 || updateErr?.code === 404) {
+            } catch (updateErr) {
+              const err = updateErr as { response?: { status?: number }; code?: number };
+              if (err?.response?.status === 404 || err?.code === 404) {
                 const res = await tasksApi.tasks.insert({
                   tasklist: taskListId,
                   requestBody: taskBody,
@@ -205,11 +208,12 @@ export async function POST() {
            errors.push(`Google Task sync "${task.title}" failed`);
         }
       });
-    } catch (e: any) {
-      if (e?.response?.status === 403 || e?.code === 403 || String(e).includes("insufficientPermissions")) {
+    } catch (e) {
+      const err = e as { response?: { status?: number }; code?: number; message?: string };
+      if (err?.response?.status === 403 || err?.code === 403 || String(err).includes("insufficientPermissions")) {
         errors.push(`Tasks forbidden: Please disconnect and reconnect Google account in Settings to grant Tasks permission.`);
       } else {
-        errors.push(`Failed to access Google Tasks API: ${e?.message}`);
+        errors.push(`Failed to access Google Tasks API: ${err?.message}`);
       }
     }
 
@@ -239,8 +243,9 @@ export async function POST() {
               eventId: s.google_event_id,
               requestBody: eventBody,
             });
-          } catch (updateErr: any) {
-             if (updateErr?.response?.status === 404 || updateErr?.code === 404) {
+          } catch (updateErr) {
+             const err = updateErr as { response?: { status?: number }; code?: number };
+             if (err?.response?.status === 404 || err?.code === 404) {
               const res = await calendar.events.insert({
                 calendarId: "primary",
                 requestBody: eventBody,
@@ -270,11 +275,12 @@ export async function POST() {
           }
         }
         if (!inserted) syncedCount++;
-      } catch (e: any) {
-        if (e?.response?.status === 403) {
+      } catch (e) {
+        const err = e as { response?: { status?: number }; message?: string };
+        if (err?.response?.status === 403) {
           errors.push(`Calendar forbidden: Reconnect Google account.`);
         } else {
-          errors.push(`Session sync failed: ${e?.message}`);
+          errors.push(`Session sync failed: ${err?.message}`);
         }
       }
     });

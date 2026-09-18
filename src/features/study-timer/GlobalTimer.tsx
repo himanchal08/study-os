@@ -76,14 +76,16 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     };
   }, []);
 
-  useEffect(() => {
+  const [prevSessionId, setPrevSessionId] = useState(activeSession?.id);
+  if (activeSession?.id !== prevSessionId) {
+    setPrevSessionId(activeSession?.id);
     setSession(activeSession);
     setSelectedSubject(activeSession?.subject_id ?? "");
     setSelectedTopic(activeSession?.topic_id ?? "");
     setActivityType(activeSession?.activity_type ?? "practice");
     setNotes(activeSession?.notes ?? "");
     setPostLog(null);
-  }, [activeSession?.id]);
+  }
 
   const filteredTopics = topics.filter(t => t.subject_id === selectedSubject);
 

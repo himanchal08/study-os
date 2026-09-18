@@ -102,22 +102,24 @@ export default async function HistoryPage() {
 
   let liveStreak = 0;
   {
-    const nowMs = Date.now();
+    const nowMs = new Date().getTime();
     const todayStrRaw = dayBoundaryAwareDate(nowMs, offsetMin, timezone);
-    const todayNoonMs = new Date(todayStrRaw + "T12:00:00Z").getTime();
-    const todayKey = dayBoundaryAwareDate(todayNoonMs, offsetMin, timezone);
-    const yesterdayMs = todayNoonMs - 86400000;
-    const yesterdayKey = dayBoundaryAwareDate(yesterdayMs, offsetMin, timezone);
-    let checkMs = todayNoonMs;
-    if (!dailySecsMap.has(todayKey) && dailySecsMap.has(yesterdayKey)) {
-      checkMs = yesterdayMs;
+    
+    const getYesterday = (dateStr: string) => {
+       const dt = new Date(dateStr + "T12:00:00Z");
+       dt.setUTCDate(dt.getUTCDate() - 1);
+       return dt.toISOString().split("T")[0];
+    };
+
+    let currentKey = todayStrRaw;
+    if (!dailySecsMap.has(currentKey) && dailySecsMap.has(getYesterday(currentKey))) {
+      currentKey = getYesterday(currentKey);
     }
 
     while (true) {
-      const key = dayBoundaryAwareDate(checkMs, offsetMin, timezone);
-      if (!dailySecsMap.has(key)) break;
+      if (!dailySecsMap.has(currentKey)) break;
       liveStreak++;
-      checkMs -= 86400000;
+      currentKey = getYesterday(currentKey);
     }
   }
 

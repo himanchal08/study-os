@@ -41,7 +41,7 @@ export default async function QuestionsPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
-  const nowMs    = Date.now();
+  const nowMs    = new Date().getTime();
   const todayStr = dayBoundaryAwareDate(nowMs, offsetMin, timezone);
   const batchWindowStart = new Date(nowMs - 30 * 86400000).toISOString();
 

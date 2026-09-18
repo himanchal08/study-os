@@ -243,7 +243,7 @@ export default async function HomePage() {
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
           Today&apos;s Sessions
         </h2>
-        <WeeklyTimesheet sessions={todaySessionsRaw as any ?? []} todayOnly />
+        <WeeklyTimesheet sessions={todaySessionsRaw as React.ComponentProps<typeof WeeklyTimesheet>["sessions"] ?? []} todayOnly />
       </section>
 
       <section aria-label="Activity Heatmap">

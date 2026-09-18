@@ -87,7 +87,7 @@ export function SyllabusTabs({ subjects }: { subjects: Subject[] }) {
             <p className="text-neutral-700 text-xs mt-1">Run the seed SQL in Supabase to populate this tab.</p>
           </div>
         ) : (
-          filtered.map(s => <SubjectCard key={s.id} subject={s as any} />)
+          filtered.map(s => <SubjectCard key={s.id} subject={s as React.ComponentProps<typeof SubjectCard>["subject"]} />)
         )}
       </div>
     </div>

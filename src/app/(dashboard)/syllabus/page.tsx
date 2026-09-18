@@ -19,13 +19,13 @@ export default async function SyllabusPage() {
     supabase.from("topic_lifecycle").select("topic_id, book_practice_done, dpp_done, pyq_done, tests_attempted_count").eq("user_id", user.id),
   ]);
 
-  const subjectWithTopics = ((subjects as any[]) ?? []).map(s => ({
+  const subjectWithTopics = ((subjects as {id: string; name: string; color: string; exam_type: string}[]) ?? []).map(s => ({
     ...s,
-    topics:   ((topics   as any[]) ?? []).filter(t  => t.subject_id  === s.id).map(t => {
-      const lc = ((lifecycles as any[]) ?? []).find(l => l.topic_id === t.id);
+    topics:   ((topics   as {id: string; name: string; status: string; subject_id: string; chapter_id: string | null}[]) ?? []).filter(t  => t.subject_id  === s.id).map(t => {
+      const lc = ((lifecycles as {topic_id: string; book_practice_done: boolean; dpp_done: boolean; pyq_done: boolean; tests_attempted_count: number}[]) ?? []).find(l => l.topic_id === t.id);
       return { ...t, lifecycle: lc || null };
     }),
-    chapters: ((chapters as any[]) ?? []).filter(ch => ch.subject_id === s.id),
+    chapters: ((chapters as {id: string; name: string; subject_id: string; sort_order: number}[]) ?? []).filter(ch => ch.subject_id === s.id),
   }));
 
   return (

@@ -37,7 +37,7 @@ export default async function MocksPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
-  const todayStr = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
+  const todayStr = dayBoundaryAwareDate(new Date().getTime(), offsetMin, timezone);
   const defaultExamType = (profile?.exam_targets?.[0] as "banking" | "ssc") ?? "banking";
 
   const { data: mocks } = await supabase
