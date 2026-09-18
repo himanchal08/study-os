@@ -23,7 +23,7 @@ export function RevisionQueue({ revisions }: RevisionQueueProps) {
   function handleComplete(revisionId: string) {
     setCompleting((prev) => new Set(prev).add(revisionId));
     startTransition(async () => {
-      await completeRevision(revisionId);
+      await completeRevision(revisionId, 4); // Quick-complete from dashboard defaults to 'Good' (4)
       setCompleting((prev) => {
         const next = new Set(prev);
         next.delete(revisionId);
