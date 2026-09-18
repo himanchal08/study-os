@@ -110,7 +110,16 @@ export default async function HistoryPage() {
 
   let liveStreak = 0;
   {
-    let checkMs = new Date().getTime();
+    const now = new Date();
+    const todayNoonMs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0).getTime();
+    const todayKey = dayBoundaryAwareDate(todayNoonMs, offsetMin, timezone);
+    const yesterdayMs = todayNoonMs - 86400000;
+    const yesterdayKey = dayBoundaryAwareDate(yesterdayMs, offsetMin, timezone);
+    let checkMs = todayNoonMs;
+    if (!dailySecsMap.has(todayKey) && dailySecsMap.has(yesterdayKey)) {
+      checkMs = yesterdayMs;
+    }
+
     while (true) {
       const key = dayBoundaryAwareDate(checkMs, offsetMin, timezone);
       if (!dailySecsMap.has(key)) break;

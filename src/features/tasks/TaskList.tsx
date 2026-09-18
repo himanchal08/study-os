@@ -16,13 +16,12 @@ interface TaskListProps {
   userId: string;
   todayDate: string;
   subjects: SubjectOption[];
-  offsetMin: number;
   timezone: string;
 }
 
 type FilterTab = "today" | "upcoming" | "completed" | "all";
 
-export function TaskList({ tasks, userId, todayDate, subjects, offsetMin, timezone }: TaskListProps) {
+export function TaskList({ tasks, userId, todayDate, subjects, timezone }: TaskListProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("today");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
