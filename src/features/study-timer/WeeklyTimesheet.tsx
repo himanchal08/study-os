@@ -272,7 +272,7 @@ function SessionRowItem({
                 }
               }}
               disabled={isPending}
-              className="opacity-0 group-hover:opacity-100 p-1.5 rounded text-neutral-600 hover:text-neutral-300 hover:bg-white/5 transition-all"
+              className="p-1.5 rounded text-neutral-500 hover:text-neutral-200 hover:bg-white/10 transition-all"
               title="Edit times"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,7 +284,7 @@ function SessionRowItem({
           <button
             onClick={() => onDelete(session.id)}
             disabled={isPending}
-            className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/10 text-neutral-600 hover:text-red-400 rounded transition-all"
+            className="p-1.5 rounded text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
             title="Delete session"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
