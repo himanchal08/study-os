@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { dayBoundaryAwareDate } from "@/lib/calculations";
 import { RevisionCard } from "@/features/revisions/RevisionCard";
+import { DeleteTopicRevisionsButton } from "@/features/revisions/DeleteTopicRevisionsButton";
 import type { Tables } from "@/types/database";
 
 type RevisionRow = Pick<
@@ -64,7 +65,7 @@ export default async function RevisionsPage() {
   ]);
 
   type HistEntry    = { date: string; cycleType: string; recallScore: number | null };
-  type TopicHistory = { topicName: string; subjectName: string; subjectColor: string; entries: HistEntry[] };
+  type TopicHistory = { topicId: string; topicName: string; subjectName: string; subjectColor: string; entries: HistEntry[] };
 
   const historyByTopic = new Map<string, TopicHistory>();
   (historyRaw ?? []).forEach((r: { completed_at: string | null; due_date: string; cycle_type: string; recall_score: number | null; topic_id?: string; topics?: { name: string; subjects: { name: string; color: string } | null } | null | unknown }) => {
@@ -72,6 +73,7 @@ export default async function RevisionsPage() {
     const key = (r.topic_id as string) ?? topic?.name ?? "Unknown";
     if (!historyByTopic.has(key)) {
       historyByTopic.set(key, {
+        topicId:      key,
         topicName:    topic?.name ?? "Unknown",
         subjectName:  topic?.subjects?.name  ?? "",
         subjectColor: topic?.subjects?.color ?? "#52525b",
@@ -187,7 +189,7 @@ export default async function RevisionsPage() {
                 ? withScore.reduce((s, e) => s + (e.recallScore ?? 0), 0) / withScore.length
                 : null;
               return (
-                <div key={ht.topicName} className="rounded-xl p-3.5" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+                <div key={ht.topicId} className="group rounded-xl p-3.5" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: ht.subjectColor }} />
@@ -201,6 +203,7 @@ export default async function RevisionsPage() {
                           {avgRecall.toFixed(1)}/5
                         </span>
                       )}
+                      <DeleteTopicRevisionsButton topicId={ht.topicId} topicName={ht.topicName} />
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-wrap">

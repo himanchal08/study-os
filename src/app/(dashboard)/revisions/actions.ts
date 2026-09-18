@@ -99,3 +99,38 @@ export async function scheduleRevision(prevState: unknown, formData: FormData) {
   return { success: true };
 }
 
+export async function deleteRevision(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("revisions")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/revisions");
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function deleteTopicRevisions(topicId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("revisions")
+    .delete()
+    .eq("topic_id", topicId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/revisions");
+  revalidatePath("/");
+  return { success: true };
+}

@@ -121,13 +121,13 @@ export async function stopSession(params: {
     return { error: error.message };
   }
 
-  if (data && data.topic_id) {
-    const sessionDurationSec =
-      (new Date(data.end_timestamp!).getTime() -
-        new Date(data.start_timestamp).getTime()) /
-        1000 -
-      (data.pause_duration_seconds ?? 0);
+  // Compute once here — used for both revision gating and task auto-complete gating
+  const sessionDurationSec = data
+    ? (new Date(data.end_timestamp!).getTime() - new Date(data.start_timestamp).getTime()) / 1000
+      - (data.pause_duration_seconds ?? 0)
+    : 0;
 
+  if (data && data.topic_id) {
     if (sessionDurationSec >= 60) {
       const { data: userProfile } = await supabase
         .from("profiles")
@@ -136,13 +136,14 @@ export async function stopSession(params: {
         .single();
       const userTimezone  = userProfile?.timezone ?? "Asia/Kolkata";
 
-      const toUserDateStr = (msFromNow: number) => {
+      const endMs = new Date(resolvedEnd).getTime();
+      const toUserDateStr = (offsetMs: number) => {
         const parts = new Intl.DateTimeFormat("en-CA", {
           timeZone: userTimezone,
           year: "numeric",
           month: "2-digit",
           day: "2-digit",
-        }).formatToParts(new Date(Date.now() + msFromNow));
+        }).formatToParts(new Date(endMs + offsetMs));
         const y = parts.find(p => p.type === "year")?.value;
         const m = parts.find(p => p.type === "month")?.value;
         const d = parts.find(p => p.type === "day")?.value;
@@ -227,7 +228,7 @@ export async function stopSession(params: {
     }
   }
 
-  if (data && data.task_id) {
+  if (data && data.task_id && sessionDurationSec >= 60) {
     await supabase
       .from("tasks")
       .update({ status: "completed", completed_at: new Date().toISOString() })
@@ -247,15 +248,24 @@ export async function deleteStudySession(sessionId: string) {
     return { error: "Not authenticated" };
   }
 
+  const now = new Date().toISOString();
+
   const { error } = await supabase
     .from("study_sessions")
-    .update({ deleted_at: new Date().toISOString() })
+    .update({ deleted_at: now })
     .eq("id", sessionId)
     .eq("user_id", user.id);
 
   if (error) {
     return { error: error.message };
   }
+
+  await supabase
+    .from("revisions")
+    .delete()
+    .eq("source_session_id", sessionId)
+    .eq("user_id", user.id)
+    .is("completed_at", null);
 
   revalidatePath("/", "layout");
   return { success: true };

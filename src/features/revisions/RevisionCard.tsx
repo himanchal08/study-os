@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { markRevisionDone } from "@/app/(dashboard)/revisions/actions";
+import { markRevisionDone, deleteRevision } from "@/app/(dashboard)/revisions/actions";
 
 interface RevisionCardProps {
   id: string;
@@ -34,6 +34,7 @@ export function RevisionCard({
 }: RevisionCardProps) {
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const cycleStyle = CYCLE_COLORS[cycleType];
 
   const done = (score: number) => {
@@ -46,10 +47,23 @@ export function RevisionCard({
     });
   };
 
+  const handleDelete = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      // auto-cancel confirmation after 3s
+      setTimeout(() => setConfirmDelete(false), 3000);
+      return;
+    }
+    startTransition(async () => {
+      await deleteRevision(id);
+    });
+  };
+
+  // ── Completed card ───────────────────────────────────────────────
   if (completedAt) {
     return (
       <div
-        className="rounded-xl p-3.5 flex items-center gap-3 opacity-40"
+        className="group rounded-xl p-3.5 flex items-center gap-3 opacity-40 hover:opacity-70 transition-opacity relative"
         style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
       >
         <span className="text-emerald-400 shrink-0">✓</span>
@@ -58,13 +72,25 @@ export function RevisionCard({
           {subjectName && <p className="text-xs text-neutral-600">{subjectName}</p>}
         </div>
         <span className="text-xs text-neutral-600 shrink-0">done</span>
+
+        {/* Delete on hover */}
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={handleDelete}
+          title="Delete this revision"
+          className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-neutral-600 hover:text-red-400 shrink-0 w-5 h-5 flex items-center justify-center rounded"
+        >
+          ✕
+        </button>
       </div>
     );
   }
 
+  // ── Pending card ─────────────────────────────────────────────────
   return (
     <div
-      className="rounded-xl overflow-hidden"
+      className="group rounded-xl overflow-hidden"
       style={{
         background: "#0a0a0a",
         border: `1px solid ${isOverdue ? "#7c1d1d55" : "#1a1a1a"}`,
@@ -73,8 +99,29 @@ export function RevisionCard({
       <div className="p-3.5">
         <div className="flex items-start justify-between gap-2 mb-2">
           <p className="text-sm font-medium text-neutral-100 leading-snug">{topicName}</p>
-          <span className="text-[10px] text-neutral-600 shrink-0 mt-0.5">{dueDate}</span>
+
+          <div className="flex items-center gap-2 shrink-0 mt-0.5">
+            <span className="text-[10px] text-neutral-600">{dueDate}</span>
+
+            {/* Delete button — shows on hover, turns red on confirm */}
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={handleDelete}
+              title={confirmDelete ? "Click again to confirm delete" : "Delete this revision"}
+              className="opacity-0 group-hover:opacity-100 transition-all text-xs w-5 h-5 flex items-center justify-center rounded"
+              style={{ color: confirmDelete ? "#ef4444" : "#525252" }}
+            >
+              {confirmDelete ? "✕" : "✕"}
+            </button>
+          </div>
         </div>
+
+        {confirmDelete && (
+          <p className="text-[10px] text-red-400 mb-2">
+            Click ✕ again to confirm delete
+          </p>
+        )}
 
         <div className="flex items-center gap-1.5 flex-wrap">
           {subjectName && (
