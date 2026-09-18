@@ -131,6 +131,52 @@ export function GlobalTimer({
   const breakMonoStartRef   = useRef<number | null>(null);
   const breakSecsLeftRef    = useRef(POMODORO_BREAK_SECS);
 
+  useEffect(() => {
+    try {
+      const savedMode = localStorage.getItem("pomodoroMode");
+      if (savedMode === "true") setPomodoroMode(true);
+
+      const savedPhase = localStorage.getItem("pomodoroPhase") as PomodoroPhase;
+      if (savedPhase) setPomodoroPhase(savedPhase);
+
+      const savedTarget = localStorage.getItem("pomodoroTargetSecs");
+      if (savedTarget) setPomodoroTargetSecs(Number(savedTarget));
+
+      const savedBreakEnd = localStorage.getItem("pomodoroBreakEndMs");
+      if (savedPhase === "break" && savedBreakEnd) {
+        const left = Math.floor((Number(savedBreakEnd) - Date.now()) / 1000);
+        if (left > 0) {
+          setBreakSecsLeft(left);
+          breakSecsLeftRef.current = left;
+        } else {
+          setPomodoroPhase(null);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem("pomodoroMode", pomodoroMode ? "true" : "false"); } catch (e) {}
+  }, [pomodoroMode]);
+
+  useEffect(() => {
+    try {
+      if (pomodoroPhase) localStorage.setItem("pomodoroPhase", pomodoroPhase);
+      else localStorage.removeItem("pomodoroPhase");
+      
+      if (pomodoroPhase === "break") {
+         const endMs = Date.now() + (breakSecsLeftRef.current * 1000);
+         localStorage.setItem("pomodoroBreakEndMs", String(endMs));
+      } else {
+         localStorage.removeItem("pomodoroBreakEndMs");
+      }
+    } catch (e) {}
+  }, [pomodoroPhase]);
+
+  useEffect(() => {
+    try { localStorage.setItem("pomodoroTargetSecs", String(pomodoroTargetSecs)); } catch (e) {}
+  }, [pomodoroTargetSecs]);
+
   useEffect(() => { breakSecsLeftRef.current = breakSecsLeft; }, [breakSecsLeft]);
 
   const notify = useCallback(async (
