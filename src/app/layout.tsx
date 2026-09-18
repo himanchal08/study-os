@@ -24,7 +24,6 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Study OS" }],
   robots: { index: false, follow: false },
-  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
