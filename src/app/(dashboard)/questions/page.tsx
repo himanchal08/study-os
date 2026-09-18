@@ -41,9 +41,9 @@ export default async function QuestionsPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
-  const todayStr = dayBoundaryAwareDate(new Date().getTime(), offsetMin, timezone);
-
-  const batchWindowStart = new Date(Date.now() - 30 * 86400000).toISOString();
+  const nowMs    = Date.now();
+  const todayStr = dayBoundaryAwareDate(nowMs, offsetMin, timezone);
+  const batchWindowStart = new Date(nowMs - 30 * 86400000).toISOString();
 
   const [{ data: subjectsRaw }, { data: topicsRaw }, { data: batchesRaw }] = await Promise.all([
     supabase.from("subjects").select("id, name, color, exam_type").order("name"),
