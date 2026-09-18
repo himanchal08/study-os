@@ -5,12 +5,18 @@ import { revalidatePath } from "next/cache";
 
 
 const ADAPTIVE_INTERVALS: Record<number, number> = {
-  1: 1,   
-  2: 2,   
-  3: 7,   
-  4: 14,  
-  5: 21,  
+  1: 1,
+  2: 2,
+  3: 7,
+  4: 14,
+  5: 21,
 };
+
+function cycleTypeForScore(score: number): "daily" | "weekly" | "monthly" {
+  if (score <= 2) return "daily";
+  if (score <= 4) return "weekly";
+  return "monthly";
+}
 
 function addDays(date: Date, days: number): string {
   const d = new Date(date);
@@ -40,22 +46,23 @@ export async function markRevisionDone(id: string, recallScore: number) {
 
   if (error) return { error: error.message };
 
-  
-  
-  if (revision && recallScore <= 4) {
+  if (revision) {
     const intervalDays = ADAPTIVE_INTERVALS[recallScore] ?? 7;
     const nextDueDate = addDays(now, intervalDays);
 
-    await supabase.from("revisions").insert({
-      user_id: user.id,
-      topic_id: revision.topic_id,
-      source_session_id: revision.source_session_id,
-      cycle_type: recallScore <= 2 ? "daily" : recallScore === 3 ? "weekly" : "monthly",
-      due_date: nextDueDate,
-      is_adaptive: true,
-      adaptive_interval_days: intervalDays,
-      grace_window_days: recallScore <= 2 ? 1 : recallScore === 3 ? 2 : 5,
-    });
+    await supabase.from("revisions").upsert(
+      {
+        user_id: user.id,
+        topic_id: revision.topic_id,
+        source_session_id: revision.source_session_id,
+        cycle_type: cycleTypeForScore(recallScore),
+        due_date: nextDueDate,
+        is_adaptive: true,
+        adaptive_interval_days: intervalDays,
+        grace_window_days: recallScore <= 2 ? 1 : recallScore === 3 ? 2 : 5,
+      },
+      { onConflict: "user_id,topic_id,cycle_type,due_date", ignoreDuplicates: true },
+    );
   }
 
   revalidatePath("/revisions");
