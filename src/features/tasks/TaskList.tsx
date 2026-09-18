@@ -30,8 +30,8 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
     [tasks, todayDate]
   );
   const completedTasks = useMemo(
-    () => tasks.filter((t) => t.status === "completed"),
-    [tasks]
+    () => tasks.filter((t) => t.status === "completed" && t.planned_date === todayDate),
+    [tasks, todayDate]
   );
   const upcomingTasks = useMemo(
     () => tasks.filter((t) => t.planned_date > todayDate && t.status !== "completed"),

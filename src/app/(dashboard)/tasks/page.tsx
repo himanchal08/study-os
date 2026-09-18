@@ -44,11 +44,20 @@ export default async function TasksPage() {
         .sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
+  const windowStart = new Date(todayDate);
+  windowStart.setUTCDate(windowStart.getUTCDate() - 30);
+  const windowEnd = new Date(todayDate);
+  windowEnd.setUTCDate(windowEnd.getUTCDate() + 60);
+  const windowStartStr = windowStart.toISOString().split("T")[0];
+  const windowEndStr   = windowEnd.toISOString().split("T")[0];
+
   const { data: rawTasks } = await supabase
     .from("tasks")
     .select("*, subjects(id, name, color), topics(id, name)")
     .eq("user_id", user.id)
     .is("deleted_at", null)
+    .gte("planned_date", windowStartStr)
+    .lte("planned_date", windowEndStr)
     .order("planned_date", { ascending: true })
     .order("created_at", { ascending: true });
 

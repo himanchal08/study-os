@@ -46,15 +46,13 @@ export default async function RevisionsPage() {
       .is("completed_at", null)
       .order("due_date", { ascending: true })
       .limit(100),
-    // Revisions completed today specifically
     supabase
       .from("revisions")
       .select("id, due_date, completed_at, cycle_type, recall_score, topics(name, subject_id, subjects(name, color))")
       .eq("user_id", user.id)
       .not("completed_at", "is", null)
-      .gte("completed_at", new Date(now.getTime() - 86400000).toISOString()) // last 24h
+      .gte("completed_at", new Date(todayStr + "T00:00:00.000Z").toISOString())
       .order("completed_at", { ascending: false }),
-    // 30-day history for the dot timeline
     supabase
       .from("revisions")
       .select("id, topic_id, due_date, completed_at, cycle_type, recall_score, topics(name, subjects(name, color))")

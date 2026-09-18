@@ -132,6 +132,34 @@ export async function archiveTopic(topicId: string) {
   revalidatePath("/revisions");
 }
 
+export async function deleteTopic(topicId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const now = new Date().toISOString();
+
+  await supabase
+    .from("revisions")
+    .update({ completed_at: now })
+    .eq("user_id", user.id)
+    .eq("topic_id", topicId)
+    .is("completed_at", null);
+
+  const { error } = await supabase
+    .from("topics")
+    .update({ archived_at: now })
+    .eq("id", topicId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/syllabus");
+  revalidatePath("/");
+  revalidatePath("/revisions");
+  return { success: true };
+}
+
 export async function updateTopicLifecycle(
   topicId: string,
   updates: {
@@ -145,28 +173,12 @@ export async function updateTopicLifecycle(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  const { data: existing } = await supabase
+  await supabase
     .from("topic_lifecycle")
-    .select("id")
-    .eq("topic_id", topicId)
-    .eq("user_id", user.id)
-    .single();
-
-  if (existing) {
-    await supabase
-      .from("topic_lifecycle")
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq("topic_id", topicId)
-      .eq("user_id", user.id);
-  } else {
-    await supabase
-      .from("topic_lifecycle")
-      .insert({
-        user_id: user.id,
-        topic_id: topicId,
-        ...updates,
-      });
-  }
+    .upsert(
+      { user_id: user.id, topic_id: topicId, ...updates, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,topic_id", ignoreDuplicates: false },
+    );
 
   revalidatePath("/syllabus");
 }
