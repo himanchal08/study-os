@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Study OS" }],
   robots: { index: false, follow: false },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
