@@ -55,6 +55,11 @@ function makeOptimisticSession(opts: {
   } as unknown as Tables<"study_sessions">;
 }
 
+const POMODORO_WORK_SECS  = 55 * 60;
+const POMODORO_BREAK_SECS =  5 * 60;
+
+type PomodoroPhase = "work" | "overtime" | "break" | null;
+
 function getTodayStr(timezone: string): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
@@ -118,6 +123,125 @@ export function GlobalTimer({
     logData: PostLog | null;
   } | null>(null);
 
+  const [pomodoroMode,  setPomodoroMode]  = useState(false);
+  const [pomodoroPhase, setPomodoroPhase] = useState<PomodoroPhase>(null);
+  const [pomodoroTargetSecs, setPomodoroTargetSecs] = useState(POMODORO_WORK_SECS);
+  const [breakSecsLeft, setBreakSecsLeft] = useState(POMODORO_BREAK_SECS);
+  const breakRafRef         = useRef<number | null>(null);
+  const breakMonoStartRef   = useRef<number | null>(null);
+  const breakSecsLeftRef    = useRef(POMODORO_BREAK_SECS);
+
+  useEffect(() => { breakSecsLeftRef.current = breakSecsLeft; }, [breakSecsLeft]);
+
+  const notify = useCallback(async (
+    msg: string,
+    actions?: Array<{ action: string; title: string }>,
+  ) => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission !== "granted") return;
+
+    try {
+      const reg = "serviceWorker" in navigator
+        ? await navigator.serviceWorker.ready
+        : null;
+
+      if (reg) {
+        type SWNotifOptions = NotificationOptions & {
+          tag?: string;
+          renotify?: boolean;
+          actions?: Array<{ action: string; title: string }>;
+        };
+        const opts: SWNotifOptions = {
+          body: msg,
+          icon: "/favicon.ico",
+          tag: "pomodoro",
+          renotify: true,
+          actions: actions ?? [],
+        };
+        await reg.showNotification("Study OS", opts);
+      } else {
+        new Notification("Study OS", { body: msg, icon: "/favicon.ico" });
+      }
+    } catch {
+      new Notification("Study OS", { body: msg, icon: "/favicon.ico" });
+    }
+  }, []);
+
+  const extendPomodoro = useCallback((extraSecs: number) => {
+    setPomodoroTargetSecs(t => t + extraSecs);
+    setPomodoroPhase("work");
+  }, []);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === "POMODORO_EXTEND") {
+        extendPomodoro(e.data.seconds as number);
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, [extendPomodoro]);
+
+  const togglePomodoro = useCallback(() => {
+    if (session) return;
+    if (!pomodoroMode && typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    setPomodoroMode(prev => !prev);
+    setPomodoroPhase(null);
+    setPomodoroTargetSecs(POMODORO_WORK_SECS);
+  }, [session, pomodoroMode]);
+
+  const handlePomodoroStart = useCallback(() => {
+    setPomodoroPhase("work");
+    setPomodoroTargetSecs(POMODORO_WORK_SECS);
+  }, []);
+
+  useEffect(() => {
+    if (pomodoroPhase !== "break") {
+      if (breakRafRef.current !== null) {
+        cancelAnimationFrame(breakRafRef.current);
+        breakRafRef.current = null;
+      }
+      breakMonoStartRef.current = null;
+      return;
+    }
+
+    const startSecs = breakSecsLeftRef.current;
+    breakMonoStartRef.current = performance.now();
+
+    const tick = () => {
+      if (breakMonoStartRef.current === null) return;
+      const elapsed = (performance.now() - breakMonoStartRef.current) / 1000;
+      const left = Math.max(0, Math.floor(startSecs - elapsed));
+      setBreakSecsLeft(left);
+      if (left <= 0) {
+        setPomodoroPhase(null);
+        notify("☕ Break over — ready for the next one!");
+        return;
+      }
+      breakRafRef.current = requestAnimationFrame(tick);
+    };
+    breakRafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (breakRafRef.current !== null) {
+        cancelAnimationFrame(breakRafRef.current);
+        breakRafRef.current = null;
+      }
+    };
+
+  }, [pomodoroPhase, notify]);
+
+  const startBreak = useCallback(() => {
+    setBreakSecsLeft(POMODORO_BREAK_SECS);
+    breakSecsLeftRef.current = POMODORO_BREAK_SECS;
+    setPomodoroPhase("break");
+    notify("☕ Take a 5-minute break!");
+  }, [notify]);
+
   const prevSessionIdRef = useRef(activeSession?.id);
   useEffect(() => {
     if (activeSession?.id === prevSessionIdRef.current) return;
@@ -170,6 +294,11 @@ export function GlobalTimer({
     accumulatedSecRef.current = accumulatedSec;
   }, [accumulatedSec]);
 
+  const pomodoroPhaseRef = useRef(pomodoroPhase);
+  const pomodoroTargetSecsRef = useRef(pomodoroTargetSecs);
+  useEffect(() => { pomodoroPhaseRef.current = pomodoroPhase; }, [pomodoroPhase]);
+  useEffect(() => { pomodoroTargetSecsRef.current = pomodoroTargetSecs; }, [pomodoroTargetSecs]);
+
   const isRunning = !!session;
 
   useEffect(() => {
@@ -178,9 +307,20 @@ export function GlobalTimer({
 
       const tick = () => {
         if (segmentStartMonoRef.current === null) return;
-        const monoElapsed =
-          (performance.now() - segmentStartMonoRef.current) / 1000;
-        setDisplayedSec(Math.floor(accumulatedSecRef.current + monoElapsed));
+        const monoElapsed = (performance.now() - segmentStartMonoRef.current) / 1000;
+        const elapsed = Math.floor(accumulatedSecRef.current + monoElapsed);
+        setDisplayedSec(elapsed);
+        if (
+          pomodoroPhaseRef.current === "work" &&
+          elapsed >= pomodoroTargetSecsRef.current
+        ) {
+          pomodoroPhaseRef.current = "overtime";
+          setPomodoroPhase("overtime");
+          notify("🍅 Pomodoro done! Keep going or take a break.", [
+            { action: "extend5",  title: "+5 min"  },
+            { action: "extend10", title: "+10 min" },
+          ]);
+        }
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -197,7 +337,7 @@ export function GlobalTimer({
         rafRef.current = null;
       }
     };
-  }, [isRunning]);
+  }, [isRunning, notify]);
 
   const openPostLog = useCallback((log: PostLog) => {
     setPostLog(log);
@@ -288,7 +428,7 @@ export function GlobalTimer({
     openPostLog,
   ]);
 
-  const handleStop = useCallback(() => {
+  const handleStopInner = useCallback(() => {
     if (!session) return;
     if (stoppingRef.current) return;
     stoppingRef.current = true;
@@ -383,9 +523,15 @@ export function GlobalTimer({
     topics,
     displayedSec,
     openPostLog,
+    timezone,
   ]);
 
-  // Practice submit
+  const handleStop = useCallback(() => {
+    const wasInPomodoro = pomodoroMode && (pomodoroPhase === "work" || pomodoroPhase === "overtime");
+    handleStopInner();
+    if (wasInPomodoro) startBreak();
+
+  }, [pomodoroMode, pomodoroPhase, startBreak, handleStopInner]);
   const handlePracticeSubmit = useCallback(() => {
     if (!postLog) return;
     const attempted = Number(postAttempted);
@@ -432,7 +578,6 @@ export function GlobalTimer({
     });
   }, [postLog, postAttempted, postCorrect, postWrong, postSource, postNotes]);
 
-  // Mock submit
   const handleMockSubmit = useCallback(() => {
     if (!postLog) return;
     const mockName = postMockName.trim();
@@ -512,16 +657,44 @@ export function GlobalTimer({
 
   const isMock = postLog?.activityType === "mock";
 
+  const pomodoroSecsLeft = pomodoroPhase === "work" || pomodoroPhase === "overtime"
+    ? Math.max(0, pomodoroTargetSecs - displayedSec)
+    : null;
+
+  function formatCountdown(secs: number): string {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  const barBorderColor = pomodoroPhase === "work"
+    ? "rgba(251,146,60,0.3)"
+    : pomodoroPhase === "overtime"
+      ? "rgba(239,68,68,0.5)"
+      : pomodoroPhase === "break"
+        ? "rgba(52,211,153,0.3)"
+        : isRunning
+          ? "rgba(139,92,246,0.2)"
+          : "var(--border-subtle)";
+
+  const barBackground = pomodoroPhase === "work"
+    ? "rgba(251,146,60,0.02)"
+    : pomodoroPhase === "overtime"
+      ? "rgba(239,68,68,0.04)"
+      : pomodoroPhase === "break"
+        ? "rgba(52,211,153,0.02)"
+        : isRunning
+          ? "rgba(232,232,240,0.02)"
+          : "var(--surface)";
+
   return (
     <>
       <div
         id="global-timer-card"
         className="h-14 border-b shrink-0 flex items-center justify-between px-4 md:px-6 transition-all"
         style={{
-          background: isRunning ? "rgba(232,232,240,0.02)" : "var(--surface)",
-          borderColor: isRunning
-            ? "rgba(139,92,246,0.2)"
-            : "var(--border-subtle)",
+          background: barBackground,
+          borderColor: barBorderColor,
           position: "sticky",
           top: 0,
           zIndex: 40,
@@ -529,6 +702,23 @@ export function GlobalTimer({
         role="region"
         aria-label="Global study timer"
       >
+        
+        {pomodoroPhase === "break" ? (
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <span className="text-lg">☕</span>
+            <span className="text-sm font-medium" style={{ color: "#34d399" }}>Break</span>
+            <span className="text-xl font-mono font-semibold tabular-nums" style={{ color: "#34d399" }}>
+              {formatCountdown(breakSecsLeft)}
+            </span>
+            <button
+              onClick={() => { setPomodoroPhase(null); }}
+              className="text-xs px-2 py-1 rounded-lg transition-all hover:opacity-80"
+              style={{ background: "rgba(52,211,153,0.1)", color: "#34d399", border: "1px solid rgba(52,211,153,0.2)" }}
+            >
+              Skip break
+            </button>
+          </div>
+        ) : (
         <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
           <input
             id="timer-notes-input"
@@ -655,16 +845,72 @@ export function GlobalTimer({
             </span>
           )}
         </div>
+        )}
 
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+
+          
+          {pomodoroPhase === "overtime" && (
+            <>
+              <button
+                onClick={() => extendPomodoro(5 * 60)}
+                className="text-xs px-2 py-1 rounded-lg font-medium transition-all hover:opacity-80"
+                style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}
+              >+5 min</button>
+              <button
+                onClick={() => extendPomodoro(10 * 60)}
+                className="text-xs px-2 py-1 rounded-lg font-medium transition-all hover:opacity-80"
+                style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}
+              >+10 min</button>
+            </>
+          )}
+
+          
+          {(pomodoroPhase === "work" || pomodoroPhase === "overtime") && (
+            <span className="text-[10px] font-medium hidden sm:inline" style={{ color: pomodoroPhase === "overtime" ? "#ef4444" : "#fb923c" }}>
+              {pomodoroPhase === "overtime" ? "⏰ Overtime" : "🍅 Work"}
+            </span>
+          )}
+
+          
           <div
             className="text-xl font-mono font-semibold tabular-nums tracking-tight transition-colors"
-            style={{ color: isRunning ? "#ededed" : "rgba(226,226,240,0.2)" }}
+            style={{
+              color: pomodoroPhase === "work"
+                ? "#fb923c"
+                : pomodoroPhase === "overtime"
+                  ? "#ef4444"
+                  : isRunning
+                    ? "#ededed"
+                    : pomodoroMode
+                      ? "rgba(251,146,60,0.4)"
+                      : "rgba(226,226,240,0.2)",
+            }}
           >
-            {formatElapsed(displayedSec)}
+            {pomodoroPhase === "break"
+              ? null 
+              : pomodoroSecsLeft !== null
+                ? formatCountdown(pomodoroSecsLeft)
+                : pomodoroMode && !isRunning
+                  ? formatCountdown(POMODORO_WORK_SECS)
+                  : formatElapsed(displayedSec)}
           </div>
 
-          {isRunning ? (
+          
+          {!isRunning && pomodoroPhase !== "break" && (
+            <button
+              onClick={togglePomodoro}
+              title={pomodoroMode ? "Disable Pomodoro mode" : "Enable Pomodoro (55 min)"}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all hover:scale-110 active:scale-95"
+              style={{
+                background: pomodoroMode ? "rgba(251,146,60,0.2)" : "transparent",
+                border: pomodoroMode ? "1px solid rgba(251,146,60,0.4)" : "1px solid rgba(255,255,255,0.08)",
+              }}
+            >🍅</button>
+          )}
+
+          
+          {pomodoroPhase === "break" ? null : isRunning ? (
             <button
               onClick={handleStop}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
@@ -675,9 +921,9 @@ export function GlobalTimer({
             </button>
           ) : (
             <button
-              onClick={handleStart}
+              onClick={() => { handleStart(); if (pomodoroMode) handlePomodoroStart(); }}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 pl-0.5"
-              style={{ background: "#d946ef" }}
+              style={{ background: pomodoroMode ? "#fb923c" : "#d946ef" }}
               aria-label="Start Timer"
               id="timer-play-btn"
             >
@@ -698,7 +944,7 @@ export function GlobalTimer({
         </div>
       </div>
 
-      {/* Post-session log modal */}
+      
       {postLog && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
@@ -719,7 +965,7 @@ export function GlobalTimer({
             role="dialog"
             aria-label={`Log ${isMock ? "mock" : "practice"} session`}
           >
-            {/* Header */}
+            
             <div className="flex items-start justify-between px-5 pt-5 pb-3 shrink-0">
               <div>
                 <p
@@ -748,7 +994,7 @@ export function GlobalTimer({
               </button>
             </div>
 
-            {/* Body */}
+            
             <div className="overflow-y-auto px-5 pb-5 space-y-3 flex-1">
               {postSuccess ? (
                 <div className="text-center py-8">
@@ -870,8 +1116,6 @@ export function GlobalTimer({
   );
 }
 
-// ─── Practice sub-form ────────────────────────────────────────────────────────
-
 interface PracticeFieldsProps {
   postLog: PostLog;
   attempted: string;
@@ -928,7 +1172,7 @@ function PracticeFields({
 
   return (
     <>
-      {/* Auto-filled read-only info */}
+      
       <div className="grid grid-cols-2 gap-2">
         <div
           className="px-3 py-2 rounded-xl text-xs"
@@ -956,7 +1200,7 @@ function PracticeFields({
         )}
       </div>
 
-      {/* Q counts */}
+      
       <div className="grid grid-cols-3 gap-2">
         {(
           [
@@ -1022,7 +1266,7 @@ function PracticeFields({
         ))}
       </div>
 
-      {/* Derived skipped + accuracy bar */}
+      
       {attemptedNum > 0 && (
         <div className="space-y-1.5">
           <div
@@ -1044,7 +1288,7 @@ function PracticeFields({
         </div>
       )}
 
-      {/* Source — required */}
+      
       <div>
         <label className={lbl}>Source / Book *</label>
         <input
@@ -1058,7 +1302,7 @@ function PracticeFields({
         />
       </div>
 
-      {/* Notes */}
+      
       <div>
         <label className={lbl}>Notes (optional)</label>
         <input
@@ -1152,7 +1396,7 @@ function MockFields({
 
   return (
     <>
-      {/* Auto-filled read-only info */}
+      
       <div className="grid grid-cols-3 gap-2">
         <div
           className="px-3 py-2 rounded-xl text-xs"
@@ -1187,7 +1431,7 @@ function MockFields({
         )}
       </div>
 
-      {/* Mock name */}
+      
       <div>
         <label className={lbl}>Mock Name *</label>
         <input
@@ -1201,7 +1445,7 @@ function MockFields({
         />
       </div>
 
-      {/* Source + Exam Type */}
+      
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className={lbl}>Platform / Source *</label>
@@ -1231,7 +1475,7 @@ function MockFields({
         </div>
       </div>
 
-      {/* Stage */}
+      
       <div>
         <label className={lbl}>Stage (optional)</label>
         <input
@@ -1244,7 +1488,7 @@ function MockFields({
         />
       </div>
 
-      {/* Score + Max Marks */}
+      
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className={lbl}>Score *</label>
@@ -1271,7 +1515,7 @@ function MockFields({
         </div>
       </div>
 
-      {/* Q counts */}
+      
       <div className="grid grid-cols-4 gap-2">
         {(
           [
