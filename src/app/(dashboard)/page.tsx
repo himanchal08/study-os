@@ -147,7 +147,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: "Today", value: formatHours(todaySecs), sub: `of ${targetLabel}`, pct: targetPct },
           { label: "This Week", value: formatHours(weekSecs), sub: null, pct: null },
@@ -272,7 +272,11 @@ export default async function HomePage() {
               <p className="text-xs text-neutral-500 mt-0.5">52 weeks · study hours</p>
             </div>
           </div>
-          <HeatmapGrid cells={heatCells} metric="hours" weeks={52} />
+          <div className="overflow-x-auto pb-4 scrollbar-none -mx-5 px-5 md:mx-0 md:px-0">
+            <div className="min-w-[800px]">
+              <HeatmapGrid cells={heatCells} metric="hours" weeks={52} />
+            </div>
+          </div>
         </div>
       </section>
 

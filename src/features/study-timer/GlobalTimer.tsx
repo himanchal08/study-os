@@ -55,10 +55,10 @@ function makeOptimisticSession(opts: {
   } as unknown as Tables<"study_sessions">;
 }
 
-const POMODORO_WORK_SECS  = 55 * 60;
+const POMODORO_STUDY_SECS  = 55 * 60;
 const POMODORO_BREAK_SECS =  5 * 60;
 
-type PomodoroPhase = "work" | "overtime" | "break" | null;
+type PomodoroPhase = "study" | "overtime" | "break" | null;
 
 function getTodayStr(timezone: string): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -125,7 +125,7 @@ export function GlobalTimer({
 
   const [pomodoroMode,  setPomodoroMode]  = useState(false);
   const [pomodoroPhase, setPomodoroPhase] = useState<PomodoroPhase>(null);
-  const [pomodoroTargetSecs, setPomodoroTargetSecs] = useState(POMODORO_WORK_SECS);
+  const [pomodoroTargetSecs, setPomodoroTargetSecs] = useState(POMODORO_STUDY_SECS);
   const [breakSecsLeft, setBreakSecsLeft] = useState(POMODORO_BREAK_SECS);
   const breakRafRef         = useRef<number | null>(null);
   const breakMonoStartRef   = useRef<number | null>(null);
@@ -215,7 +215,7 @@ export function GlobalTimer({
 
   const extendPomodoro = useCallback((extraSecs: number) => {
     setPomodoroTargetSecs(t => t + extraSecs);
-    setPomodoroPhase("work");
+    setPomodoroPhase("study");
   }, []);
 
   useEffect(() => {
@@ -237,12 +237,12 @@ export function GlobalTimer({
     }
     setPomodoroMode(prev => !prev);
     setPomodoroPhase(null);
-    setPomodoroTargetSecs(POMODORO_WORK_SECS);
+    setPomodoroTargetSecs(POMODORO_STUDY_SECS);
   }, [session, pomodoroMode]);
 
   const handlePomodoroStart = useCallback(() => {
-    setPomodoroPhase("work");
-    setPomodoroTargetSecs(POMODORO_WORK_SECS);
+    setPomodoroPhase("study");
+    setPomodoroTargetSecs(POMODORO_STUDY_SECS);
   }, []);
 
   useEffect(() => {
@@ -358,7 +358,7 @@ export function GlobalTimer({
         const elapsed = Math.floor(accumulatedSecRef.current + monoElapsed);
         setDisplayedSec(elapsed);
         if (
-          pomodoroPhaseRef.current === "work" &&
+          pomodoroPhaseRef.current === "study" &&
           elapsed >= pomodoroTargetSecsRef.current
         ) {
           pomodoroPhaseRef.current = "overtime";
@@ -575,7 +575,7 @@ export function GlobalTimer({
   ]);
 
   const handleStop = useCallback(() => {
-    const wasInPomodoro = pomodoroMode && (pomodoroPhase === "work" || pomodoroPhase === "overtime");
+    const wasInPomodoro = pomodoroMode && (pomodoroPhase === "study" || pomodoroPhase === "overtime");
     handleStopInner();
     if (wasInPomodoro) startBreak();
 
@@ -732,7 +732,7 @@ export function GlobalTimer({
 
   const isMock = postLog?.activityType === "mock";
 
-  const pomodoroSecsLeft = pomodoroPhase === "work" || pomodoroPhase === "overtime"
+  const pomodoroSecsLeft = pomodoroPhase === "study" || pomodoroPhase === "overtime"
     ? Math.max(0, pomodoroTargetSecs - displayedSec)
     : null;
 
@@ -742,7 +742,7 @@ export function GlobalTimer({
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
 
-  const barBorderColor = pomodoroPhase === "work"
+  const barBorderColor = pomodoroPhase === "study"
     ? "rgba(251,146,60,0.3)"
     : pomodoroPhase === "overtime"
       ? "rgba(239,68,68,0.5)"
@@ -752,7 +752,7 @@ export function GlobalTimer({
           ? "rgba(139,92,246,0.2)"
           : "var(--border-subtle)";
 
-  const barBackground = pomodoroPhase === "work"
+  const barBackground = pomodoroPhase === "study"
     ? "rgba(251,146,60,0.02)"
     : pomodoroPhase === "overtime"
       ? "rgba(239,68,68,0.04)"
@@ -798,7 +798,7 @@ export function GlobalTimer({
           <input
             id="timer-notes-input"
             type="text"
-            placeholder="What are you working on?"
+            placeholder="What are you studying?"
             className="bg-transparent border-none outline-none text-sm min-w-0 text-neutral-200 placeholder:text-neutral-500 flex-1"
             style={{ maxWidth: isRunning ? "160px" : "100%" }}
             value={notes}
@@ -947,7 +947,7 @@ export function GlobalTimer({
           )}
 
           
-          {(pomodoroPhase === "work" || pomodoroPhase === "overtime") && (
+          {(pomodoroPhase === "study" || pomodoroPhase === "overtime") && (
             <span className="text-[10px] font-medium hidden sm:inline" style={{ color: pomodoroPhase === "overtime" ? "#ef4444" : "#fb923c" }}>
               {pomodoroPhase === "overtime" ? "⏰ Overtime" : "🍅 Work"}
             </span>
@@ -957,7 +957,7 @@ export function GlobalTimer({
           <div
             className="text-xl font-mono font-semibold tabular-nums tracking-tight transition-colors"
             style={{
-              color: pomodoroPhase === "work"
+              color: pomodoroPhase === "study"
                 ? "#fb923c"
                 : pomodoroPhase === "overtime"
                   ? "#ef4444"
@@ -973,7 +973,7 @@ export function GlobalTimer({
               : pomodoroSecsLeft !== null
                 ? formatCountdown(pomodoroSecsLeft)
                 : pomodoroMode && !isRunning
-                  ? formatCountdown(POMODORO_WORK_SECS)
+                  ? formatCountdown(POMODORO_STUDY_SECS)
                   : formatElapsed(displayedSec)}
           </div>
 
