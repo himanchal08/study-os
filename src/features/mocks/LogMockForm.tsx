@@ -3,9 +3,9 @@
 import { useActionState } from "react";
 import { logMock } from "@/app/(dashboard)/mocks/actions";
 
-const inputCls = "w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/30 placeholder:text-neutral-600 transition-all";
+const inputCls   = "w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20 placeholder:text-neutral-600 transition-all";
 const inputStyle = { background: "#111111", border: "1px solid #262626", color: "#ededed" };
-const labelCls = "block text-xs font-medium text-neutral-500 mb-1 uppercase tracking-wider";
+const labelCls   = "block text-xs font-medium text-neutral-500 mb-1 uppercase tracking-wider";
 
 interface LogMockFormProps {
   defaultDate: string;
@@ -17,21 +17,24 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
 
   return (
     <form action={action} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2">
-          <label className={labelCls}>Mock Name</label>
-          <input
-            name="name"
-            type="text"
-            placeholder="e.g. IBPS PO Pre Mock 12"
-            className={inputCls}
-            style={inputStyle}
-            required
-          />
-        </div>
 
+      {/* Mock Name */}
+      <div>
+        <label className={labelCls}>Mock Name *</label>
+        <input
+          name="name"
+          type="text"
+          placeholder="e.g. IBPS PO Pre Mock 12"
+          className={inputCls}
+          style={inputStyle}
+          required
+        />
+      </div>
+
+      {/* Source + Exam Type */}
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Platform / Source</label>
+          <label className={labelCls}>Platform / Source *</label>
           <input
             name="source"
             type="text"
@@ -41,16 +44,22 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
             required
           />
         </div>
-
         <div>
           <label className={labelCls}>Exam Type</label>
-          <select name="exam_type" defaultValue={defaultExamType} className="select-premium">
+          <select
+            name="exam_type"
+            defaultValue={defaultExamType}
+            className="select-premium"
+          >
             <option value="banking">Banking</option>
             <option value="ssc">SSC CGL</option>
             <option value="other">Other</option>
           </select>
         </div>
+      </div>
 
+      {/* Stage + Date */}
+      <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Stage</label>
           <input
@@ -61,9 +70,8 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
             style={inputStyle}
           />
         </div>
-
         <div>
-          <label className={labelCls}>Date</label>
+          <label className={labelCls}>Date *</label>
           <input
             name="mock_date"
             type="date"
@@ -75,51 +83,119 @@ export function LogMockForm({ defaultDate, defaultExamType = "banking" }: LogMoc
         </div>
       </div>
 
-      
+      {/* Score + Max Marks */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Score</label>
-          <input name="score" type="number" step="0.25" placeholder="0" className="select-premium" required />
+          <label className={labelCls}>Score *</label>
+          <input
+            name="score"
+            type="number"
+            step="0.25"
+            min="0"
+            defaultValue=""
+            placeholder="e.g. 142.5"
+            className={inputCls}
+            style={inputStyle}
+            required
+          />
         </div>
         <div>
-          <label className={labelCls}>Max Marks</label>
-          <input name="maximum_marks" type="number" defaultValue={100} className="select-premium" required />
+          <label className={labelCls}>Max Marks *</label>
+          <input
+            name="maximum_marks"
+            type="number"
+            min="1"
+            defaultValue={200}
+            className={inputCls}
+            style={inputStyle}
+            required
+          />
         </div>
       </div>
 
+      {/* Q counts — defaultValue={0} so required doesn't block submission */}
       <div className="grid grid-cols-4 gap-2">
-        {[
-          { name: "attempted", label: "Attempted" },
-          { name: "correct", label: "Correct" },
-          { name: "wrong", label: "Wrong" },
-          { name: "unattempted", label: "Skipped" },
-        ].map(({ name, label }) => (
-          <div key={name}>
-            <label className={labelCls}>{label}</label>
-            <input name={name} type="number" min="0" placeholder="0" className="select-premium" required />
+        {([
+          { name: "attempted",   label: "Attempted *", required: true  },
+          { name: "correct",     label: "Correct",     required: false },
+          { name: "wrong",       label: "Wrong",       required: false },
+          { name: "unattempted", label: "Skipped",     required: false },
+        ] as const).map(({ name, label, required }) => (
+          <div key={name} className="rounded-xl p-2.5 flex flex-col items-center gap-1" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+            <label className="text-[10px] uppercase tracking-wider font-semibold text-center leading-tight" style={{ color: "rgba(226,226,240,0.4)" }}>
+              {label}
+            </label>
+            <input
+              name={name}
+              type="number"
+              inputMode="numeric"
+              min="0"
+              defaultValue={0}
+              placeholder="0"
+              className="w-full text-center text-base font-bold tabular-nums bg-transparent outline-none text-neutral-200"
+              required={required}
+            />
           </div>
         ))}
       </div>
 
+      {/* Durations */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Actual Duration (min)</label>
-          <input name="actual_duration_minutes" type="number" placeholder="60" className="select-premium" required />
+          <label className={labelCls}>Actual Duration (min) *</label>
+          <input
+            name="actual_duration_minutes"
+            type="number"
+            min="1"
+            defaultValue=""
+            placeholder="60"
+            className={inputCls}
+            style={inputStyle}
+            required
+          />
         </div>
         <div>
           <label className={labelCls}>Recommended Duration (min)</label>
-          <input name="recommended_duration_minutes" type="number" placeholder="60 — enables ⚠️ flags" className="select-premium" />
-        </div>
-        <div>
-          <label className={labelCls}>Percentile</label>
-          <input name="percentile" type="number" step="0.01" min="0" max="100" placeholder="optional" className="select-premium" />
-        </div>
-        <div>
-          <label className={labelCls}>Rank</label>
-          <input name="rank" type="number" placeholder="optional" className="select-premium" />
+          <input
+            name="recommended_duration_minutes"
+            type="number"
+            min="1"
+            placeholder="optional"
+            className={inputCls}
+            style={inputStyle}
+          />
         </div>
       </div>
 
+      {/* Percentile + Rank */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>Percentile</label>
+          <input
+            name="percentile"
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+            placeholder="optional"
+            className={inputCls}
+            style={inputStyle}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Rank</label>
+          <input
+            name="rank"
+            type="number"
+            min="1"
+            placeholder="optional"
+            className={inputCls}
+            style={inputStyle}
+          />
+        </div>
+      </div>
+
+      {/* Notes */}
       <div>
         <label className={labelCls}>Notes</label>
         <textarea

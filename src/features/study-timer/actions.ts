@@ -246,3 +246,43 @@ export async function deleteStudySession(sessionId: string) {
   revalidatePath("/", "layout");
   return { success: true };
 }
+
+export async function updateSessionTimes(params: {
+  sessionId: string;
+  startTimestamp: string; // ISO string
+  endTimestamp: string;   // ISO string
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const start = new Date(params.startTimestamp);
+  const end   = new Date(params.endTimestamp);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return { error: "Invalid timestamps." };
+  }
+  if (end <= start) {
+    return { error: "End time must be after start time." };
+  }
+  if (end.getTime() - start.getTime() > 24 * 60 * 60 * 1000) {
+    return { error: "Session cannot be longer than 24 hours." };
+  }
+
+  const { error } = await supabase
+    .from("study_sessions")
+    .update({
+      start_timestamp:        start.toISOString(),
+      end_timestamp:          end.toISOString(),
+      pause_duration_seconds: 0,
+    })
+    .eq("id", params.sessionId)
+    .eq("user_id", user.id)
+    .is("deleted_at", null);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/history");
+  return { success: true };
+}
