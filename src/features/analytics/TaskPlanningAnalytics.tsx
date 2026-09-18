@@ -5,9 +5,22 @@ export async function TaskPlanningAnalytics() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  const { data: profile } = await supabase.from("profiles").select("timezone").eq("user_id", user.id).single();
+  const tz = profile?.timezone || "Asia/Kolkata";
+  
+  // Format the local date string to YYYY-MM-DD reliably using the user's timezone
+  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
+  const toUserYYYYMMDD = (d: Date) => {
+    const parts = formatter.formatToParts(d);
+    return `${parts.find(p => p.type === "year")?.value}-${parts.find(p => p.type === "month")?.value}-${parts.find(p => p.type === "day")?.value}`;
+  };
+
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  
+  const sevenDaysAgoStr = toUserYYYYMMDD(sevenDaysAgo);
+  const fourteenDaysAgoStr = toUserYYYYMMDD(fourteenDaysAgo);
 
   const { data: tasks } = await supabase
     .from("tasks")
@@ -15,12 +28,12 @@ export async function TaskPlanningAnalytics() {
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .not("planned_date", "is", null)
-    .gte("planned_date", fourteenDaysAgo.toISOString().split("T")[0]);
+    .gte("planned_date", fourteenDaysAgoStr);
 
   const validTasks = tasks ?? [];
 
   
-  const currentTasks = validTasks.filter(t => new Date(t.planned_date!) >= sevenDaysAgo);
+  const currentTasks = validTasks.filter(t => t.planned_date! >= sevenDaysAgoStr);
   const currentPlanned = currentTasks.length;
   const currentCompleted = currentTasks.filter(t => t.status === "completed").length;
   const currentPostponed = currentTasks.filter(t => t.status === "postponed").length;
@@ -29,7 +42,7 @@ export async function TaskPlanningAnalytics() {
   const currentPostponementRate = currentPlanned > 0 ? (currentPostponed / currentPlanned) * 100 : null;
 
   
-  const pastTasks = validTasks.filter(t => new Date(t.planned_date!) >= fourteenDaysAgo && new Date(t.planned_date!) < sevenDaysAgo);
+  const pastTasks = validTasks.filter(t => t.planned_date! >= fourteenDaysAgoStr && t.planned_date! < sevenDaysAgoStr);
   const pastPlanned = pastTasks.length;
   const pastCompleted = pastTasks.filter(t => t.status === "completed").length;
   const pastPostponed = pastTasks.filter(t => t.status === "postponed").length;

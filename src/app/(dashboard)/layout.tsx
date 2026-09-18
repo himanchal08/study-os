@@ -76,7 +76,7 @@ export default async function DashboardLayout({
   });
 
   return (
-    <div className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>
+    <div key={safeUser.id} className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>
       {/* Desktop sidebar */}
       <Sidebar userEmail={safeUser.email ?? ""} />
 

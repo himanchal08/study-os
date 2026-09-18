@@ -67,7 +67,10 @@ export default async function HistoryPage() {
   // Group by boundary-aware date for streak + best day
   const dailySecsMap = new Map<string, number>();
   statsSessions.forEach(s => {
-    const dateKey = dayBoundaryAwareDate(new Date(s.start_timestamp).getTime(), offsetMin, timezone);
+    const startMs = new Date(s.start_timestamp).getTime();
+    const endMs = new Date(s.end_timestamp).getTime();
+    const midPointMs = startMs + (endMs - startMs) / 2;
+    const dateKey = dayBoundaryAwareDate(midPointMs, offsetMin, timezone);
     const secs = sessionSecs(s);
     dailySecsMap.set(dateKey, (dailySecsMap.get(dateKey) ?? 0) + secs);
   });

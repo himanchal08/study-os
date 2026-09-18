@@ -80,11 +80,17 @@ export async function POST() {
     .order("start_timestamp", { ascending: false })
     .limit(50);
 
+  async function processInBatches<T>(items: T[], batchSize: number, fn: (item: T) => Promise<void>) {
+    for (let i = 0; i < items.length; i += batchSize) {
+      await Promise.all(items.slice(i, i + batchSize).map(fn));
+    }
+  }
+
   let syncedCount = 0;
   const errors: string[] = [];
 
   try {
-    for (const task of tasks ?? []) {
+    await processInBatches(tasks ?? [], 5, async (task) => {
       const startDateObj = new Date(task.planned_date);
       const endDateObj = new Date(startDateObj.getTime() + 86400000);
       const endDateStr = endDateObj.toISOString().split("T")[0];
@@ -138,7 +144,7 @@ export async function POST() {
            errors.push(`Calendar Task "${task.title}" failed: ${e?.message}`);
         }
       }
-    }
+    });
 
     try {
       let taskListId = "";
@@ -152,7 +158,7 @@ export async function POST() {
         taskListId = newList.data.id!;
       }
 
-      for (const task of tasks ?? []) {
+      await processInBatches(tasks ?? [], 5, async (task) => {
         const isCompleted = task.status === "completed";
         const taskBody: any = {
           title: task.title,
@@ -199,7 +205,7 @@ export async function POST() {
         } catch {
            errors.push(`Google Task sync "${task.title}" failed`);
         }
-      }
+      });
     } catch (e: any) {
       if (e?.response?.status === 403 || e?.code === 403 || String(e).includes("insufficientPermissions")) {
         errors.push(`Tasks forbidden: Please disconnect and reconnect Google account in Settings to grant Tasks permission.`);
@@ -208,7 +214,7 @@ export async function POST() {
       }
     }
 
-    for (const s of sessions ?? []) {
+    await processInBatches(sessions ?? [], 5, async (s) => {
       const sub = (s.subjects as { name: string } | null)?.name;
       const topic = (s.topics as { name: string } | null)?.name;
       const label = [sub, topic].filter(Boolean).join(" → ") || s.activity_type;
@@ -265,10 +271,14 @@ export async function POST() {
           }
         }
         if (!inserted) syncedCount++;
-      } catch {
-        errors.push(`Session at ${s.start_timestamp} failed`);
+      } catch (e: any) {
+        if (e?.response?.status === 403) {
+          errors.push(`Calendar forbidden: Reconnect Google account.`);
+        } else {
+          errors.push(`Session sync failed: ${e?.message}`);
+        }
       }
-    }
+    });
 
     await supabase
       .from("profiles")

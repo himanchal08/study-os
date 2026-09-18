@@ -30,6 +30,11 @@ export async function startSession(params: {
     clientGeneratedId = randomUUID(),
   } = params;
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) {
+    return { error: "Unauthorized" };
+  }
+
   const { data: existing } = await supabase
     .from("study_sessions")
     .select("id, start_timestamp")
@@ -76,6 +81,11 @@ export async function stopSession(params: {
 }) {
   const supabase = await createClient();
   const { sessionId, userId, pauseDurationSeconds = 0, notes } = params;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) {
+    return { error: "Unauthorized" };
+  }
 
   const updateData: { end_timestamp: string; pause_duration_seconds: number; notes?: string } = {
     end_timestamp: new Date().toISOString(),
