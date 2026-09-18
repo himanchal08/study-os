@@ -109,13 +109,14 @@ export async function createTask(
   }
 
   if (inserted && inserted.length > 0) {
-    await supabase.from("task_events").insert(
+    const { error: evtError } = await supabase.from("task_events").insert(
       inserted.map((t) => ({
         user_id: user.id,
         task_id: t.id,
         event_type: "created",
       }))
     );
+    if (evtError) console.error("task_events insert failed:", evtError.message);
   }
 
   revalidatePath("/tasks");

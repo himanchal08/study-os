@@ -100,13 +100,13 @@ export async function stopSession(params: {
     if (data && data.topic_id) {
     const today = new Date();
     const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);     // UTC arithmetic — stable on any server TZ
     
     const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
+    nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
     
     const nextMonth = new Date(today);
-    nextMonth.setDate(nextMonth.getDate() + 30);
+    nextMonth.setUTCDate(nextMonth.getUTCDate() + 30);
 
     const toDateString = (d: Date) => d.toISOString().split("T")[0];
 
@@ -146,18 +146,33 @@ export async function stopSession(params: {
         ignoreDuplicates: true,
       });
 
-    let nextStatus = null;
-    if (data.activity_type === "lecture") nextStatus = "learning";
+    // Status lifecycle order — never regress a topic's status
+    const STATUS_ORDER: Record<string, number> = {
+      not_started: 0, learning: 1, learned: 2, revising: 3, strong: 4,
+    };
+    let nextStatus: string | null = null;
+    if (data.activity_type === "lecture")  nextStatus = "learning";
     else if (data.activity_type === "practice") nextStatus = "learned";
-    else if (data.activity_type === "mock") nextStatus = "strong";
+    else if (data.activity_type === "mock")     nextStatus = "strong";
     else if (data.activity_type === "revision") nextStatus = "revising";
 
     if (nextStatus) {
-      await supabase
+      // Fetch current status to avoid regression (e.g. mock session shouldn’t
+      // overwrite "strong" with "learned" if the topic is already stronger)
+      const { data: currentTopic } = await supabase
         .from("topics")
-        .update({ status: nextStatus as Database["public"]["Enums"]["topic_status_enum"] })
+        .select("status")
         .eq("id", data.topic_id)
-        .eq("user_id", userId);
+        .single();
+      const currentOrder = STATUS_ORDER[currentTopic?.status ?? "not_started"] ?? 0;
+      const nextOrder    = STATUS_ORDER[nextStatus] ?? 0;
+      if (nextOrder > currentOrder) {
+        await supabase
+          .from("topics")
+          .update({ status: nextStatus as Database["public"]["Enums"]["topic_status_enum"] })
+          .eq("id", data.topic_id)
+          .eq("user_id", userId);
+      }
     }
 
     const lifecycleUpdates: Database["public"]["Tables"]["topic_lifecycle"]["Update"] = {};

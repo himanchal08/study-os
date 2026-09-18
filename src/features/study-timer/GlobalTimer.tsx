@@ -64,11 +64,14 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   const [postLog, setPostLog] = useState<PostLog | null>(null);
   const [postAttempted, setPostAttempted] = useState("");
   const [postCorrect, setPostCorrect] = useState("");
+  const [postSkipped, setPostSkipped] = useState("");  // mock only
   const [postSource, setPostSource] = useState("");
   const [postPending, startPostTransition] = useTransition();
   const [postError, setPostError] = useState<string | null>(null);
   const [postSuccess, setPostSuccess] = useState(false);
   const postSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const correctInputRef = useRef<HTMLInputElement>(null);
+  const skippedInputRef = useRef<HTMLInputElement>(null);
 
   // Cancel the auto-close timer on unmount to avoid setState on unmounted component
   useEffect(() => {
@@ -238,6 +241,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       });
       setPostAttempted("");
       setPostCorrect("");
+      setPostSkipped("");
       setPostSource("");
       setPostError(null);
       setPostSuccess(false);
@@ -259,7 +263,8 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   const handlePostSubmit = useCallback(() => {
     if (!postLog) return;
     const attempted = Number(postAttempted);
-    const correct   = Number(postCorrect || 0);
+    const correct   = Number(postCorrect  || 0);
+    const skipped   = Number(postSkipped  || 0);
     if (!attempted || attempted <= 0) {
       setPostError("Attempted must be at least 1.");
       return;
@@ -268,13 +273,18 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       setPostError("Correct cannot exceed attempted.");
       return;
     }
+    if (correct + skipped > attempted) {
+      setPostError("Correct + skipped cannot exceed attempted.");
+      return;
+    }
+    const wrong = Math.max(0, attempted - correct - skipped);
     setPostError(null);
     startPostTransition(async () => {
       const fd = new FormData();
       fd.set("attempted", String(attempted));
       fd.set("correct",   String(correct));
-      fd.set("wrong",     String(Math.max(0, attempted - correct)));
-      fd.set("skipped",   "0");
+      fd.set("wrong",     String(wrong));
+      fd.set("skipped",   String(skipped));
       if (postLog.subjectId) fd.set("subject_id", postLog.subjectId);
       if (postLog.topicId)   fd.set("topic_id",   postLog.topicId);
       if (postSource.trim()) fd.set("source",     postSource.trim());
@@ -284,12 +294,11 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
         setPostError(res.error ?? "Failed to log.");
       } else {
         setPostSuccess(true);
-        // Auto-close after 1.5 s — cancel on unmount via postSuccessTimerRef
         if (postSuccessTimerRef.current !== null) clearTimeout(postSuccessTimerRef.current);
         postSuccessTimerRef.current = setTimeout(() => setPostLog(null), 1500);
       }
     });
-  }, [postLog, postAttempted, postCorrect, postSource, startPostTransition]);
+  }, [postLog, postAttempted, postCorrect, postSkipped, postSource, startPostTransition]);
 
   return (
     <>
@@ -489,8 +498,8 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
             </div>
           ) : (
             <>
-              {/* Attempted + Correct */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Attempted + Correct + (mock-only) Skipped */}
+              <div className={`grid gap-3 ${postLog.activityType === "mock" ? "grid-cols-3" : "grid-cols-2"}`}>
                 <div>
                   <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-1">Attempted *</label>
                   <input
@@ -500,8 +509,8 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
                     autoFocus
                     value={postAttempted}
                     onChange={e => setPostAttempted(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") document.getElementById("post-log-correct")?.focus(); }}
-                    placeholder="e.g. 30"
+                    onKeyDown={e => { if (e.key === "Enter") correctInputRef.current?.focus(); }}
+                    placeholder="e.g. 100"
                     className="w-full px-3 py-2 rounded-lg text-sm outline-none"
                     style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#ededed" }}
                   />
@@ -509,17 +518,38 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
                 <div>
                   <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-1">Correct *</label>
                   <input
-                    id="post-log-correct"
+                    ref={correctInputRef}
                     type="number"
                     min="0"
                     value={postCorrect}
                     onChange={e => setPostCorrect(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") handlePostSubmit(); }}
-                    placeholder="e.g. 22"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        if (postLog.activityType === "mock") skippedInputRef.current?.focus();
+                        else handlePostSubmit();
+                      }
+                    }}
+                    placeholder="e.g. 72"
                     className="w-full px-3 py-2 rounded-lg text-sm outline-none"
                     style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#ededed" }}
                   />
                 </div>
+                {postLog.activityType === "mock" && (
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-1">Skipped</label>
+                    <input
+                      ref={skippedInputRef}
+                      type="number"
+                      min="0"
+                      value={postSkipped}
+                      onChange={e => setPostSkipped(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handlePostSubmit(); }}
+                      placeholder="e.g. 5"
+                      className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                      style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#ededed" }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Source (optional) */}
