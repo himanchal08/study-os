@@ -34,8 +34,6 @@ export function TaskCard({ task, userId }: TaskCardProps) {
   const [postponeDate, setPostponeDate] = useState(() => {
     const next = new Date();
     next.setDate(next.getDate() + 1);
-    // Use local date parts (not toISOString which is UTC) so the default
-    // is always tomorrow in the user's browser timezone.
     const y = next.getFullYear();
     const m = String(next.getMonth() + 1).padStart(2, "0");
     const d = String(next.getDate()).padStart(2, "0");
@@ -44,8 +42,6 @@ export function TaskCard({ task, userId }: TaskCardProps) {
   const [postponeReason, setPostponeReason] = useState("");
 
   const isCompleted = task.status === "completed";
-  // Disable the start-session shortcut when a task has no subject and no topic.
-  // A session without both creates an empty history entry with no metadata.
   const canStartSession = !!(task.subjects || task.topics);
 
   function handleToggleComplete() {
@@ -87,9 +83,7 @@ export function TaskCard({ task, userId }: TaskCardProps) {
         opacity: isPending ? 0.6 : 1,
       }}
     >
-      {/* Main row */}
       <div className="flex items-start gap-3 p-3.5">
-        {/* Checkbox */}
         <button
           type="button"
           onClick={handleToggleComplete}
@@ -109,7 +103,6 @@ export function TaskCard({ task, userId }: TaskCardProps) {
           )}
         </button>
 
-        {/* Text content */}
         <div className="flex-1 min-w-0">
           <p
             className="text-sm font-semibold leading-snug"
@@ -121,7 +114,6 @@ export function TaskCard({ task, userId }: TaskCardProps) {
             {task.title}
           </p>
 
-          {/* Tags row */}
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             {task.subjects && (
               <span
@@ -155,7 +147,6 @@ export function TaskCard({ task, userId }: TaskCardProps) {
           </div>
         </div>
 
-        {/* Desktop-only action buttons (hidden on mobile) */}
         {!isCompleted && (
           <div className="hidden sm:flex items-center gap-1.5 shrink-0">
             <button
@@ -211,7 +202,6 @@ export function TaskCard({ task, userId }: TaskCardProps) {
         )}
       </div>
 
-      {/* Mobile action bar — shown below the card content on small screens */}
       {!isCompleted && (
         <div className="flex sm:hidden items-center gap-2 px-3.5 pb-3 border-t border-neutral-900 pt-2.5">
           <button
@@ -249,7 +239,6 @@ export function TaskCard({ task, userId }: TaskCardProps) {
         </div>
       )}
 
-      {/* Failure reason */}
       {task.failure_reason && (
         <div className="px-3.5 pb-3">
           <p className="text-xs px-2.5 py-1.5 rounded-lg italic" style={{ background: "rgba(245,158,11,0.08)", color: "#fbbf24", border: "1px solid rgba(245,158,11,0.2)" }}>
@@ -258,7 +247,6 @@ export function TaskCard({ task, userId }: TaskCardProps) {
         </div>
       )}
 
-      {/* Postpone form */}
       {showPostponeModal && (
         <form
           onSubmit={handlePostponeSubmit}

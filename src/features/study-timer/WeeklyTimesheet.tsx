@@ -12,7 +12,6 @@ type SessionRow = Pick<Tables<"study_sessions">, "id" | "start_timestamp" | "end
 
 interface WeeklyTimesheetProps {
   sessions: SessionRow[];
-  /** When true, renders a flat list (no date headers) — used on the home page for today-only view */
   todayOnly?: boolean;
 }
 
@@ -52,7 +51,6 @@ export function WeeklyTimesheet({ sessions, todayOnly = false }: WeeklyTimesheet
     );
   }
 
-  // ── Today-only: flat list, no date headers ─────────────────────────────
   if (todayOnly) {
     const allSessions = grouped.flatMap(g => g.items);
     return (
@@ -66,7 +64,6 @@ export function WeeklyTimesheet({ sessions, todayOnly = false }: WeeklyTimesheet
     );
   }
 
-  // ── Full grouped view (used on /records or any future weekly view) ──────
   return (
     <div className="space-y-6">
       {grouped.map(({ date, items }) => {
@@ -100,7 +97,6 @@ export function WeeklyTimesheet({ sessions, todayOnly = false }: WeeklyTimesheet
   );
 }
 
-// ── Shared session row ────────────────────────────────────────────────────
 function SessionRow({
   session,
   onDelete,

@@ -22,7 +22,6 @@ export function TopBar({ profile, userEmail }: TopBarProps) {
       }}
     >
       <div className="flex items-center gap-3">
-        {/* Mobile hamburger + drawer */}
         <MobileSidebar userEmail={userEmail} />
 
         <p className="text-sm hidden sm:block" style={{ color: "rgba(226,226,240,0.5)" }}>

@@ -80,6 +80,6 @@ export function timeOfDayBucket(
   if (hour >= 7 && hour < 12) return "morning";
   if (hour >= 12 && hour < 17) return "afternoon";
   if (hour >= 17 && hour < 20) return "evening";
-  if (hour >= 20 && hour < 24) return "night";   // 8 PM – midnight
-  return "late_night"; // 0 AM – 4 AM
+  if (hour >= 20 && hour < 24) return "night";
+  return "late_night";
 }

@@ -70,7 +70,6 @@ export default async function TasksPage() {
         <p className="text-xs mt-1 text-neutral-500">Plan your day and track execution.</p>
       </div>
 
-      {/* Desktop: side-by-side. Mobile: tasks full-width, add via FAB */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <TaskList
@@ -82,7 +81,6 @@ export default async function TasksPage() {
           />
         </div>
 
-        {/* Desktop add panel — hidden on mobile, FAB handles mobile */}
         <div className="hidden lg:block">
           <div className="rounded-xl p-5 sticky top-6" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
             <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">+ Plan New Task</p>
@@ -96,7 +94,6 @@ export default async function TasksPage() {
         </div>
       </div>
 
-      {/* Mobile FAB + bottom sheet */}
       <PlannerAddSheet
         subjects={subjects ?? []}
         topics={topics ?? []}

@@ -9,7 +9,6 @@ create table if not exists public.saved_questions (
   exam_type           public.exam_type_enum,
   error_category      public.error_category_enum,
   explanation         text,
-  -- Path in Supabase Storage bucket, scoped to {user_id}/saved-questions/...
   image_path          text,
   review_count        integer not null default 0 check (review_count >= 0),
   next_review_date    date,
@@ -27,13 +26,3 @@ create policy "saved_questions: update own" on public.saved_questions for update
 create policy "saved_questions: delete own" on public.saved_questions for delete using (auth.uid() = user_id);
 create trigger saved_questions_updated_at before update on public.saved_questions for each row execute function public.set_updated_at();
 
--- Storage bucket (created via Supabase dashboard or CLI, policy below)
--- Bucket name: "question-images"
--- Path pattern: {user_id}/saved-questions/{filename}
--- Policy SQL (apply in Supabase Storage policies):
---   create policy "storage: select own questions"
---     on storage.objects for select using (bucket_id = 'question-images' and (storage.foldername(name))[1] = auth.uid()::text);
---   create policy "storage: insert own questions"
---     on storage.objects for insert with check (bucket_id = 'question-images' and (storage.foldername(name))[1] = auth.uid()::text);
---   create policy "storage: delete own questions"
---     on storage.objects for delete using (bucket_id = 'question-images' and (storage.foldername(name))[1] = auth.uid()::text);

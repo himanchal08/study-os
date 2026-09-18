@@ -1,9 +1,7 @@
 DO $$
 DECLARE
-  -- Look up the real auth.users UUID from the profiles table using the profile row id
   v_user_id uuid := (SELECT user_id FROM public.profiles WHERE id = 'f84506bd-63ed-427c-9e8f-80da90f030b5' LIMIT 1);
 
-  -- Subject IDs
   s_quant     uuid := gen_random_uuid();
   s_reasoning uuid := gen_random_uuid();
   s_english   uuid := gen_random_uuid();
@@ -11,19 +9,12 @@ DECLARE
   s_computer  uuid := gen_random_uuid();
   s_banking   uuid := gen_random_uuid();
 
-  -- SSC Subject IDs
   s_ssc_quant     uuid := gen_random_uuid();
   s_ssc_reasoning uuid := gen_random_uuid();
   s_ssc_english   uuid := gen_random_uuid();
   s_ssc_ga        uuid := gen_random_uuid();
 
 BEGIN
-
--- ============================================================
--- BANKING SUBJECTS (SBI PO / IBPS PO — Prelims + Mains)
--- exam_type = 'banking'
--- Source: ibps.in CRP PO/MT notifications, sbi.bank.in recruitment notifications
--- ============================================================
 
 INSERT INTO subjects (id, user_id, name, color, exam_type, created_at)
 VALUES
@@ -35,7 +26,6 @@ VALUES
   (s_banking,   v_user_id, 'Banking & Financial Awareness',  '#fb7185', 'banking', now())
 ON CONFLICT DO NOTHING;
 
--- ── Quantitative Aptitude ────────────────────────────────────
 INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight, created_at) VALUES
   (gen_random_uuid(), v_user_id, s_quant, 'Simplification & Approximation',    'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_quant, 'Number Series',                      'not_started', 5, now()),
@@ -60,7 +50,6 @@ INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight,
   (gen_random_uuid(), v_user_id, s_quant, 'Data Sufficiency (Quant)',            'not_started', 3, now())
 ON CONFLICT DO NOTHING;
 
--- ── Reasoning & Computer Aptitude ──────────────────────────
 INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight, created_at) VALUES
   (gen_random_uuid(), v_user_id, s_reasoning, 'Puzzles — Seating Arrangement (Linear/Circular)', 'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_reasoning, 'Puzzles — Floor/Box/Complex Arrangements',        'not_started', 5, now()),
@@ -75,7 +64,6 @@ INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight,
   (gen_random_uuid(), v_user_id, s_reasoning, 'Logical Reasoning / Course of Action',             'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_reasoning, 'Critical Reasoning / Assumptions',                 'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_reasoning, 'Order & Ranking',                                  'not_started', 2, now()),
-  -- Computer Aptitude (part of Mains Reasoning section)
   (gen_random_uuid(), v_user_id, s_reasoning, 'Computer Basics — Hardware & Software',            'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_reasoning, 'Operating Systems & MS Office',                    'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_reasoning, 'Internet & Networking Basics',                     'not_started', 3, now()),
@@ -84,7 +72,6 @@ INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight,
   (gen_random_uuid(), v_user_id, s_reasoning, 'Cybersecurity & Computer Shortcuts',               'not_started', 2, now())
 ON CONFLICT DO NOTHING;
 
--- ── English Language ────────────────────────────────────────
 INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight, created_at) VALUES
   (gen_random_uuid(), v_user_id, s_english, 'Reading Comprehension (RC)',          'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_english, 'Cloze Test',                          'not_started', 5, now()),
@@ -99,22 +86,17 @@ INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight,
   (gen_random_uuid(), v_user_id, s_english, 'Column-Based Fill in the Blanks',    'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_english, 'Sentence Connectors / Starters',     'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_english, 'Paragraph Conclusion / Inference',   'not_started', 4, now()),
-  -- Mains Descriptive
   (gen_random_uuid(), v_user_id, s_english, 'Essay Writing (Mains Descriptive)',  'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_english, 'Letter Writing (Formal/Informal)',   'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_english, 'Précis Writing',                     'not_started', 3, now())
 ON CONFLICT DO NOTHING;
-
--- ── General / Economy / Banking / Financial Awareness ───────
 INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight, created_at) VALUES
-  -- Current Affairs (last 6 months before exam)
   (gen_random_uuid(), v_user_id, s_ga, 'Current Affairs — National',              'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ga, 'Current Affairs — International',          'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ga, 'Government Schemes & Policies',            'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ga, 'Sports — Recent Championships & Awards',  'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ga, 'Important Appointments & Summits',        'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ga, 'Science & Technology News',               'not_started', 3, now()),
-  -- Static GK
   (gen_random_uuid(), v_user_id, s_ga, 'Indian History — Ancient & Medieval',     'not_started', 2, now()),
   (gen_random_uuid(), v_user_id, s_ga, 'Indian History — Modern & Freedom Movement','not_started',3, now()),
   (gen_random_uuid(), v_user_id, s_ga, 'Indian Geography',                         'not_started', 3, now()),
@@ -133,12 +115,6 @@ INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight,
   (gen_random_uuid(), v_user_id, s_ga, 'Books & Authors',                           'not_started', 2, now())
 ON CONFLICT DO NOTHING;
 
--- ============================================================
--- SSC CGL SUBJECTS (Tier 1 + Tier 2)
--- exam_type = 'ssc'
--- Source: ssc.gov.in CGL notifications (2024/2025/2026 pattern)
--- ============================================================
-
 INSERT INTO subjects (id, user_id, name, color, exam_type, created_at)
 VALUES
   (s_ssc_quant,     v_user_id, 'Quantitative Aptitude (SSC)',      '#38bdf8', 'ssc', now()),
@@ -147,9 +123,7 @@ VALUES
   (s_ssc_ga,        v_user_id, 'General Awareness (SSC)',          '#f59e0b', 'ssc', now())
 ON CONFLICT DO NOTHING;
 
--- ── Quantitative Aptitude (SSC CGL Tier 1 + Tier 2 Paper I) ─
 INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight, created_at) VALUES
-  -- Arithmetic (high weight in Tier 1 & Tier 2)
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Number System & Simplification',       'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'LCM & HCF',                            'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Fractions & Decimals',                 'not_started', 3, now()),
@@ -164,21 +138,16 @@ INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight,
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Averages',                             'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Mixtures & Alligations',               'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Age Problems',                         'not_started', 3, now()),
-  -- Algebra
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Algebra — Basic Identities & Equations','not_started',5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Linear & Quadratic Equations',         'not_started', 4, now()),
-  -- Geometry & Mensuration
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Geometry — Lines, Angles & Triangles', 'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Geometry — Circles & Quadrilaterals',  'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Mensuration — 2D (Area & Perimeter)',  'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Mensuration — 3D (Volume & Surface Area)','not_started',5, now()),
-  -- Trigonometry
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Trigonometry — Ratios & Identities',   'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Trigonometry — Heights & Distances',   'not_started', 4, now()),
-  -- Data Interpretation (Tier 2 heavy)
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Data Interpretation — Bar/Pie/Line',   'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Data Interpretation — Tables & Mixed', 'not_started', 5, now()),
-  -- Statistics (Tier 2 Paper III — JSO)
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Statistics — Mean, Median, Mode',      'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Statistics — Standard Deviation & Variance','not_started',3, now()),
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Probability',                          'not_started', 4, now()),
@@ -187,7 +156,6 @@ INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight,
   (gen_random_uuid(), v_user_id, s_ssc_quant, 'Surds & Indices',                      'not_started', 4, now())
 ON CONFLICT DO NOTHING;
 
--- ── General Intelligence & Reasoning (SSC CGL) ─────────────
 INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight, created_at) VALUES
   (gen_random_uuid(), v_user_id, s_ssc_reasoning, 'Analogies — Verbal & Non-Verbal',         'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_reasoning, 'Classification (Odd One Out)',             'not_started', 5, now()),
@@ -214,7 +182,6 @@ INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight,
   (gen_random_uuid(), v_user_id, s_ssc_reasoning, 'Critical Reasoning (Tier 2)',              'not_started', 3, now())
 ON CONFLICT DO NOTHING;
 
--- ── English Language & Comprehension (SSC CGL) ─────────────
 INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight, created_at) VALUES
   (gen_random_uuid(), v_user_id, s_ssc_english, 'Reading Comprehension',                     'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_english, 'Cloze Test',                                'not_started', 5, now()),
@@ -229,46 +196,36 @@ INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight,
   (gen_random_uuid(), v_user_id, s_ssc_english, 'Synonyms & Antonyms',                       'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_english, 'Spelling Correction',                       'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_ssc_english, 'Phrase/Preposition/Conjunction Usage',      'not_started', 4, now()),
-  -- Tier 2 specific
   (gen_random_uuid(), v_user_id, s_ssc_english, 'Paragraph Summary / Inference (Tier 2)',    'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_english, 'Vocabulary in Context (Tier 2)',             'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_english, 'Advanced Grammar — Tenses & Clauses (Tier 2)','not_started',3, now())
 ON CONFLICT DO NOTHING;
 
--- ── General Awareness (SSC CGL) ────────────────────────────
 INSERT INTO topics (id, user_id, subject_id, name, status, pyq_frequency_weight, created_at) VALUES
-  -- History
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Ancient Indian History',                        'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Medieval Indian History',                        'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Modern Indian History & Freedom Movement',       'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'World History — Key Events',                     'not_started', 2, now()),
-  -- Geography
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Indian Geography — Physical',                   'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Indian Geography — Resources & Agriculture',    'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'World Geography — Continents & Features',       'not_started', 3, now()),
-  -- Polity
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Indian Constitution — Fundamentals',             'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Indian Polity — Parliament & Judiciary',         'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Panchayati Raj & Local Governance',              'not_started', 3, now()),
-  -- Economics
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Indian Economy — Basic Concepts',                'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Budget, Taxes & Fiscal Policy',                  'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Five Year Plans & Economic Reforms',             'not_started', 3, now()),
-  -- Science (Biology, Physics, Chemistry)
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Biology — Human Body Systems',                  'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Biology — Cell, Nutrition & Diseases',          'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Physics — Laws, Motion & Electricity',          'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Physics — Light, Sound & Modern Physics',       'not_started', 4, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Chemistry — Elements, Reactions & Compounds',   'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Chemistry — Acids, Bases & Everyday Chemistry', 'not_started', 4, now()),
-  -- Computer & Technology
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Computer Basics & MS Office (Tier 2)',          'not_started', 4, now()),
-  -- Current Affairs
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Current Affairs — National & International',    'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Government Schemes & Policies',                  'not_started', 5, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Sports — Recent Events & Awards',               'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Important Days, Persons & Books',               'not_started', 3, now()),
-  -- Static GK
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'National Parks, Rivers & Dams',                 'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'Famous Temples, Monuments & UNESCO Sites',      'not_started', 3, now()),
   (gen_random_uuid(), v_user_id, s_ssc_ga, 'International Organisations & Headquarters',    'not_started', 3, now())

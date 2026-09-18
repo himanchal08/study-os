@@ -36,8 +36,6 @@ export function groupSessionsByDay(
     if (!s.end_timestamp) continue; 
     const startMs = new Date(s.start_timestamp).getTime();
     const endMs = new Date(s.end_timestamp).getTime();
-    // Use the midpoint of the session for bucketing so sessions crossing midnight
-    // are credited to the day where the majority of the studying occurred.
     const midPointMs = startMs + (endMs - startMs) / 2;
     
     const dateKey = dayBoundaryAwareDate(

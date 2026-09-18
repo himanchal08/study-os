@@ -1,8 +1,3 @@
--- ============================================================
--- BANKING SYLLABUS SEED  (exam_type = 'banking')
--- Run in: Supabase Dashboard -> SQL Editor -> New Query
--- Run AFTER data_wipe.sql
--- ============================================================
 DO $$
 DECLARE
   v_uid   uuid := 'b9f715ea-e543-4dd0-90e2-8cd93ca68218';

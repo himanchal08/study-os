@@ -36,10 +36,8 @@ interface HistoryClientProps {
   bestDayDate: string;
   currentStreak: number;
   bestStreak: number;
-  // User timezone settings — needed for boundary-aware day grouping
   offsetMin: number;
   timezone: string;
-  // Pre-computed by the server component to avoid impure Date.now() in render
   todayStr: string;
 }
 
@@ -89,7 +87,6 @@ export function HistoryClient({
     });
   }, [sessions, search, filterSubject, filterActivity]);
 
-  // Group by date
   const grouped = useMemo(() => {
     const map = new Map<string, HistorySession[]>();
     filtered.forEach(s => {
@@ -112,7 +109,6 @@ export function HistoryClient({
     () => filtered.reduce((acc, s) => acc + sessionDurationSecs(s), 0),
     [filtered]
   );
-  // todayStr is passed from the server — no Date.now() needed in the client.
 
   const handleDelete = (id: string) => {
     if (!confirm("Delete this session?")) return;
@@ -133,7 +129,6 @@ export function HistoryClient({
         <p className="text-xs mt-1 text-neutral-500">All your study sessions — search, filter, delete.</p>
       </div>
 
-      {/* ── All-time stats strip ─────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
         {statCards.map(({ label, value, sub, color }) => (
           <div key={label} className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
@@ -144,9 +139,7 @@ export function HistoryClient({
         ))}
       </div>
 
-      {/* ── Search + Filters ─────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-2">
-        {/* Search */}
         <div className="relative flex-1">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -161,7 +154,6 @@ export function HistoryClient({
           />
         </div>
 
-        {/* Subject filter */}
         <select
           value={filterSubject}
           onChange={e => setFilterSubject(e.target.value)}
@@ -172,7 +164,6 @@ export function HistoryClient({
           <SubjectOptions subjects={subjects} />
         </select>
 
-        {/* Activity filter */}
         <select
           value={filterActivity}
           onChange={e => setFilterActivity(e.target.value)}
@@ -186,7 +177,6 @@ export function HistoryClient({
         </select>
       </div>
 
-      {/* ── Filter summary ───────────────────────────────────────── */}
       {(search || filterSubject || filterActivity) && (
         <div className="flex items-center justify-between text-xs">
           <span className="text-neutral-500">
@@ -201,7 +191,6 @@ export function HistoryClient({
         </div>
       )}
 
-      {/* ── Session log grouped by day ───────────────────────────── */}
       {grouped.length === 0 ? (
         <div className="rounded-xl p-12 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <p className="text-neutral-500 text-sm">No sessions match your filters.</p>
@@ -216,7 +205,6 @@ export function HistoryClient({
 
             return (
               <div key={date}>
-                {/* Day header */}
                 <div className="flex items-center justify-between mb-2 px-1">
                   <div className="flex items-center gap-2">
                     <p className="text-xs font-semibold text-neutral-200">
@@ -231,7 +219,6 @@ export function HistoryClient({
                   </span>
                 </div>
 
-                {/* Session rows */}
                 <div
                   className="rounded-xl overflow-hidden divide-y"
                   style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
@@ -253,12 +240,10 @@ export function HistoryClient({
                         className="flex items-start gap-3 px-3.5 py-3 hover:bg-white/1.5 transition-colors group"
                         style={{ borderLeft: `3px solid ${subjectColor}` }}
                       >
-                        {/* Time */}
                         <span className="text-[10px] text-neutral-600 tabular-nums shrink-0 mt-0.5 w-14">
                           {format(new Date(s.start_timestamp), "h:mm a")}
                         </span>
 
-                        {/* Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {s.subjects?.name && (
@@ -280,7 +265,6 @@ export function HistoryClient({
                           )}
                         </div>
 
-                        {/* Activity badge */}
                         <span
                           className="text-[10px] px-1.5 py-0.5 rounded-md font-medium shrink-0 hidden sm:inline-flex"
                           style={{ background: `${actColor}18`, color: actColor }}
@@ -288,12 +272,10 @@ export function HistoryClient({
                           {s.activity_type}
                         </span>
 
-                        {/* Duration */}
                         <span className="text-xs font-mono font-semibold tabular-nums text-neutral-300 shrink-0 w-14 text-right">
                           {durationStr}
                         </span>
 
-                        {/* Delete */}
                         <button
                           onClick={() => handleDelete(s.id)}
                           disabled={isPending}

@@ -1,8 +1,3 @@
--- ============================================================
--- Migration 006: question_batches
--- Full validation enforced at DB level (PRD §E).
--- ============================================================
-
 create table if not exists public.question_batches (
   id                  uuid primary key default gen_random_uuid(),
   user_id             uuid not null references auth.users(id) on delete cascade,
@@ -10,12 +5,11 @@ create table if not exists public.question_batches (
   subject_id          uuid references public.subjects(id) on delete set null,
   topic_id            uuid references public.topics(id) on delete set null,
   chapter_id          uuid references public.chapters(id) on delete set null,
-  source              text,     -- e.g. "DPP", "PYQ 2023", "Testbook"
+  source              text,
   attempted           integer not null check (attempted > 0),
   correct             integer not null default 0 check (correct >= 0),
   wrong               integer not null default 0 check (wrong >= 0),
   skipped             integer not null default 0 check (skipped >= 0),
-  -- PRD §E: correct + wrong + skipped <= attempted
   constraint qb_counts_valid check (correct + wrong + skipped <= attempted),
   duration_minutes    integer check (duration_minutes > 0),
   notes               text,

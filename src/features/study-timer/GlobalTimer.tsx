@@ -6,7 +6,6 @@ import { logQuestionBatch } from "@/app/(dashboard)/questions/actions";
 import type { Tables } from "@/types/database";
 import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
-// Defined at module scope so it’s not recreated on every render
 type PostLog = {
   subjectId:    string | null;
   subjectName:  string;
@@ -23,7 +22,6 @@ interface GlobalTimerProps {
   topics: Array<{ id: string; name: string; subject_id: string }>;
 }
 
-// A fake session used for optimistic UI while DB call is in flight
 function makeOptimisticSession(opts: {
   subjectId: string;
   topicId: string;
@@ -60,11 +58,10 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   );
   const [notes, setNotes] = useState<string>(activeSession?.notes ?? "");
 
-  // Post-session quick-log: populated when practice/mock ends, cleared on dismiss
   const [postLog, setPostLog] = useState<PostLog | null>(null);
   const [postAttempted, setPostAttempted] = useState("");
   const [postCorrect, setPostCorrect] = useState("");
-  const [postSkipped, setPostSkipped] = useState("");  // mock only
+  const [postSkipped, setPostSkipped] = useState("");
   const [postSource, setPostSource] = useState("");
   const [postPending, startPostTransition] = useTransition();
   const [postError, setPostError] = useState<string | null>(null);
@@ -73,29 +70,23 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   const correctInputRef = useRef<HTMLInputElement>(null);
   const skippedInputRef = useRef<HTMLInputElement>(null);
 
-  // Cancel the auto-close timer on unmount to avoid setState on unmounted component
   useEffect(() => {
     return () => {
       if (postSuccessTimerRef.current !== null) clearTimeout(postSuccessTimerRef.current);
     };
   }, []);
 
-  // Sync with server-side session on mount / re-render
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSession(activeSession);
     setSelectedSubject(activeSession?.subject_id ?? "");
     setSelectedTopic(activeSession?.topic_id ?? "");
     setActivityType(activeSession?.activity_type ?? "practice");
     setNotes(activeSession?.notes ?? "");
-    // A new session from another device means the post-log form is now stale
     setPostLog(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSession?.id]);
 
   const filteredTopics = topics.filter(t => t.subject_id === selectedSubject);
 
-  // ── Timer tick ──────────────────────────────────────────────────────────────
   const segmentStartMonoRef = useRef<number | null>(null);
   const [accumulatedSec, setAccumulatedSec] = useState<number>(() => {
     if (!activeSession?.start_timestamp) return 0;
@@ -106,12 +97,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
   const [totalPauseSec, setTotalPauseSec] = useState(activeSession?.pause_duration_seconds ?? 0);
   const [displayedSec, setDisplayedSec] = useState(accumulatedSec);
   const rafRef = useRef<number | null>(null);
-  // Mirror accumulatedSec in a ref so the rAF tick always reads the latest value
-  // without triggering effect restarts (fixes stale-closure timer drift after pause/resume).
   const accumulatedSecRef = useRef(accumulatedSec);
-  // Sync the ref in an effect so we never write .current during render
-  // (satisfies react-hooks/refs). The rAF tick only reads this after the
-  // effect has fired, which is before the next animation frame.
   useEffect(() => {
     accumulatedSecRef.current = accumulatedSec;
   }, [accumulatedSec]);
@@ -145,11 +131,9 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     };
   }, [isRunning, isPaused]);
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleStart = useCallback(() => {
     setError(null);
-    // 1. Optimistic update — show timer running immediately
     const optimistic = makeOptimisticSession({
       subjectId: selectedSubject,
       topicId: selectedTopic,
@@ -162,7 +146,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     setTotalPauseSec(0);
     setPausedAtMs(null);
 
-    // 2. Fire DB call in background
     startSession({
       userId,
       subjectId: selectedSubject || null,
@@ -171,25 +154,16 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       notes: notes.trim() || null,
     }).then(result => {
       if ("error" in result && result.error) {
-        // Roll back — but only if the user hasn't already manually stopped
-        // (handleStop sets session=null; don't re-open a dead session)
         setError(result.error);
-        // Use functional updates throughout: read the LATEST session state
-        // atomically to avoid clobbering a new session the user may have
-        // started during the network round-trip.
         setSession(prev => {
           if (prev?.id === "__optimistic__") {
-            // Still on the optimistic session — safe to reset everything
             setAccumulatedSec(0);
             setDisplayedSec(0);
             return null;
           }
-          // User already stopped or restarted — leave the new state alone
           return prev;
         });
       } else if ("session" in result && result.session) {
-        // Functional update: only swap if user hasn’t already stopped the timer
-        // (stopped state = session is null). Prevents zombie open session in DB.
         setSession(prev => prev === null ? null : result.session);
       }
     });
@@ -208,10 +182,8 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     if (!session) return;
     setError(null);
 
-    // 1. Optimistic update — hide timer immediately
     const sessionId = session.id;
 
-    // Compute elapsed from timestamps — avoids stale displayedSec in closure.
     const elapsedSecs = sessionId === "__optimistic__"
       ? 0
       : Math.max(0, (Date.now() - new Date(session.start_timestamp).getTime()) / 1000 - totalPauseSec);
@@ -222,7 +194,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     }
     const finalNotes = notes.trim();
 
-    // Capture metadata BEFORE resetting state for the post-session form
     const capturedSubjectId   = session.subject_id ?? null;
     const capturedTopicId     = (session.topic_id ?? selectedTopic) || null;
     const capturedActivityType = session.activity_type ?? activityType;
@@ -237,11 +208,8 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     setNotes("");
     setSelectedTopic("");
 
-    // Skip the DB write for very short or still-optimistic sessions.
-    // Avoids spurious revision entries from accidental start taps.
     if (sessionId === "__optimistic__" || elapsedSecs < 30) return;
 
-    // Show quick-log form for practice and mock sessions
     if (capturedActivityType === "practice" || capturedActivityType === "mock") {
       setPostLog({
         subjectId:    capturedSubjectId,
@@ -259,7 +227,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       setPostSuccess(false);
     }
 
-    // 2. Fire DB call in background
     stopSession({
       sessionId,
       userId,
@@ -327,7 +294,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       role="region"
       aria-label="Global study timer"
     >
-      {/* Left: description + pickers */}
       <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
         <input
           type="text"
@@ -341,7 +307,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
 
         <div className="h-4 w-px bg-neutral-800 hidden sm:block shrink-0" />
 
-        {/* Subject picker */}
         <div className="hidden sm:flex items-center gap-1.5 shrink-0">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-600">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -362,7 +327,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
           )}
         </div>
 
-        {/* Topic picker */}
         {selectedSubject && (
           <div className="hidden sm:flex items-center gap-1.5 shrink-0">
             <div className="h-4 w-px bg-neutral-800" />
@@ -385,7 +349,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
           </div>
         )}
 
-        {/* Activity type */}
         <div className="hidden md:flex items-center gap-1.5 shrink-0">
           <div className="h-4 w-px bg-neutral-800" />
           {isRunning ? (
@@ -411,7 +374,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
         )}
       </div>
 
-      {/* Right: timer display + controls */}
       <div className="flex items-center gap-4 shrink-0">
         <div
           className="text-xl font-mono font-semibold tabular-nums tracking-tight transition-colors"
@@ -463,7 +425,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       </div>
     </div>
 
-    {/* ── Post-session quick-log overlay ─────────────────────────── */}
     {postLog && (
       <div
         className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
@@ -476,7 +437,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
           role="dialog"
           aria-label="Log questions from this session"
         >
-          {/* Header */}
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: postLog.activityType === "mock" ? "#a78bfa" : "#34d399" }}>
@@ -510,7 +470,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
             </div>
           ) : (
             <>
-              {/* Attempted + Correct + (mock-only) Skipped */}
               <div className={`grid gap-3 ${postLog.activityType === "mock" ? "grid-cols-3" : "grid-cols-2"}`}>
                 <div>
                   <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-1">Attempted *</label>
@@ -564,7 +523,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
                 )}
               </div>
 
-              {/* Source (optional) */}
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-1">
                   {postLog.activityType === "mock" ? "Mock Name (optional)" : "Source / Book (optional)"}
@@ -579,7 +537,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
                 />
               </div>
 
-              {/* Pre-filled info strip */}
               <div className="flex items-center gap-3 text-[10px] text-neutral-600">
                 <span>⏱ {Math.round(postLog.durationSecs / 60)}m</span>
                 {postLog.subjectName && <span>📚 {postLog.subjectName}</span>}
@@ -590,7 +547,6 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
                 <p className="text-xs text-red-400">{postError}</p>
               )}
 
-              {/* Actions */}
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={handlePostSubmit}

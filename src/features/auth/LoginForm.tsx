@@ -43,7 +43,7 @@ export function LoginForm() {
         if (state.session) {
           router.push("/");
         } else {
-          setIsSignUp(false); // switch to sign in if they need to verify email
+          setIsSignUp(false);
         }
       }, 2000);
       return () => clearTimeout(timer);
@@ -52,7 +52,6 @@ export function LoginForm() {
 
   return (
     <div className="w-full relative">
-      {/* Success Popup */}
       {state?.success && isSignUp && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-2xl animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-xl shadow-2xl flex flex-col items-center text-center max-w-70">

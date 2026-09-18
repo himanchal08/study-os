@@ -50,7 +50,6 @@ function TopicRow({ topic }: { topic: Topic }) {
   const [archived, setArchived] = useState(false);
   const [status, setStatus] = useState<TopicStatus>(topic.status);
   
-  // Local state for lifecycle to provide optimistic updates
   const [book, setBook] = useState(topic.lifecycle?.book_practice_done ?? false);
   const [dpp, setDpp] = useState(topic.lifecycle?.dpp_done ?? false);
   const [pyq, setPyq] = useState(topic.lifecycle?.pyq_done ?? false);

@@ -49,7 +49,6 @@ export function VaultCard({
     });
   };
 
-  // Get public URL for image if present
   let imageUrl: string | null = null;
   if (imagePath) {
     const supabase = createClient();
@@ -62,16 +61,13 @@ export function VaultCard({
       className="rounded-xl overflow-hidden flex flex-col group"
       style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderTop: `3px solid ${errColor}` }}
     >
-      {/* Screenshot */}
       {imageUrl && (
         <div className="w-full aspect-video overflow-hidden bg-neutral-900">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={imageUrl} alt="Question screenshot" className="w-full h-full object-cover" />
         </div>
       )}
 
       <div className="p-3.5 flex flex-col gap-2 flex-1">
-        {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             {(subjectName || topicName) && (
@@ -94,7 +90,6 @@ export function VaultCard({
           </button>
         </div>
 
-        {/* Error badge */}
         {errorCategory && (
           <span
             className="self-start text-[10px] px-2 py-0.5 rounded-full font-medium"
@@ -104,12 +99,10 @@ export function VaultCard({
           </span>
         )}
 
-        {/* Explanation */}
         {explanation && (
           <p className="text-xs text-neutral-400 leading-relaxed line-clamp-3">{explanation}</p>
         )}
 
-        {/* Footer */}
         <p className="text-[10px] text-neutral-700 mt-auto pt-1">
           {format(new Date(createdAt), "d MMM yyyy")}
         </p>

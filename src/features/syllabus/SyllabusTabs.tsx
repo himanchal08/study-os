@@ -44,7 +44,6 @@ export function SyllabusTabs({ subjects }: { subjects: Subject[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Stats � update per tab */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: "Subjects", value: filtered.length },
@@ -58,7 +57,6 @@ export function SyllabusTabs({ subjects }: { subjects: Subject[] }) {
         ))}
       </div>
 
-      {/* Exam tabs */}
       <div className="flex gap-1.5 p-1 rounded-xl" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
         {TABS.map(tab => {
           const count = subjects.filter(s => matchesTab(s, tab.key)).length;
@@ -81,7 +79,6 @@ export function SyllabusTabs({ subjects }: { subjects: Subject[] }) {
         })}
       </div>
 
-      {/* Subject list */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Subjects &amp; Topics</p>
         {filtered.length === 0 ? (
@@ -90,7 +87,6 @@ export function SyllabusTabs({ subjects }: { subjects: Subject[] }) {
             <p className="text-neutral-700 text-xs mt-1">Run the seed SQL in Supabase to populate this tab.</p>
           </div>
         ) : (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           filtered.map(s => <SubjectCard key={s.id} subject={s as any} />)
         )}
       </div>

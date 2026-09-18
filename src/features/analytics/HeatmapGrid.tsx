@@ -95,7 +95,6 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
     columns.push(week);
   }
 
-  // Fixed cell size — SVG scales via viewBox + width="100%"
   const CELL_SIZE = 11;
   const CELL_GAP  = 2;
   const COL_W     = CELL_SIZE + CELL_GAP;
@@ -113,7 +112,6 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
         style={{ display: "block", overflow: "visible" }}
         aria-label="Study activity heatmap"
       >
-        {/* Month labels */}
         {monthLabels.map(({ col, month }) => (
           <text
             key={`${col}-${month}`}
@@ -127,7 +125,6 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
           </text>
         ))}
 
-        {/* Day labels */}
         {DAYS.map((day, i) => (
           <text
             key={day}
@@ -142,7 +139,6 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
           </text>
         ))}
 
-        {/* Cells */}
         {columns.map((week, colIdx) =>
           week.map((cell, rowIdx) => {
             if (!cell) return null;
@@ -172,7 +168,6 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
         )}
       </svg>
 
-      {/* Legend */}
       <div className="flex items-center gap-2 mt-3">
         <span className="text-[10px]" style={{ color: "rgba(232,232,240,0.3)" }}>Less</span>
         {HEAT_COLORS.map((bg, i) => (

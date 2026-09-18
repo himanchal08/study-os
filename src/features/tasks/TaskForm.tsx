@@ -42,7 +42,6 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
 
   return (
     <form action={formAction} className="space-y-3">
-      {/* Title */}
       <input
         id="task-title"
         name="title"
@@ -53,7 +52,6 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
         autoComplete="off"
       />
 
-      {/* Subject + Topic row */}
       <div className="grid grid-cols-2 gap-2">
         <select
           id="task-subject"
@@ -78,7 +76,6 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
         </select>
       </div>
 
-      {/* Date */}
       <input
         id="task-planned-date"
         name="planned_date"
@@ -88,7 +85,6 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
         className="input-premium"
       />
 
-      {/* Hidden fields with sensible defaults */}
       <input type="hidden" name="recurrence_pattern" value="none" />
 
       {state?.error && (

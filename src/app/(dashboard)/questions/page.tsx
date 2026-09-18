@@ -41,7 +41,6 @@ export default async function QuestionsPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
-  // eslint-disable-next-line react-hooks/purity
   const nowMs    = Date.now();
   const todayStr = dayBoundaryAwareDate(nowMs, offsetMin, timezone);
   const batchWindowStart = new Date(nowMs - 30 * 86400000).toISOString();
@@ -54,7 +53,7 @@ export default async function QuestionsPage() {
       .select("id, logged_at, attempted, correct, wrong, skipped, source, notes, duration_minutes, subject_id, topic_id, subjects(name, color), topics(name)")
       .eq("user_id", user.id)
       .is("deleted_at", null)
-      .gte("logged_at", batchWindowStart) // last 30 days
+      .gte("logged_at", batchWindowStart)
       .order("logged_at", { ascending: false })
       .limit(300),
   ]);
@@ -77,7 +76,6 @@ export default async function QuestionsPage() {
         <p className="text-xs mt-1 text-neutral-500">Log batches, track accuracy over time.</p>
       </div>
 
-      {/* Today's stats strip */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: "Attempted", value: totalAttempted || "—" },
@@ -97,10 +95,8 @@ export default async function QuestionsPage() {
         ))}
       </div>
 
-      {/* Mobile layout: log form always on top, list below */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-        {/* Log form — full-width on mobile, 2 cols on desktop */}
         <div className="lg:col-span-2">
           <div className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
             <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Log New Batch</p>
@@ -108,7 +104,6 @@ export default async function QuestionsPage() {
           </div>
         </div>
 
-        {/* Batch list — 3 cols on desktop */}
         <div className="lg:col-span-3 space-y-2">
           <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recent Batches</p>
 
@@ -127,7 +122,6 @@ export default async function QuestionsPage() {
                   className="rounded-xl p-3.5"
                   style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
                 >
-                  {/* Header row */}
                   <div className="flex items-start justify-between gap-2 mb-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                       {subject && (
@@ -147,7 +141,6 @@ export default async function QuestionsPage() {
                       )}
                     </div>
 
-                    {/* Score pill */}
                     <div className="flex items-baseline gap-1 shrink-0">
                       <span className="text-base font-bold tabular-nums text-emerald-400">{b.correct}</span>
                       <span className="text-neutral-700 text-xs">/</span>

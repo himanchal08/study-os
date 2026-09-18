@@ -108,9 +108,6 @@ export async function stopSession(params: {
   }
 
   if (data && data.topic_id) {
-    // Duration gate — only meaningful sessions generate revisions/status changes.
-    // An accidental 2-second start+stop should not create revision rows or
-    // advance topic status.
     const sessionDurationSec =
       (new Date(data.end_timestamp!).getTime() -
         new Date(data.start_timestamp).getTime()) /
@@ -118,9 +115,6 @@ export async function stopSession(params: {
       (data.pause_duration_seconds ?? 0);
 
     if (sessionDurationSec >= 60) {
-      // Fetch user profile to compute revision dates in the user's local timezone.
-      // Without this, an IST user stopping at 00:30 IST (18:00 UTC prev day)
-      // gets 'tomorrow UTC' = 'today IST' as the daily revision due date.
       const { data: userProfile } = await supabase
         .from("profiles")
         .select("day_boundary_offset_minutes, timezone")
@@ -128,7 +122,6 @@ export async function stopSession(params: {
         .single();
       const userTimezone  = userProfile?.timezone ?? "Asia/Kolkata";
 
-      // Intl.DateTimeFormat returns reliable "YYYY-MM-DD" given en-CA locale.
       const toUserDateStr = (msFromNow: number) => {
         const parts = new Intl.DateTimeFormat("en-CA", {
           timeZone: userTimezone,
@@ -148,7 +141,7 @@ export async function stopSession(params: {
           topic_id: data.topic_id,
           source_session_id: data.id,
           cycle_type: "daily",
-          due_date: toUserDateStr(1 * 86400000),   // tomorrow (user TZ)
+          due_date: toUserDateStr(1 * 86400000),
           client_generated_id: randomUUID(),
         },
         {
@@ -156,7 +149,7 @@ export async function stopSession(params: {
           topic_id: data.topic_id,
           source_session_id: data.id,
           cycle_type: "weekly",
-          due_date: toUserDateStr(7 * 86400000),   // +7 days (user TZ)
+          due_date: toUserDateStr(7 * 86400000),
           client_generated_id: randomUUID(),
         },
         {
@@ -164,7 +157,7 @@ export async function stopSession(params: {
           topic_id: data.topic_id,
           source_session_id: data.id,
           cycle_type: "monthly",
-          due_date: toUserDateStr(30 * 86400000),  // +30 days (user TZ)
+          due_date: toUserDateStr(30 * 86400000),
           client_generated_id: randomUUID(),
         },
       ];
@@ -176,7 +169,6 @@ export async function stopSession(params: {
           ignoreDuplicates: true,
         });
 
-      // Status lifecycle order — never regress a topic's status
       const STATUS_ORDER: Record<string, number> = {
         not_started: 0, learning: 1, learned: 2, revising: 3, strong: 4,
       };
@@ -218,7 +210,7 @@ export async function stopSession(params: {
             { onConflict: "user_id,topic_id", ignoreDuplicates: false },
           );
       }
-    } // end duration gate
+    }
   }
 
   if (data && data.task_id) {

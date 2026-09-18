@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { dayBoundaryAwareDate, secondsToHours, studyDurationSeconds } from "@/lib/calculations";
@@ -50,7 +49,7 @@ const STATE_META: Record<StrategicState, { label: string; color: string; recomme
   },
 };
 
-const STRONG_ACCURACY = 75;    // accuracy % threshold to be considered "strong"
+const STRONG_ACCURACY = 75;
 
 export default async function ReportsPage({
   searchParams,
@@ -102,7 +101,7 @@ export default async function ReportsPage({
     .select("name, attempted, correct, mock_id, mocks!inner(mock_date, deleted_at)")
     .eq("user_id", user.id)
     .gte("mocks.mock_date", periodStart.split("T")[0])
-    .is("mocks.deleted_at", null); // exclude soft-deleted mocks
+    .is("mocks.deleted_at", null);
 
   
   
@@ -167,13 +166,12 @@ export default async function ReportsPage({
     const attempted = practice?.attempted ?? 0;
 
     const fairSharePct  = topicTimeMap.size > 0 ? 100 / topicTimeMap.size : 20;
-    const adequatePct   = fairSharePct * 0.4;   // studied < 40% of fair share → under-studied
-    const overStudiedPct = fairSharePct * 2.5;  // studied > 2.5× fair share → over-studied
+    const adequatePct   = fairSharePct * 0.4;
+    const overStudiedPct = fairSharePct * 2.5;
 
     let strategicState: StrategicState | "no_data";
 
     if (accuracy === null) {
-      // No question batch data — cannot determine weakness without evidence.
       strategicState = "no_data";
     } else {
       const isStrong = accuracy >= STRONG_ACCURACY;

@@ -29,7 +29,6 @@ export default async function HistoryPage() {
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
 
   const [{ data: rawStatsSessions }, { data: rawDisplaySessions }, { data: rawSubjects }] = await Promise.all([
-    // Lightweight query for all-time stats (no joins, tiny payload)
     supabase
       .from("study_sessions")
       .select("start_timestamp, end_timestamp, pause_duration_seconds")
@@ -37,7 +36,6 @@ export default async function HistoryPage() {
       .not("end_timestamp", "is", null)
       .is("deleted_at", null)
       .order("start_timestamp", { ascending: false }),
-    // Full detail query for UI list (bounded to prevent OOM)
     supabase
       .from("study_sessions")
       .select("id, start_timestamp, end_timestamp, pause_duration_seconds, activity_type, notes, subjects(name, color), topics(name)")
@@ -46,7 +44,6 @@ export default async function HistoryPage() {
       .is("deleted_at", null)
       .order("start_timestamp", { ascending: false })
       .limit(300),
-    // Subjects for filter dropdown
     supabase
       .from("subjects")
       .select("id, name, color, exam_type")
@@ -59,12 +56,9 @@ export default async function HistoryPage() {
   const displaySessions = (rawDisplaySessions ?? []) as unknown as HistorySession[];
   const subjects = rawSubjects ?? [];
 
-  // ── Compute all-time stats ──────────────────────────────────────────────
 
-  // Total all-time seconds
   const totalAllTimeSecs = statsSessions.reduce((acc, s) => acc + sessionSecs(s), 0);
 
-  // Group by boundary-aware date for streak + best day
   const dailySecsMap = new Map<string, number>();
   statsSessions.forEach(s => {
     const startMs = new Date(s.start_timestamp).getTime();
@@ -75,7 +69,6 @@ export default async function HistoryPage() {
     dailySecsMap.set(dateKey, (dailySecsMap.get(dateKey) ?? 0) + secs);
   });
 
-  // Best day
   let bestDaySecs = 0;
   let bestDayDate = "—";
   for (const [date, secs] of dailySecsMap.entries()) {
@@ -88,7 +81,6 @@ export default async function HistoryPage() {
     }
   }
 
-  // Streak calculation
   const sortedDates = Array.from(dailySecsMap.keys())
     .map(d => new Date(d + "T12:00:00"))
     .sort((a, b) => a.getTime() - b.getTime());

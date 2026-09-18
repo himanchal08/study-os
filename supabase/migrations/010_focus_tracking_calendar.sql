@@ -1,12 +1,6 @@
--- ============================================================
--- Migration 010: focus tracking (browser + phone events)
--- Browser extension MV3 (Phase 16) + Android companion (Phase 17).
--- ============================================================
-
 create type public.browser_event_type_enum as enum ('tab_switch', 'distraction_start', 'distraction_end', 'return_to_study');
 create type public.phone_event_type_enum as enum ('app_open', 'app_close', 'distraction_start', 'distraction_end');
 
--- Focus sessions (one per study session per client)
 create table if not exists public.focus_sessions (
   id                          uuid primary key default gen_random_uuid(),
   user_id                     uuid not null references auth.users(id) on delete cascade,
@@ -25,7 +19,6 @@ create policy "focus_sessions: update own" on public.focus_sessions for update u
 create policy "focus_sessions: delete own" on public.focus_sessions for delete using (auth.uid() = user_id);
 create trigger focus_sessions_updated_at before update on public.focus_sessions for each row execute function public.set_updated_at();
 
--- Browser events (raw telemetry from MV3 extension)
 create table if not exists public.browser_events (
   id                uuid primary key default gen_random_uuid(),
   user_id           uuid not null references auth.users(id) on delete cascade,
@@ -48,7 +41,6 @@ create policy "browser_events: no delete" on public.browser_events for delete us
 
 create index browser_events_session on public.browser_events (user_id, session_id);
 
--- Phone events (raw telemetry from Android companion)
 create table if not exists public.phone_events (
   id                uuid primary key default gen_random_uuid(),
   user_id           uuid not null references auth.users(id) on delete cascade,
@@ -70,15 +62,14 @@ create policy "phone_events: no delete" on public.phone_events for delete using 
 
 create index phone_events_session on public.phone_events (user_id, session_id);
 
--- Calendar sync events (Phase 5)
 create table if not exists public.calendar_sync_events (
   id                  uuid primary key default gen_random_uuid(),
   user_id             uuid not null references auth.users(id) on delete cascade,
-  source_type         text not null,   -- 'study_session' | 'revision' | 'task' | 'mock'
+  source_type         text not null,
   source_id           uuid not null,
-  google_event_id     text,            -- stable external event ID for update/delete
+  google_event_id     text,
   synced_at           timestamptz,
-  sync_status         text not null default 'pending',  -- 'pending' | 'synced' | 'failed'
+  sync_status         text not null default 'pending',
   error_message       text,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()

@@ -112,8 +112,6 @@ export async function archiveTopic(topicId: string) {
 
   const now = new Date().toISOString();
 
-  // Close pending revisions first — same pattern as deleteSubject.
-  // Archived topics must not leave ghost entries in the revision queue.
   await supabase
     .from("revisions")
     .delete()

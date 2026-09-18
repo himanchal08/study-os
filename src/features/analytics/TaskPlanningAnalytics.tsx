@@ -8,7 +8,6 @@ export async function TaskPlanningAnalytics() {
   const { data: profile } = await supabase.from("profiles").select("timezone").eq("user_id", user.id).single();
   const tz = profile?.timezone || "Asia/Kolkata";
   
-  // Format the local date string to YYYY-MM-DD reliably using the user's timezone
   const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
   const toUserYYYYMMDD = (d: Date) => {
     const parts = formatter.formatToParts(d);

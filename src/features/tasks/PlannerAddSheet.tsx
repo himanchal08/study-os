@@ -7,9 +7,7 @@ interface PlannerAddSheetProps {
   subjects: Array<{ id: string; name: string; color: string | null }>;
   topics: Array<{ id: string; name: string; subject_id: string }>;
   defaultDate: string;
-  /** Render only as inline form (desktop sidebar) */
   desktopOnly?: boolean;
-  /** Render only as FAB + bottom sheet (mobile) */
   mobileOnly?: boolean;
 }
 
@@ -22,7 +20,6 @@ export function PlannerAddSheet({
 }: PlannerAddSheetProps) {
   const [open, setOpen] = useState(false);
 
-  // Desktop inline form
   if (desktopOnly) {
     return (
       <TaskForm
@@ -34,11 +31,9 @@ export function PlannerAddSheet({
     );
   }
 
-  // Mobile: FAB + slide-up bottom sheet
   if (mobileOnly) {
     return (
       <>
-        {/* FAB */}
         <button
           onClick={() => setOpen(true)}
           aria-label="Add task"
@@ -48,7 +43,6 @@ export function PlannerAddSheet({
           +
         </button>
 
-        {/* Backdrop */}
         {open && (
           <div
             className="fixed inset-0 z-40 lg:hidden"
@@ -57,7 +51,6 @@ export function PlannerAddSheet({
           />
         )}
 
-        {/* Bottom sheet */}
         <div
           className="fixed bottom-0 left-0 right-0 z-50 lg:hidden rounded-t-2xl p-5 transition-transform duration-300 ease-in-out"
           style={{
@@ -69,7 +62,6 @@ export function PlannerAddSheet({
             overflowY: "auto",
           }}
         >
-          {/* Handle bar */}
           <div className="flex justify-center mb-4">
             <div className="w-10 h-1 rounded-full bg-neutral-700" />
           </div>

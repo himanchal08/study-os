@@ -54,7 +54,7 @@ export async function createTask(
   const datesToInsert: string[] = [plannedDate];
 
   if (isRecurring) {
-    const baseDate = new Date(plannedDate + "T00:00:00Z"); // parse as UTC midnight
+    const baseDate = new Date(plannedDate + "T00:00:00Z");
     if (recurrencePattern === "daily") {
       for (let i = 1; i <= 7; i++) {
         const next = new Date(baseDate);
@@ -141,11 +141,8 @@ export async function updateTaskStatus(
   };
 
   if (status === "completed") {
-    // Record exact completion time for "tasks completed today" analytics
     updatePayload.completed_at = new Date().toISOString();
   } else {
-    // Clear completed_at when re-opening so stale timestamps don't create
-    // false positives in completion-today queries
     updatePayload.completed_at = null;
   }
 
@@ -202,7 +199,7 @@ export async function postponeTask(
     .update({
       status:         "postponed",
       planned_date:   newPlannedDate,
-      due_date:       newPlannedDate,  // sync due_date — otherwise task appears overdue immediately
+      due_date:       newPlannedDate,
       postpone_count: currentCount + 1,
       failure_reason: failureReason ?? null,
     })

@@ -125,7 +125,6 @@ export async function KpiStrip({
   const todayAccuracy =
     totalAttempted > 0 ? (totalCorrect / totalAttempted) * 100 : null;
 
-  // Bounded query 1: Pending revisions due today or overdue
   const { count: pendingCount } = await supabase
     .from("revisions")
     .select("*", { count: "exact", head: true })
@@ -133,8 +132,6 @@ export async function KpiStrip({
     .lte("due_date", todayStr)
     .is("completed_at", null);
 
-  // Bounded query 2: Revisions completed today (local time)
-  // Re-use dayBoundaryAwareDate logic for local start of day
   const localStartOfDayMs = new Date(`${todayStr}T00:00:00`).getTime();
   const { count: completedCount } = await supabase
     .from("revisions")

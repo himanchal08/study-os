@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { dayBoundaryAwareDate, buildHeatmapData } from "@/lib/calculations";
@@ -52,7 +51,6 @@ export default async function HomePage() {
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
   const todayStartStr = `${todayStr}T00:00:00`;
 
-  // Week / month boundaries
   const nowDate = new Date();
   const dayOfWeek = nowDate.getDay();
   const daysFromMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -60,7 +58,6 @@ export default async function HomePage() {
   weekStart.setHours(0, 0, 0, 0);
   const monthStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1);
 
-  // Heatmap — last 52 weeks
   const heatStartDate = new Date(now - 363 * 86400000);
   const heatmapStart = dayBoundaryAwareDate(heatStartDate.getTime(), offsetMin, timezone);
 
@@ -72,7 +69,6 @@ export default async function HomePage() {
     { data: todayTasksRaw },
     { data: heatSessionsRaw },
   ] = await Promise.all([
-    // Today's full sessions (for timesheet)
     supabase
       .from("study_sessions")
       .select("id, start_timestamp, end_timestamp, activity_type, notes, pause_duration_seconds, subjects(name, color), topics(name)")
@@ -80,28 +76,24 @@ export default async function HomePage() {
       .gte("start_timestamp", todayStartStr)
       .is("deleted_at", null)
       .order("start_timestamp", { ascending: false }),
-    // This week
     supabase
       .from("study_sessions")
       .select("start_timestamp, end_timestamp, pause_duration_seconds")
       .eq("user_id", user.id)
       .gte("start_timestamp", weekStart.toISOString())
       .is("deleted_at", null),
-    // This month
     supabase
       .from("study_sessions")
       .select("start_timestamp, end_timestamp, pause_duration_seconds")
       .eq("user_id", user.id)
       .gte("start_timestamp", monthStart.toISOString())
       .is("deleted_at", null),
-    // Revisions due today
     supabase
       .from("revisions")
       .select("id")
       .eq("user_id", user.id)
       .lte("due_date", todayStr)
       .is("completed_at", null),
-    // Today's tasks (for task cards)
     supabase
       .from("tasks")
       .select("*, subjects(id, name, color), topics(id, name)")
@@ -110,7 +102,6 @@ export default async function HomePage() {
       .neq("status", "completed")
       .is("deleted_at", null)
       .limit(8),
-    // Heatmap sessions
     supabase
       .from("study_sessions")
       .select("start_timestamp, end_timestamp, pause_duration_seconds")
@@ -128,7 +119,6 @@ export default async function HomePage() {
   const revisionsCount = revisionsDue?.length ?? 0;
   const todayTasks = (todayTasksRaw ?? []) as unknown as TaskItem[];
 
-  // Heatmap data
   const knownDates = new Set(
     (heatSessionsRaw ?? []).map(s =>
       dayBoundaryAwareDate(new Date(s.start_timestamp).getTime(), offsetMin, timezone)
@@ -147,7 +137,6 @@ export default async function HomePage() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
 
-      {/* ── Hours summary strip ─────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Today", value: formatHours(todaySecs), sub: `of ${targetHours}h target`, pct: targetPct },
@@ -182,7 +171,6 @@ export default async function HomePage() {
         ))}
       </div>
 
-      {/* ── Quick actions ───────────────────────────────────────── */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap scrollbar-none">
         <Link
           href="/tasks"
@@ -238,7 +226,6 @@ export default async function HomePage() {
         </Link>
       </div>
 
-      {/* ── Today's tasks ────────────────────────────────────────── */}
       {todayTasks.length > 0 && (
         <section id="tour-today-tasks" aria-label="Today's Tasks">
           <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
@@ -252,7 +239,6 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── Today's timesheet ────────────────────────────────────── */}
       <section aria-label="Today's sessions">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
           Today&apos;s Sessions
@@ -260,7 +246,6 @@ export default async function HomePage() {
         <WeeklyTimesheet sessions={todaySessionsRaw as any ?? []} todayOnly />
       </section>
 
-      {/* ── Consistency heatmap ──────────────────────────────────── */}
       <section aria-label="Activity Heatmap">
         <div className="glass rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">

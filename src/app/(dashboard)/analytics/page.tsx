@@ -42,7 +42,6 @@ export default async function AnalyticsPage() {
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
   const target    = profile?.daily_target_hours ?? 8;
 
-  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
   const todayStr = dayBoundaryAwareDate(now, offsetMin, timezone);
@@ -56,8 +55,8 @@ export default async function AnalyticsPage() {
     .select("start_timestamp, end_timestamp, pause_duration_seconds, subject_id, subjects(id, name, color)")
     .eq("user_id", user.id)
     .gte("start_timestamp", thirtyDaysAgo)
-    .not("end_timestamp", "is", null)  // exclude active sessions
-    .is("deleted_at", null);            // exclude soft-deleted sessions
+    .not("end_timestamp", "is", null)
+    .is("deleted_at", null);
   const sessions = (rawSessions ?? []) as unknown as SessionRow[];
 
   
@@ -111,7 +110,6 @@ export default async function AnalyticsPage() {
   const domainDistractions = new Map<string, number>();
   let totalDistractionSecs = 0;
   (distractionsRaw ?? []).forEach(d => {
-    // Skip events with no recorded duration — avoids fabricating focus-loss time.
     if (!d.duration_seconds) return;
     const domain = d.domain;
     const dur = d.duration_seconds;
@@ -173,7 +171,6 @@ export default async function AnalyticsPage() {
   const totalAttempted30 = batches?.reduce((s, b) => s + b.attempted, 0) ?? 0;
   const totalCorrect30   = batches?.reduce((s, b) => s + b.correct, 0)   ?? 0;
   const accuracy30 = totalAttempted30 > 0 ? (totalCorrect30 / totalAttempted30) * 100 : null;
-  // Use matching 30-day windows for both numerator and denominator.
   const totalSecs30 = sessions.reduce(
     (s, sess) => s + studyDurationSeconds(sess.start_timestamp, sess.end_timestamp, sess.pause_duration_seconds ?? 0),
     0

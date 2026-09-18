@@ -59,7 +59,6 @@ export async function signUp(
     return { error: error.message };
   }
 
-  // If email confirmation is disabled, user is immediately logged in
   return { 
     success: true, 
     message: "Account created successfully!",

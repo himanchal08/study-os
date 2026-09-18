@@ -21,8 +21,6 @@ export default async function DashboardLayout({
 
   const safeUser = user!;
 
-  // Run independent queries in parallel — previously sequential, each adding
-  // a full round-trip latency to every page navigation.
   const [
     { data: profile },
     { data: activeSession },
@@ -77,7 +75,6 @@ export default async function DashboardLayout({
 
   return (
     <div key={safeUser.id} className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>
-      {/* Desktop sidebar */}
       <Sidebar userEmail={safeUser.email ?? ""} />
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -86,8 +83,6 @@ export default async function DashboardLayout({
           userId={safeUser.id}
           userEmail={safeUser.email ?? ""}
         />
-        {/* GlobalTimer is in the layout (above re-render scope) so its client
-            state is preserved across navigations — no Suspense needed/wanted */}
         <GlobalTimer
           userId={safeUser.id}
           activeSession={activeSession}

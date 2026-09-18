@@ -19,16 +19,12 @@ export default async function SyllabusPage() {
     supabase.from("topic_lifecycle").select("topic_id, book_practice_done, dpp_done, pyq_done, tests_attempted_count").eq("user_id", user.id),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const subjectWithTopics = ((subjects as any[]) ?? []).map(s => ({
     ...s,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     topics:   ((topics   as any[]) ?? []).filter(t  => t.subject_id  === s.id).map(t => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const lc = ((lifecycles as any[]) ?? []).find(l => l.topic_id === t.id);
       return { ...t, lifecycle: lc || null };
     }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chapters: ((chapters as any[]) ?? []).filter(ch => ch.subject_id === s.id),
   }));
 
@@ -39,10 +35,8 @@ export default async function SyllabusPage() {
         <p className="text-xs mt-1 text-neutral-500">Track topic status — tap a badge to update it.</p>
       </div>
 
-      {/* Tabbed subject list with per-exam filtering */}
       <SyllabusTabs subjects={subjectWithTopics} />
 
-      {/* Add forms — always below */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">Add Subject</p>

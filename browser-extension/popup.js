@@ -29,12 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
     distractionCount.textContent = `Distractions logged: ${state.distractionCount || 0}`;
   }
 
-  // Request initial state from background
   chrome.runtime.sendMessage({ type: "GET_STATE" }, (response) => {
     if (response) updateUI(response);
   });
 
-  // Listen for state changes
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "STATE_UPDATE") {
       updateUI(message.state);

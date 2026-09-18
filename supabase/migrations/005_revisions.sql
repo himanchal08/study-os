@@ -1,4 +1,3 @@
-
 create type public.revision_cycle_enum as enum ('daily', 'weekly', 'monthly');
 
 create table if not exists public.revisions (
@@ -9,18 +8,14 @@ create table if not exists public.revisions (
   cycle_type              public.revision_cycle_enum not null,
   due_date                date not null,
   completed_at            timestamptz,
-  -- Optional recall test score (0–5 for adaptive interval, New Feature #1)
   recall_score            integer check (recall_score between 0 and 5),
-  -- Adaptive interval overlay (opt-in per user settings)
   is_adaptive             boolean not null default false,
   adaptive_interval_days  integer check (adaptive_interval_days > 0),
-  -- Grace window for early completion (PRD §E, default 0)
   grace_window_days       integer not null default 0 check (grace_window_days >= 0),
   client_generated_id     uuid,
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now(),
 
-  -- DB-level deduplication: second generation attempt is a no-op (PRD §C)
   constraint revisions_no_duplicate unique (user_id, topic_id, cycle_type, due_date)
 );
 

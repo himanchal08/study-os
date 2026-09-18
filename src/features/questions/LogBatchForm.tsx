@@ -30,7 +30,6 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
   return (
     <form action={action} className="space-y-3">
 
-      {/* Subject */}
       <select
         name="subject_id"
         value={selectedSubject}
@@ -42,7 +41,6 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         <SubjectOptions subjects={subjects} />
       </select>
 
-      {/* Topic — only if subject chosen */}
       {filteredTopics.length > 0 && (
         <select name="topic_id" className="select-premium">
           <option value="">Topic (optional)</option>
@@ -50,7 +48,6 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         </select>
       )}
 
-      {/* Source */}
       <input
         name="source"
         type="text"
@@ -59,7 +56,6 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         style={inpS}
       />
 
-      {/* Attempted / Correct / Wrong — big tap targets */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { name: "attempted", label: "Tried",   val: attempted, set: setAttempted, color: "#ededed" },
@@ -86,7 +82,6 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
         ))}
       </div>
 
-      {/* Live accuracy bar */}
       {accuracy !== null && (
         <div className="space-y-1">
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#1a1a1a" }}>
@@ -104,7 +99,6 @@ export function LogBatchForm({ subjects, topics }: LogBatchFormProps) {
 
       <input type="hidden" name="skipped" value={skipped} />
 
-      {/* Duration + Notes — collapsible feel but always visible */}
       <div className="grid grid-cols-2 gap-2">
         <input
           name="duration_minutes"

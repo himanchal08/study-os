@@ -1,13 +1,7 @@
--- ============================================================
--- DEDUP + CLEAN RESEED
--- Run this in Supabase SQL Editor to fix duplicate subjects
--- ============================================================
-
 DO $$
 DECLARE
   v_uid uuid := 'b9f715ea-e543-4dd0-90e2-8cd93ca68218';
 BEGIN
-  -- Wipe all study data cleanly
   DELETE FROM topic_lifecycle   WHERE user_id = v_uid;
   DELETE FROM revisions         WHERE user_id = v_uid;
   DELETE FROM study_sessions    WHERE user_id = v_uid;
@@ -19,7 +13,6 @@ BEGIN
   RAISE NOTICE 'Wiped. Now reseeding...';
 END $$;
 
--- -- BANKING ------------------------------------------------
 DO $$
 DECLARE
   v_uid   uuid := 'b9f715ea-e543-4dd0-90e2-8cd93ca68218';
@@ -74,7 +67,6 @@ BEGIN
   RAISE NOTICE 'Banking done: 6 subjects, 70 topics.';
 END $$;
 
--- -- SSC CGL ------------------------------------------------
 DO $$
 DECLARE
   v_uid   uuid := 'b9f715ea-e543-4dd0-90e2-8cd93ca68218';

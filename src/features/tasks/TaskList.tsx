@@ -86,7 +86,6 @@ export function TaskList({ tasks, userId, todayDate, subjects, timezone }: TaskL
   return (
     <div className="space-y-4 overflow-x-hidden">
 
-      {/* ── Stats strip ──────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-xl p-3" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <p className="text-[9px] uppercase tracking-wider text-neutral-600 mb-1">Today</p>
@@ -111,7 +110,6 @@ export function TaskList({ tasks, userId, todayDate, subjects, timezone }: TaskL
         </div>
       </div>
 
-      {/* ── Tab bar — horizontal scroll ───────────────────────────── */}
       <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key;
@@ -142,7 +140,6 @@ export function TaskList({ tasks, userId, todayDate, subjects, timezone }: TaskL
         })}
       </div>
 
-      {/* ── Filters row ───────────────────────────────────────────── */}
       <div className="flex gap-2 overflow-hidden">
         <select
           value={selectedSubject}
@@ -168,7 +165,6 @@ export function TaskList({ tasks, userId, todayDate, subjects, timezone }: TaskL
         </div>
       </div>
 
-      {/* ── Task list ─────────────────────────────────────────────── */}
       {filteredTasks.length === 0 ? (
         <div className="rounded-xl p-10 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
           <p className="text-2xl mb-2">📋</p>

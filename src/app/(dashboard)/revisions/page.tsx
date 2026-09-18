@@ -31,14 +31,10 @@ export default async function RevisionsPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
-  // eslint-disable-next-line react-hooks/purity
   const nowMs = Date.now();
   const todayStr = dayBoundaryAwareDate(nowMs, offsetMin, timezone);
 
-  // Split into two targeted queries so the 100-row limit can't be consumed by
-  // old completed revisions, silently dropping today's due items.
   const [{ data: dueRaw }, { data: completedTodayRaw }, { data: historyRaw }] = await Promise.all([
-    // Pending revisions due on or before today
     supabase
       .from("revisions")
       .select("id, due_date, completed_at, cycle_type, recall_score, grace_window_days, topics(name, subject_id, subjects(name, color))")
@@ -71,11 +67,8 @@ export default async function RevisionsPage() {
   type TopicHistory = { topicName: string; subjectName: string; subjectColor: string; entries: HistEntry[] };
 
   const historyByTopic = new Map<string, TopicHistory>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (historyRaw ?? []).forEach((r: any) => {
     const topic = r.topics as { name: string; subjects: { name: string; color: string } | null } | null;
-    // Key by topic_id (not name) so renames don’t split history and same-named
-    // topics in different subjects don’t merge into one group.
     const key = (r.topic_id as string) ?? topic?.name ?? "Unknown";
     if (!historyByTopic.has(key)) {
       historyByTopic.set(key, {
@@ -85,8 +78,6 @@ export default async function RevisionsPage() {
         entries: [],
       });
     }
-    // Use boundary-aware date for completed_at so dots appear on the correct
-    // local day for IST users who complete revisions past midnight UTC.
     const completedDate = r.completed_at
       ? dayBoundaryAwareDate(new Date(r.completed_at).getTime(), offsetMin, timezone)
       : r.due_date;
@@ -100,8 +91,6 @@ export default async function RevisionsPage() {
 
   const due       = (dueRaw ?? []) as unknown as RevisionRow[];
   const completed = (completedTodayRaw ?? []) as unknown as RevisionRow[];
-  // A revision is only truly "overdue" once its grace window has also expired.
-  // e.g. a daily revision (grace=1d) due yesterday is still within grace today.
   const overdue   = due.filter(r => {
     const graceDays = r.grace_window_days ?? 0;
     const deadline  = new Date(r.due_date);
@@ -116,7 +105,6 @@ export default async function RevisionsPage() {
         <p className="text-xs mt-1 text-neutral-500">Review what&apos;s due — rate your recall to schedule the next one.</p>
       </div>
 
-      {/* Stats strip */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: "Due Today", value: due.length,      color: due.length    > 0 ? "#f59e0b" : "#10b981" },
@@ -130,7 +118,6 @@ export default async function RevisionsPage() {
         ))}
       </div>
 
-      {/* Due revisions */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
           Due — {due.length} remaining
@@ -163,7 +150,6 @@ export default async function RevisionsPage() {
         )}
       </div>
 
-      {/* Completed today */}
       {completed.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
@@ -189,7 +175,6 @@ export default async function RevisionsPage() {
         </div>
       )}
 
-      {/* 30-day history */}
       {historyTopics.length > 0 && (
         <section>
           <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">

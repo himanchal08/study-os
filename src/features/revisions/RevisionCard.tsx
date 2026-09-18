@@ -70,7 +70,6 @@ export function RevisionCard({
         border: `1px solid ${isOverdue ? "#7c1d1d55" : "#1a1a1a"}`,
       }}
     >
-      {/* Topic info */}
       <div className="p-3.5">
         <div className="flex items-start justify-between gap-2 mb-2">
           <p className="text-sm font-medium text-neutral-100 leading-snug">{topicName}</p>
@@ -106,7 +105,6 @@ export function RevisionCard({
         </div>
       )}
 
-      {/* Recall buttons */}
       <div className="grid grid-cols-5 gap-px border-t" style={{ borderColor: "#1a1a1a" }}>
         {RECALL_LABELS.map(({ score, label, color }) => (
           <button

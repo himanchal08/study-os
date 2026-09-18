@@ -37,7 +37,6 @@ export default async function MocksPage() {
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone = profile?.timezone ?? "Asia/Kolkata";
-  // eslint-disable-next-line react-hooks/purity
   const todayStr = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
   const defaultExamType = (profile?.exam_targets?.[0] as "banking" | "ssc") ?? "banking";
 

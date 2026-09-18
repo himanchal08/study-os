@@ -12,13 +12,10 @@ export function MobileSidebar({ userEmail }: MobileSidebarProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  // Close drawer on route change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false);
   }, [pathname]);
 
-  // Prevent body scroll when drawer open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -30,7 +27,6 @@ export function MobileSidebar({ userEmail }: MobileSidebarProps) {
 
   return (
     <>
-      {/* Hamburger button — only on mobile */}
       <button
         id="mobile-menu-btn"
         onClick={() => setOpen(true)}
@@ -45,7 +41,6 @@ export function MobileSidebar({ userEmail }: MobileSidebarProps) {
         </svg>
       </button>
 
-      {/* Overlay backdrop */}
       {open && (
         <div
           className="fixed inset-0 z-40 md:hidden"
@@ -55,7 +50,6 @@ export function MobileSidebar({ userEmail }: MobileSidebarProps) {
         />
       )}
 
-      {/* Slide-in drawer */}
       <nav
         aria-label="Main navigation"
         className="fixed top-0 left-0 h-full z-50 flex flex-col md:hidden transition-transform duration-300 ease-in-out"

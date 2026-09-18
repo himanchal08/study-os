@@ -1,4 +1,3 @@
-
 create type public.task_status_enum as enum ('pending', 'in_progress', 'completed', 'postponed', 'cancelled');
 
 create table if not exists public.tasks (
@@ -9,15 +8,13 @@ create table if not exists public.tasks (
   title               text not null,
   status              public.task_status_enum not null default 'pending',
   planned_date        date not null,
-  -- v3: due_date >= planned_date enforced at DB level
   due_date            date check (due_date is null or due_date >= planned_date),
   estimated_minutes   integer check (estimated_minutes > 0),
   actual_minutes      integer check (actual_minutes >= 0),
   failure_reason      text,
   postpone_count      integer not null default 0 check (postpone_count >= 0),
-  -- Recurring tasks: generate concrete rows, not virtual recurrences
   is_recurring        boolean not null default false,
-  recurrence_pattern  text,    -- e.g. "daily", "weekdays", "weekly:monday"
+  recurrence_pattern  text,
   parent_task_id      uuid references public.tasks(id) on delete set null,
   client_generated_id uuid unique,
   source_client       public.source_client_enum not null default 'web',
@@ -36,12 +33,11 @@ create trigger tasks_updated_at before update on public.tasks for each row execu
 create index tasks_user_planned on public.tasks (user_id, planned_date desc) where deleted_at is null;
 create index tasks_user_status on public.tasks (user_id, status) where deleted_at is null;
 
--- Task events (for planning analytics — Phase 14)
 create table if not exists public.task_events (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users(id) on delete cascade,
   task_id     uuid not null references public.tasks(id) on delete cascade,
-  event_type  text not null,  -- 'created' | 'started' | 'completed' | 'postponed' | 'cancelled'
+  event_type  text not null,
   notes       text,
   occurred_at timestamptz not null default now(),
   created_at  timestamptz not null default now()
