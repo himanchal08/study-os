@@ -16,11 +16,13 @@ interface TaskListProps {
   userId: string;
   todayDate: string;
   subjects: SubjectOption[];
+  offsetMin: number;
+  timezone: string;
 }
 
 type FilterTab = "today" | "upcoming" | "completed" | "all";
 
-export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) {
+export function TaskList({ tasks, userId, todayDate, subjects, offsetMin, timezone }: TaskListProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("today");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,11 +35,16 @@ export function TaskList({ tasks, userId, todayDate, subjects }: TaskListProps) 
     () => tasks.filter((t) => {
       if (t.status !== "completed") return false;
       if (t.completed_at) {
-        return t.completed_at.startsWith(todayDate);
+        const completedLocalDate = new Date(t.completed_at)
+          .toLocaleDateString("en-CA", {
+            timeZone: timezone,
+            year: "numeric", month: "2-digit", day: "2-digit",
+          });
+        return completedLocalDate === todayDate;
       }
       return t.planned_date === todayDate;
     }),
-    [tasks, todayDate]
+    [tasks, todayDate, timezone]
   );
   const upcomingTasks = useMemo(
     () => tasks.filter((t) => t.planned_date > todayDate && t.status !== "completed"),

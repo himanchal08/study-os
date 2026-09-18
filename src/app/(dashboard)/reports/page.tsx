@@ -99,9 +99,10 @@ export default async function ReportsPage({
   
   const { data: rawMockSections } = await supabase
     .from("mock_sections")
-    .select("name, attempted, correct, mock_id, mocks!inner(mock_date)")
+    .select("name, attempted, correct, mock_id, mocks!inner(mock_date, deleted_at)")
     .eq("user_id", user.id)
-    .gte("mocks.mock_date", periodStart.split("T")[0]);
+    .gte("mocks.mock_date", periodStart.split("T")[0])
+    .is("mocks.deleted_at", null); // exclude soft-deleted mocks
 
   
   

@@ -97,108 +97,116 @@ export async function stopSession(params: {
     return { error: error.message };
   }
 
-    if (data && data.topic_id) {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);     // UTC arithmetic — stable on any server TZ
-    
-    const nextWeek = new Date(today);
-    nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
-    
-    const nextMonth = new Date(today);
-    nextMonth.setUTCDate(nextMonth.getUTCDate() + 30);
+  if (data && data.topic_id) {
+    // Duration gate — only meaningful sessions generate revisions/status changes.
+    // An accidental 2-second start+stop should not create revision rows or
+    // advance topic status.
+    const sessionDurationSec =
+      (new Date(data.end_timestamp!).getTime() -
+        new Date(data.start_timestamp).getTime()) /
+        1000 -
+      (data.pause_duration_seconds ?? 0);
 
-    const toDateString = (d: Date) => d.toISOString().split("T")[0];
-
-    
-    
-    const revisionsToInsert: Database["public"]["Tables"]["revisions"]["Insert"][] = [
-      {
-        user_id: userId,
-        topic_id: data.topic_id,
-        source_session_id: data.id,
-        cycle_type: "daily",
-        due_date: toDateString(tomorrow),
-        client_generated_id: randomUUID(),
-      },
-      {
-        user_id: userId,
-        topic_id: data.topic_id,
-        source_session_id: data.id,
-        cycle_type: "weekly",
-        due_date: toDateString(nextWeek),
-        client_generated_id: randomUUID(),
-      },
-      {
-        user_id: userId,
-        topic_id: data.topic_id,
-        source_session_id: data.id,
-        cycle_type: "monthly",
-        due_date: toDateString(nextMonth),
-        client_generated_id: randomUUID(),
-      }
-    ];
-
-    await supabase
-      .from("revisions")
-      .upsert(revisionsToInsert, {
-        onConflict: "user_id,topic_id,cycle_type,due_date",
-        ignoreDuplicates: true,
-      });
-
-    // Status lifecycle order — never regress a topic's status
-    const STATUS_ORDER: Record<string, number> = {
-      not_started: 0, learning: 1, learned: 2, revising: 3, strong: 4,
-    };
-    let nextStatus: string | null = null;
-    if (data.activity_type === "lecture")  nextStatus = "learning";
-    else if (data.activity_type === "practice") nextStatus = "learned";
-    else if (data.activity_type === "mock")     nextStatus = "strong";
-    else if (data.activity_type === "revision") nextStatus = "revising";
-
-    if (nextStatus) {
-      // Fetch current status to avoid regression (e.g. mock session shouldn’t
-      // overwrite "strong" with "learned" if the topic is already stronger)
-      const { data: currentTopic } = await supabase
-        .from("topics")
-        .select("status")
-        .eq("id", data.topic_id)
+    if (sessionDurationSec >= 60) {
+      // Fetch user profile to compute revision dates in the user's local timezone.
+      // Without this, an IST user stopping at 00:30 IST (18:00 UTC prev day)
+      // gets 'tomorrow UTC' = 'today IST' as the daily revision due date.
+      const { data: userProfile } = await supabase
+        .from("profiles")
+        .select("day_boundary_offset_minutes, timezone")
+        .eq("user_id", userId)
         .single();
-      const currentOrder = STATUS_ORDER[currentTopic?.status ?? "not_started"] ?? 0;
-      const nextOrder    = STATUS_ORDER[nextStatus] ?? 0;
-      if (nextOrder > currentOrder) {
-        await supabase
-          .from("topics")
-          .update({ status: nextStatus as Database["public"]["Enums"]["topic_status_enum"] })
-          .eq("id", data.topic_id)
-          .eq("user_id", userId);
-      }
-    }
+      const userTimezone  = userProfile?.timezone ?? "Asia/Kolkata";
 
-    const lifecycleUpdates: Database["public"]["Tables"]["topic_lifecycle"]["Update"] = {};
-    if (data.activity_type === "lecture") {
-      lifecycleUpdates.learning_completed_at = new Date().toISOString();
-    } else if (data.activity_type === "practice") {
-      lifecycleUpdates.dpp_done = true;
-    }
+      // toLocaleDateString with en-CA returns "YYYY-MM-DD" in the user's TZ.
+      const toUserDateStr = (msFromNow: number) =>
+        new Date(Date.now() + msFromNow).toLocaleDateString("en-CA", {
+          timeZone: userTimezone,
+        });
 
-    if (Object.keys(lifecycleUpdates).length > 0) {
-      // Upsert instead of select-then-insert/update to avoid TOCTOU race:
-      // two concurrent stopSession calls for the same topic both see no row
-      // and both attempt INSERT, the second violates the unique constraint.
+      const revisionsToInsert: Database["public"]["Tables"]["revisions"]["Insert"][] = [
+        {
+          user_id: userId,
+          topic_id: data.topic_id,
+          source_session_id: data.id,
+          cycle_type: "daily",
+          due_date: toUserDateStr(1 * 86400000),   // tomorrow (user TZ)
+          client_generated_id: randomUUID(),
+        },
+        {
+          user_id: userId,
+          topic_id: data.topic_id,
+          source_session_id: data.id,
+          cycle_type: "weekly",
+          due_date: toUserDateStr(7 * 86400000),   // +7 days (user TZ)
+          client_generated_id: randomUUID(),
+        },
+        {
+          user_id: userId,
+          topic_id: data.topic_id,
+          source_session_id: data.id,
+          cycle_type: "monthly",
+          due_date: toUserDateStr(30 * 86400000),  // +30 days (user TZ)
+          client_generated_id: randomUUID(),
+        },
+      ];
+
       await supabase
-        .from("topic_lifecycle")
-        .upsert(
-          { user_id: userId, topic_id: data.topic_id, ...lifecycleUpdates },
-          { onConflict: "user_id,topic_id", ignoreDuplicates: false },
-        );
-    }
+        .from("revisions")
+        .upsert(revisionsToInsert, {
+          onConflict: "user_id,topic_id,cycle_type,due_date",
+          ignoreDuplicates: true,
+        });
+
+      // Status lifecycle order — never regress a topic's status
+      const STATUS_ORDER: Record<string, number> = {
+        not_started: 0, learning: 1, learned: 2, revising: 3, strong: 4,
+      };
+      let nextStatus: string | null = null;
+      if (data.activity_type === "lecture")       nextStatus = "learning";
+      else if (data.activity_type === "practice") nextStatus = "learned";
+      else if (data.activity_type === "mock")     nextStatus = "strong";
+      else if (data.activity_type === "revision") nextStatus = "revising";
+
+      if (nextStatus) {
+        const { data: currentTopic } = await supabase
+          .from("topics")
+          .select("status")
+          .eq("id", data.topic_id)
+          .single();
+        const currentOrder = STATUS_ORDER[currentTopic?.status ?? "not_started"] ?? 0;
+        const nextOrder    = STATUS_ORDER[nextStatus] ?? 0;
+        if (nextOrder > currentOrder) {
+          await supabase
+            .from("topics")
+            .update({ status: nextStatus as Database["public"]["Enums"]["topic_status_enum"] })
+            .eq("id", data.topic_id)
+            .eq("user_id", userId);
+        }
+      }
+
+      const lifecycleUpdates: Database["public"]["Tables"]["topic_lifecycle"]["Update"] = {};
+      if (data.activity_type === "lecture") {
+        lifecycleUpdates.learning_completed_at = new Date().toISOString();
+      } else if (data.activity_type === "practice") {
+        lifecycleUpdates.dpp_done = true;
+      }
+
+      if (Object.keys(lifecycleUpdates).length > 0) {
+        await supabase
+          .from("topic_lifecycle")
+          .upsert(
+            { user_id: userId, topic_id: data.topic_id, ...lifecycleUpdates },
+            { onConflict: "user_id,topic_id", ignoreDuplicates: false },
+          );
+      }
+    } // end duration gate
   }
 
   if (data && data.task_id) {
     await supabase
       .from("tasks")
-      .update({ status: "completed" })
+      .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", data.task_id)
       .eq("user_id", userId);
   }

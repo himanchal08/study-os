@@ -78,6 +78,8 @@ export default async function TasksPage() {
             userId={user.id}
             todayDate={todayDate}
             subjects={subjects ?? []}
+            offsetMin={offsetMin}
+            timezone={timezone}
           />
         </div>
 
