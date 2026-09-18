@@ -140,6 +140,15 @@ export async function updateTaskStatus(
     status,
   };
 
+  if (status === "completed") {
+    // Record exact completion time for "tasks completed today" analytics
+    updatePayload.completed_at = new Date().toISOString();
+  } else {
+    // Clear completed_at when re-opening so stale timestamps don't create
+    // false positives in completion-today queries
+    updatePayload.completed_at = null;
+  }
+
   if (failureReason !== undefined) {
     updatePayload.failure_reason = failureReason;
   }
@@ -191,8 +200,9 @@ export async function postponeTask(
   const { error } = await supabase
     .from("tasks")
     .update({
-      status: "postponed",
-      planned_date: newPlannedDate,
+      status:         "postponed",
+      planned_date:   newPlannedDate,
+      due_date:       newPlannedDate,  // sync due_date — otherwise task appears overdue immediately
       postpone_count: currentCount + 1,
       failure_reason: failureReason ?? null,
     })

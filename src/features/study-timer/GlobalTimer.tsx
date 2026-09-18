@@ -174,9 +174,19 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
         // Roll back — but only if the user hasn't already manually stopped
         // (handleStop sets session=null; don't re-open a dead session)
         setError(result.error);
-        setSession(prev => prev?.id === "__optimistic__" ? null : prev);
-        setAccumulatedSec(0);
-        setDisplayedSec(0);
+        // Use functional updates throughout: read the LATEST session state
+        // atomically to avoid clobbering a new session the user may have
+        // started during the network round-trip.
+        setSession(prev => {
+          if (prev?.id === "__optimistic__") {
+            // Still on the optimistic session — safe to reset everything
+            setAccumulatedSec(0);
+            setDisplayedSec(0);
+            return null;
+          }
+          // User already stopped or restarted — leave the new state alone
+          return prev;
+        });
       } else if ("session" in result && result.session) {
         // Functional update: only swap if user hasn’t already stopped the timer
         // (stopped state = session is null). Prevents zombie open session in DB.

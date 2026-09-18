@@ -51,8 +51,8 @@ export default async function QuestionsPage() {
       .select("id, logged_at, attempted, correct, wrong, skipped, source, notes, duration_minutes, subject_id, topic_id, subjects(name, color), topics(name)")
       .eq("user_id", user.id)
       .is("deleted_at", null)
-      .order("logged_at", { ascending: false })
-      .limit(50),
+      .gte("logged_at", new Date(Date.now() - 30 * 86400000).toISOString()) // last 30 days
+      .order("logged_at", { ascending: false }),
   ]);
 
   const subjects = subjectsRaw ?? [];
