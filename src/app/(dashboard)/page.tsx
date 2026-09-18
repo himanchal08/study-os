@@ -71,7 +71,7 @@ export default async function HomePage() {
   ] = await Promise.all([
     supabase
       .from("study_sessions")
-      .select("id, start_timestamp, end_timestamp, activity_type, notes, pause_duration_seconds, subjects(name, color), topics(name)")
+      .select("id, start_timestamp, end_timestamp, activity_type, notes, pause_duration_seconds, subject_id, topic_id, subjects(name, color), topics(name)")
       .eq("user_id", user.id)
       .gte("start_timestamp", todayStartStr)
       .is("deleted_at", null)

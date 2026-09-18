@@ -114,6 +114,21 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
 
   const filteredTopics = topics.filter(t => t.subject_id === selectedSubject);
 
+  // ── Listen for prefill events fired by session history rows ──────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if (session) return; // timer is running — don't clobber
+      const { subjectId, topicId, activityType: at, notes: n } =
+        (e as CustomEvent<{ subjectId: string; topicId: string; activityType: string; notes: string }>).detail;
+      if (subjectId) setSelectedSubject(subjectId);
+      if (topicId)   setSelectedTopic(topicId);
+      if (at)        setActivityType(at as Tables<"study_sessions">["activity_type"]);
+      setNotes(n ?? "");
+    };
+    window.addEventListener("timer:prefill", handler);
+    return () => window.removeEventListener("timer:prefill", handler);
+  }, [session]);
+
   const segmentStartMonoRef = useRef<number | null>(null);
   const [accumulatedSec, setAccumulatedSec] = useState<number>(() => {
     if (!activeSession?.start_timestamp) return 0;
@@ -224,11 +239,15 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     if (!session) return;
     setError(null);
 
+    // ← Capture the exact click moment BEFORE any async work
+    const clickedAtMs = Date.now();
+    const clickedAtIso = new Date(clickedAtMs).toISOString();
+
     const sessionId = session.id;
 
     const elapsedSecs = sessionId === "__optimistic__"
       ? displayedSec
-      : Math.max(0, (Date.now() - new Date(session.start_timestamp).getTime()) / 1000);
+      : Math.max(0, (clickedAtMs - new Date(session.start_timestamp).getTime()) / 1000);
 
     const finalNotes = notes.trim();
 
@@ -271,6 +290,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
       userId,
       pauseDurationSeconds: 0,
       notes: finalNotes || undefined,
+      endTimestamp: clickedAtIso,
     }).then(result => {
       if ("error" in result && result.error) {
         setError(result.error);
@@ -406,6 +426,7 @@ export function GlobalTimer({ userId, activeSession, subjects, topics }: GlobalT
     >
       <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
         <input
+          id="timer-notes-input"
           type="text"
           placeholder="What are you working on?"
           className="bg-transparent border-none outline-none text-sm min-w-0 text-neutral-200 placeholder:text-neutral-500 flex-1"

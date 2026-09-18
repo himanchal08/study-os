@@ -5,7 +5,7 @@ import type { Tables } from "@/types/database";
 import { format } from "date-fns";
 import { deleteStudySession, updateSessionTimes } from "./actions";
 
-type SessionRow = Pick<Tables<"study_sessions">, "id" | "start_timestamp" | "end_timestamp" | "activity_type" | "notes" | "pause_duration_seconds"> & {
+type SessionRow = Pick<Tables<"study_sessions">, "id" | "start_timestamp" | "end_timestamp" | "activity_type" | "notes" | "pause_duration_seconds" | "subject_id" | "topic_id"> & {
   subjects: { name: string; color: string | null } | null;
   topics: { name: string } | null;
 };
@@ -201,10 +201,29 @@ function SessionRowItem({
     });
   };
 
+  const handlePrefill = () => {
+    if (isRunning) return; // don't clobber a live session
+    window.dispatchEvent(new CustomEvent("timer:prefill", {
+      detail: {
+        subjectId:    session.subject_id ?? "",
+        topicId:      session.topic_id   ?? "",
+        activityType: session.activity_type ?? "practice",
+        notes:        session.notes ?? "",
+      },
+    }));
+    // Scroll to & focus the timer bar
+    document.getElementById("global-timer-card")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    document.getElementById("timer-notes-input")?.focus();
+  };
+
   return (
     <div className="group" style={{ borderLeft: `3px solid ${color}` }}>
-      {/* Main row */}
-      <div className="px-4 py-3 flex items-center justify-between hover:bg-white/2 transition-colors">
+      {/* Main row — click to prefill timer */}
+      <div
+        className="px-4 py-3 flex items-center justify-between hover:bg-white/2 transition-colors cursor-pointer"
+        onClick={handlePrefill}
+        title={isRunning ? "" : "Click to repeat this session"}
+      >
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: color }} />
           <div className="min-w-0 flex-1">

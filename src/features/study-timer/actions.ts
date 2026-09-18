@@ -78,17 +78,31 @@ export async function stopSession(params: {
   userId: string;
   pauseDurationSeconds?: number;
   notes?: string;
+  endTimestamp?: string; // client-captured ISO string — prevents server-latency drift
 }) {
   const supabase = await createClient();
-  const { sessionId, userId, pauseDurationSeconds = 0, notes } = params;
+  const { sessionId, userId, pauseDurationSeconds = 0, notes, endTimestamp } = params;
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || user.id !== userId) {
     return { error: "Unauthorized" };
   }
 
+  // Validate the client-supplied timestamp; fall back to server time if invalid or in the future
+  let resolvedEnd: string;
+  if (endTimestamp) {
+    const clientMs = new Date(endTimestamp).getTime();
+    const serverMs = Date.now();
+    // Accept if it's a valid date and not more than 10s in the future (clock skew guard)
+    resolvedEnd = !isNaN(clientMs) && clientMs <= serverMs + 10_000
+      ? new Date(clientMs).toISOString()
+      : new Date().toISOString();
+  } else {
+    resolvedEnd = new Date().toISOString();
+  }
+
   const updateData: { end_timestamp: string; pause_duration_seconds: number; notes?: string } = {
-    end_timestamp: new Date().toISOString(),
+    end_timestamp: resolvedEnd,
     pause_duration_seconds: pauseDurationSeconds,
   };
   if (notes !== undefined) {
