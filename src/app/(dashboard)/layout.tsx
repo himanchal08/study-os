@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import type { Tables } from "@/types/database";
-import { GlobalTimerLoader } from "@/features/study-timer/GlobalTimerLoader";
-import { Suspense } from "react";
+import { GlobalTimer } from "@/features/study-timer/GlobalTimer";
 
 export default async function DashboardLayout({
   children,
@@ -26,6 +25,7 @@ export default async function DashboardLayout({
   // a full round-trip latency to every page navigation.
   const [
     { data: profile },
+    { data: activeSession },
     { data: rawSubjects },
     { data: rawTopics },
   ] = await Promise.all([
@@ -34,6 +34,12 @@ export default async function DashboardLayout({
       .select("*")
       .eq("user_id", safeUser.id)
       .single(),
+    supabase
+      .from("study_sessions")
+      .select("*")
+      .eq("user_id", safeUser.id)
+      .is("end_timestamp", null)
+      .maybeSingle(),
     supabase
       .from("subjects")
       .select("id, name, color, exam_type")
@@ -49,7 +55,6 @@ export default async function DashboardLayout({
       .order("name", { ascending: true }),
   ]);
 
-  // Deduplicate subjects by lowercase name — keep first occurrence
   const subjectsSeen = new Set<string>();
   const subjects = (rawSubjects ?? []).filter(s => {
     const key = s.name.toLowerCase().trim();
@@ -60,7 +65,6 @@ export default async function DashboardLayout({
 
   const subjectIds = new Set(subjects.map(s => s.id));
 
-  // Only include topics belonging to the deduplicated subjects; remove "no specific topic"
   const topicsSeen = new Set<string>();
   const topics = (rawTopics ?? []).filter(t => {
     if (!subjectIds.has(t.subject_id)) return false;
@@ -82,15 +86,14 @@ export default async function DashboardLayout({
           userId={safeUser.id}
           userEmail={safeUser.email ?? ""}
         />
-        {/* GlobalTimerLoader in Suspense keeps the client timer state stable
-            across RSC re-renders — prevents "multiple clicks" to start timer */}
-        <Suspense fallback={<div className="h-14 border-b shrink-0" style={{ borderColor: "var(--border-subtle)" }} />}>
-          <GlobalTimerLoader
-            userId={safeUser.id}
-            subjects={subjects ?? []}
-            topics={topics ?? []}
-          />
-        </Suspense>
+        {/* GlobalTimer is in the layout (above re-render scope) so its client
+            state is preserved across navigations — no Suspense needed/wanted */}
+        <GlobalTimer
+          userId={safeUser.id}
+          activeSession={activeSession}
+          subjects={subjects ?? []}
+          topics={topics ?? []}
+        />
         <main
           id="main-content"
           className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6"

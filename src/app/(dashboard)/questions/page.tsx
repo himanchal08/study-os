@@ -43,6 +43,8 @@ export default async function QuestionsPage() {
   const timezone = profile?.timezone ?? "Asia/Kolkata";
   const todayStr = dayBoundaryAwareDate(new Date().getTime(), offsetMin, timezone);
 
+  const batchWindowStart = new Date(Date.now() - 30 * 86400000).toISOString();
+
   const [{ data: subjectsRaw }, { data: topicsRaw }, { data: batchesRaw }] = await Promise.all([
     supabase.from("subjects").select("id, name, color, exam_type").order("name"),
     supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("name"),
@@ -51,8 +53,9 @@ export default async function QuestionsPage() {
       .select("id, logged_at, attempted, correct, wrong, skipped, source, notes, duration_minutes, subject_id, topic_id, subjects(name, color), topics(name)")
       .eq("user_id", user.id)
       .is("deleted_at", null)
-      .gte("logged_at", new Date(Date.now() - 30 * 86400000).toISOString()) // last 30 days
-      .order("logged_at", { ascending: false }),
+      .gte("logged_at", batchWindowStart) // last 30 days
+      .order("logged_at", { ascending: false })
+      .limit(300),
   ]);
 
   const subjects = subjectsRaw ?? [];

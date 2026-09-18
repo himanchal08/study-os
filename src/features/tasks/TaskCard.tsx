@@ -12,6 +12,7 @@ export interface TaskItem {
   status: Database["public"]["Enums"]["task_status_enum"];
   planned_date: string;
   due_date: string | null;
+  completed_at: string | null;
   estimated_minutes: number | null;
   actual_minutes: number | null;
   failure_reason: string | null;
