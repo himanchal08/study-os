@@ -158,7 +158,7 @@ export function HistoryClient({
           value={filterSubject}
           onChange={e => setFilterSubject(e.target.value)}
           className="px-3 py-2.5 rounded-xl text-sm outline-none appearance-none"
-          style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: filterSubject ? "#ededed" : "#555" }}
+          style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: filterSubject ? "#ededed" : "#a1a1aa" }}
         >
           <option value="">All Subjects</option>
           <SubjectOptions subjects={subjects} />
@@ -168,7 +168,7 @@ export function HistoryClient({
           value={filterActivity}
           onChange={e => setFilterActivity(e.target.value)}
           className="px-3 py-2.5 rounded-xl text-sm outline-none appearance-none"
-          style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: filterActivity ? "#ededed" : "#555" }}
+          style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: filterActivity ? "#ededed" : "#a1a1aa" }}
         >
           <option value="">All Types</option>
           {["practice", "lecture", "revision", "mock", "reading", "other"].map(a => (
