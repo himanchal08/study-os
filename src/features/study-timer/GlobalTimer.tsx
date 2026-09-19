@@ -55,8 +55,8 @@ function makeOptimisticSession(opts: {
   } as unknown as Tables<"study_sessions">;
 }
 
-const POMODORO_STUDY_SECS  = 55 * 60;
-const POMODORO_BREAK_SECS =  5 * 60;
+const POMODORO_STUDY_SECS = 2 * 60; // TODO: revert to 55 * 60
+const POMODORO_BREAK_SECS = 5 * 60;
 
 type PomodoroPhase = "study" | "overtime" | "break" | null;
 
@@ -123,13 +123,16 @@ export function GlobalTimer({
     logData: PostLog | null;
   } | null>(null);
 
-  const [pomodoroMode,  setPomodoroMode]  = useState(false);
+  const [pomodoroMode, setPomodoroMode] = useState(false);
   const [pomodoroPhase, setPomodoroPhase] = useState<PomodoroPhase>(null);
-  const [pomodoroTargetSecs, setPomodoroTargetSecs] = useState(POMODORO_STUDY_SECS);
+  const [pomodoroTargetSecs, setPomodoroTargetSecs] =
+    useState(POMODORO_STUDY_SECS);
   const [breakSecsLeft, setBreakSecsLeft] = useState(POMODORO_BREAK_SECS);
-  const breakRafRef         = useRef<number | null>(null);
-  const breakMonoStartRef   = useRef<number | null>(null);
-  const breakSecsLeftRef    = useRef(POMODORO_BREAK_SECS);
+  const breakRafRef = useRef<number | null>(null);
+  const breakMonoStartRef = useRef<number | null>(null);
+  const breakSecsLeftRef = useRef(POMODORO_BREAK_SECS);
+  const hasNotifiedPomodoroRef = useRef(false);
+  const pomodoroTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     try {
@@ -156,67 +159,100 @@ export function GlobalTimer({
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem("pomodoroMode", pomodoroMode ? "true" : "false"); } catch (e) {}
+    try {
+      localStorage.setItem("pomodoroMode", pomodoroMode ? "true" : "false");
+    } catch (e) {}
   }, [pomodoroMode]);
 
   useEffect(() => {
     try {
       if (pomodoroPhase) localStorage.setItem("pomodoroPhase", pomodoroPhase);
       else localStorage.removeItem("pomodoroPhase");
-      
+
       if (pomodoroPhase === "break") {
-         const endMs = Date.now() + (breakSecsLeftRef.current * 1000);
-         localStorage.setItem("pomodoroBreakEndMs", String(endMs));
+        const endMs = Date.now() + breakSecsLeftRef.current * 1000;
+        localStorage.setItem("pomodoroBreakEndMs", String(endMs));
       } else {
-         localStorage.removeItem("pomodoroBreakEndMs");
+        localStorage.removeItem("pomodoroBreakEndMs");
       }
     } catch (e) {}
   }, [pomodoroPhase]);
 
   useEffect(() => {
-    try { localStorage.setItem("pomodoroTargetSecs", String(pomodoroTargetSecs)); } catch (e) {}
+    try {
+      localStorage.setItem("pomodoroTargetSecs", String(pomodoroTargetSecs));
+    } catch (e) {}
   }, [pomodoroTargetSecs]);
 
-  useEffect(() => { breakSecsLeftRef.current = breakSecsLeft; }, [breakSecsLeft]);
+  useEffect(() => {
+    breakSecsLeftRef.current = breakSecsLeft;
+  }, [breakSecsLeft]);
 
-  const notify = useCallback(async (
-    msg: string,
-    actions?: Array<{ action: string; title: string }>,
-  ) => {
-    if (typeof Notification === "undefined") return;
-    if (Notification.permission !== "granted") return;
+  const notify = useCallback(
+    async (msg: string, actions?: Array<{ action: string; title: string }>) => {
+      if (typeof Notification === "undefined") return;
+      if (Notification.permission !== "granted") return;
 
-    try {
-      const reg = "serviceWorker" in navigator
-        ? await navigator.serviceWorker.ready
-        : null;
+      try {
+        const reg =
+          "serviceWorker" in navigator
+            ? await navigator.serviceWorker.ready
+            : null;
 
-      if (reg) {
-        type SWNotifOptions = NotificationOptions & {
-          tag?: string;
-          renotify?: boolean;
-          actions?: Array<{ action: string; title: string }>;
-        };
-        const opts: SWNotifOptions = {
-          body: msg,
-          icon: "/favicon.ico",
-          tag: "pomodoro",
-          renotify: true,
-          actions: actions ?? [],
-        };
-        await reg.showNotification("Study OS", opts);
-      } else {
+        if (reg) {
+          type SWNotifOptions = NotificationOptions & {
+            tag?: string;
+            renotify?: boolean;
+            actions?: Array<{ action: string; title: string }>;
+          };
+          const opts: SWNotifOptions = {
+            body: msg,
+            icon: "/favicon.ico",
+            tag: "pomodoro",
+            renotify: true,
+            actions: actions ?? [],
+          };
+          await reg.showNotification("Study OS", opts);
+        } else {
+          new Notification("Study OS", { body: msg, icon: "/favicon.ico" });
+        }
+      } catch {
         new Notification("Study OS", { body: msg, icon: "/favicon.ico" });
       }
-    } catch {
-      new Notification("Study OS", { body: msg, icon: "/favicon.ico" });
-    }
-  }, []);
+    },
+    [],
+  );
+
+  const displayedSecRef = useRef(0);
+
+  const triggerPomodoroOvertime = useCallback(() => {
+    if (hasNotifiedPomodoroRef.current) return;
+    hasNotifiedPomodoroRef.current = true;
+    pomodoroPhaseRef.current = "overtime";
+    setPomodoroPhase("overtime");
+    notify("🍅 Pomodoro done! Keep going or take a break.", [
+      { action: "extend5", title: "+5 min" },
+      { action: "extend10", title: "+10 min" },
+    ]);
+    try {
+      new Audio("/bell.wav").play().catch(() => {});
+    } catch (e) {}
+  }, [notify]);
 
   const extendPomodoro = useCallback((extraSecs: number) => {
-    setPomodoroTargetSecs(t => t + extraSecs);
+    const newTarget = displayedSecRef.current + extraSecs;
+    setPomodoroTargetSecs(newTarget);
+    pomodoroTargetSecsRef.current = newTarget;
+    hasNotifiedPomodoroRef.current = false;
     setPomodoroPhase("study");
-  }, []);
+    if (pomodoroTimeoutRef.current !== null) {
+      clearTimeout(pomodoroTimeoutRef.current);
+    }
+    pomodoroTimeoutRef.current = setTimeout(
+      () => triggerPomodoroOvertime(),
+      extraSecs * 1000,
+    );
+  }, [triggerPomodoroOvertime]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -227,20 +263,26 @@ export function GlobalTimer({
       }
     };
     navigator.serviceWorker.addEventListener("message", onMessage);
-    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+    return () =>
+      navigator.serviceWorker.removeEventListener("message", onMessage);
   }, [extendPomodoro]);
 
   const togglePomodoro = useCallback(() => {
     if (session) return;
-    if (!pomodoroMode && typeof Notification !== "undefined" && Notification.permission === "default") {
+    if (
+      !pomodoroMode &&
+      typeof Notification !== "undefined" &&
+      Notification.permission === "default"
+    ) {
       Notification.requestPermission();
     }
-    setPomodoroMode(prev => !prev);
+    setPomodoroMode((prev) => !prev);
     setPomodoroPhase(null);
     setPomodoroTargetSecs(POMODORO_STUDY_SECS);
   }, [session, pomodoroMode]);
 
   const handlePomodoroStart = useCallback(() => {
+    hasNotifiedPomodoroRef.current = false;
     setPomodoroPhase("study");
     setPomodoroTargetSecs(POMODORO_STUDY_SECS);
   }, []);
@@ -266,7 +308,9 @@ export function GlobalTimer({
       if (left <= 0) {
         setPomodoroPhase(null);
         notify("☕ Break over — ready for the next one!");
-        try { new Audio("/bell.wav").play().catch(() => {}); } catch(e) {}
+        try {
+          new Audio("/bell.wav").play().catch(() => {});
+        } catch (e) {}
         return;
       }
       breakRafRef.current = requestAnimationFrame(tick);
@@ -279,7 +323,6 @@ export function GlobalTimer({
         breakRafRef.current = null;
       }
     };
-
   }, [pomodoroPhase, notify]);
 
   const startBreak = useCallback(() => {
@@ -298,7 +341,6 @@ export function GlobalTimer({
     setSelectedTopic(activeSession?.topic_id ?? "");
     setActivityType(activeSession?.activity_type ?? "practice");
     setNotes(activeSession?.notes ?? "");
-    setPostLog(null);
   }, [activeSession]);
 
   const filteredTopics = topics.filter((t) => t.subject_id === selectedSubject);
@@ -340,11 +382,18 @@ export function GlobalTimer({
   useEffect(() => {
     accumulatedSecRef.current = accumulatedSec;
   }, [accumulatedSec]);
+  useEffect(() => {
+    displayedSecRef.current = displayedSec;
+  }, [displayedSec]);
 
   const pomodoroPhaseRef = useRef(pomodoroPhase);
   const pomodoroTargetSecsRef = useRef(pomodoroTargetSecs);
-  useEffect(() => { pomodoroPhaseRef.current = pomodoroPhase; }, [pomodoroPhase]);
-  useEffect(() => { pomodoroTargetSecsRef.current = pomodoroTargetSecs; }, [pomodoroTargetSecs]);
+  useEffect(() => {
+    pomodoroPhaseRef.current = pomodoroPhase;
+  }, [pomodoroPhase]);
+  useEffect(() => {
+    pomodoroTargetSecsRef.current = pomodoroTargetSecs;
+  }, [pomodoroTargetSecs]);
 
   const isRunning = !!session;
 
@@ -354,21 +403,10 @@ export function GlobalTimer({
 
       const tick = () => {
         if (segmentStartMonoRef.current === null) return;
-        const monoElapsed = (performance.now() - segmentStartMonoRef.current) / 1000;
+        const monoElapsed =
+          (performance.now() - segmentStartMonoRef.current) / 1000;
         const elapsed = Math.floor(accumulatedSecRef.current + monoElapsed);
         setDisplayedSec(elapsed);
-        if (
-          pomodoroPhaseRef.current === "study" &&
-          elapsed >= pomodoroTargetSecsRef.current
-        ) {
-          pomodoroPhaseRef.current = "overtime";
-          setPomodoroPhase("overtime");
-          notify("🍅 Pomodoro done! Keep going or take a break.", [
-            { action: "extend5",  title: "+5 min"  },
-            { action: "extend10", title: "+10 min" },
-          ]);
-          try { new Audio("/bell.wav").play().catch(() => {}); } catch(e) {}
-        }
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -378,6 +416,10 @@ export function GlobalTimer({
         rafRef.current = null;
       }
       segmentStartMonoRef.current = null;
+      if (pomodoroTimeoutRef.current !== null) {
+        clearTimeout(pomodoroTimeoutRef.current);
+        pomodoroTimeoutRef.current = null;
+      }
     }
     return () => {
       if (rafRef.current !== null) {
@@ -385,7 +427,7 @@ export function GlobalTimer({
         rafRef.current = null;
       }
     };
-  }, [isRunning, notify]);
+  }, [isRunning]);
 
   const openPostLog = useCallback((log: PostLog) => {
     setPostLog(log);
@@ -409,6 +451,16 @@ export function GlobalTimer({
 
   const handleStart = useCallback(() => {
     setError(null);
+    if (pomodoroMode) {
+      hasNotifiedPomodoroRef.current = false;
+      setPomodoroTargetSecs(POMODORO_STUDY_SECS);
+      pomodoroTargetSecsRef.current = POMODORO_STUDY_SECS;
+      if (pomodoroTimeoutRef.current !== null) clearTimeout(pomodoroTimeoutRef.current);
+      pomodoroTimeoutRef.current = setTimeout(
+        () => triggerPomodoroOvertime(),
+        POMODORO_STUDY_SECS * 1000,
+      );
+    }
     const optimistic = makeOptimisticSession({
       subjectId: selectedSubject,
       topicId: selectedTopic,
@@ -418,6 +470,7 @@ export function GlobalTimer({
     setSession(optimistic);
     setAccumulatedSec(0);
     setDisplayedSec(0);
+    displayedSecRef.current = 0;
 
     startSession({
       userId,
@@ -474,6 +527,8 @@ export function GlobalTimer({
     notes,
     activityType,
     openPostLog,
+    pomodoroMode,
+    triggerPomodoroOvertime,
   ]);
 
   const handleStopInner = useCallback(() => {
@@ -575,10 +630,11 @@ export function GlobalTimer({
   ]);
 
   const handleStop = useCallback(() => {
-    const wasInPomodoro = pomodoroMode && (pomodoroPhase === "study" || pomodoroPhase === "overtime");
+    const wasInPomodoro =
+      pomodoroMode &&
+      (pomodoroPhase === "study" || pomodoroPhase === "overtime");
     handleStopInner();
     if (wasInPomodoro) startBreak();
-
   }, [pomodoroMode, pomodoroPhase, startBreak, handleStopInner]);
 
   useEffect(() => {
@@ -592,14 +648,12 @@ export function GlobalTimer({
       }
 
       if (e.key === " " && !postLog) {
-        e.preventDefault(); 
+        e.preventDefault();
         if (isRunning) {
           handleStop();
         } else {
           handleStart();
         }
-      } else if (e.key === "Escape" && postLog) {
-        setPostLog(null);
       }
     };
 
@@ -732,9 +786,10 @@ export function GlobalTimer({
 
   const isMock = postLog?.activityType === "mock";
 
-  const pomodoroSecsLeft = pomodoroPhase === "study" || pomodoroPhase === "overtime"
-    ? Math.max(0, pomodoroTargetSecs - displayedSec)
-    : null;
+  const pomodoroSecsLeft =
+    pomodoroPhase === "study" || pomodoroPhase === "overtime"
+      ? Math.max(0, pomodoroTargetSecs - displayedSec)
+      : null;
 
   function formatCountdown(secs: number): string {
     const m = Math.floor(secs / 60);
@@ -742,25 +797,27 @@ export function GlobalTimer({
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
 
-  const barBorderColor = pomodoroPhase === "study"
-    ? "rgba(251,146,60,0.3)"
-    : pomodoroPhase === "overtime"
-      ? "rgba(239,68,68,0.5)"
-      : pomodoroPhase === "break"
-        ? "rgba(52,211,153,0.3)"
-        : isRunning
-          ? "rgba(139,92,246,0.2)"
-          : "var(--border-subtle)";
+  const barBorderColor =
+    pomodoroPhase === "study"
+      ? "rgba(251,146,60,0.3)"
+      : pomodoroPhase === "overtime"
+        ? "rgba(239,68,68,0.5)"
+        : pomodoroPhase === "break"
+          ? "rgba(52,211,153,0.3)"
+          : isRunning
+            ? "rgba(139,92,246,0.2)"
+            : "var(--border-subtle)";
 
-  const barBackground = pomodoroPhase === "study"
-    ? "rgba(251,146,60,0.02)"
-    : pomodoroPhase === "overtime"
-      ? "rgba(239,68,68,0.04)"
-      : pomodoroPhase === "break"
-        ? "rgba(52,211,153,0.02)"
-        : isRunning
-          ? "rgba(232,232,240,0.02)"
-          : "var(--surface)";
+  const barBackground =
+    pomodoroPhase === "study"
+      ? "rgba(251,146,60,0.02)"
+      : pomodoroPhase === "overtime"
+        ? "rgba(239,68,68,0.04)"
+        : pomodoroPhase === "break"
+          ? "rgba(52,211,153,0.02)"
+          : isRunning
+            ? "rgba(232,232,240,0.02)"
+            : "var(--surface)";
 
   return (
     <>
@@ -777,199 +834,212 @@ export function GlobalTimer({
         role="region"
         aria-label="Global study timer"
       >
-        
         {pomodoroPhase === "break" ? (
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <span className="text-lg">☕</span>
-            <span className="text-sm font-medium" style={{ color: "#34d399" }}>Break</span>
-            <span className="text-xl font-mono font-semibold tabular-nums" style={{ color: "#34d399" }}>
+            <span className="text-sm font-medium" style={{ color: "#34d399" }}>
+              Break
+            </span>
+            <span
+              className="text-xl font-mono font-semibold tabular-nums"
+              style={{ color: "#34d399" }}
+            >
               {formatCountdown(breakSecsLeft)}
             </span>
             <button
-              onClick={() => { setPomodoroPhase(null); }}
+              onClick={() => {
+                setPomodoroPhase(null);
+              }}
               className="text-xs px-2 py-1 rounded-lg transition-all hover:opacity-80"
-              style={{ background: "rgba(52,211,153,0.1)", color: "#34d399", border: "1px solid rgba(52,211,153,0.2)" }}
+              style={{
+                background: "rgba(52,211,153,0.1)",
+                color: "#34d399",
+                border: "1px solid rgba(52,211,153,0.2)",
+              }}
             >
               Skip break
             </button>
           </div>
         ) : (
-        <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
-          <input
-            id="timer-notes-input"
-            type="text"
-            placeholder="What are you studying?"
-            className="bg-transparent border-none outline-none text-sm min-w-0 text-neutral-200 placeholder:text-neutral-500 flex-1"
-            style={{ maxWidth: isRunning ? "160px" : "100%" }}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !isRunning) handleStart();
-            }}
-          />
+          <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+            <input
+              id="timer-notes-input"
+              type="text"
+              placeholder="What are you studying?"
+              className="bg-transparent border-none outline-none text-sm min-w-0 text-neutral-200 placeholder:text-neutral-500 flex-1"
+              style={{ maxWidth: isRunning ? "160px" : "100%" }}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isRunning) handleStart();
+              }}
+            />
 
-          <div className="h-4 w-px bg-neutral-800 hidden sm:block shrink-0" />
+            <div className="h-4 w-px bg-neutral-800 hidden sm:block shrink-0" />
 
-          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-neutral-600"
-            >
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg>
-            {isRunning ? (
-              <span className="text-xs text-neutral-300 flex items-center gap-1.5">
-                {subjects.find((s) => s.id === selectedSubject)?.color && (
-                  <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: subjects.find((s) => s.id === selectedSubject)?.color || undefined }}
-                  />
-                )}
-                {subjects.find((s) => s.id === selectedSubject)?.name ||
-                  "No Subject"}
-              </span>
-            ) : (
-              <select
-                value={selectedSubject}
-                onChange={(e) => {
-                  setSelectedSubject(e.target.value);
-                  setSelectedTopic("");
-                }}
-                className="text-xs bg-transparent text-neutral-300 outline-none cursor-pointer appearance-none"
-              >
-                <option value="" className="bg-neutral-900 text-neutral-400">
-                  No Subject
-                </option>
-                <SubjectOptions subjects={subjects} />
-              </select>
-            )}
-          </div>
-
-          {selectedSubject && (
             <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-              <div className="h-4 w-px bg-neutral-800" />
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-neutral-600"
+              >
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
               {isRunning ? (
-                <span className="text-xs text-neutral-500">
-                  {topics.find((t) => t.id === selectedTopic)?.name || "—"}
+                <span className="text-xs text-neutral-300 flex items-center gap-1.5">
+                  {subjects.find((s) => s.id === selectedSubject)?.color && (
+                    <span
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{
+                        backgroundColor:
+                          subjects.find((s) => s.id === selectedSubject)
+                            ?.color || undefined,
+                      }}
+                    />
+                  )}
+                  {subjects.find((s) => s.id === selectedSubject)?.name ||
+                    "No Subject"}
                 </span>
               ) : (
                 <select
-                  value={selectedTopic}
-                  onChange={(e) => setSelectedTopic(e.target.value)}
-                  className="text-xs bg-transparent text-neutral-500 outline-none cursor-pointer appearance-none"
+                  value={selectedSubject}
+                  onChange={(e) => {
+                    setSelectedSubject(e.target.value);
+                    setSelectedTopic("");
+                  }}
+                  className="text-xs bg-transparent text-neutral-300 outline-none cursor-pointer appearance-none"
                 >
-                  <option value="" className="bg-neutral-900 text-neutral-500">
-                    No Topic
+                  <option value="" className="bg-neutral-900 text-neutral-400">
+                    No Subject
                   </option>
-                  {filteredTopics.map((t) => (
-                    <option
-                      key={t.id}
-                      value={t.id}
-                      className="bg-neutral-900 text-white"
-                    >
-                      {t.name}
-                    </option>
-                  ))}
+                  <SubjectOptions subjects={subjects} />
                 </select>
               )}
             </div>
-          )}
 
-          <div className="hidden md:flex items-center gap-1.5 shrink-0">
-            <div className="h-4 w-px bg-neutral-800" />
-            {isRunning ? (
-              <span className="text-xs text-neutral-400 capitalize">
-                {activityType}
+            {selectedSubject && (
+              <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                <div className="h-4 w-px bg-neutral-800" />
+                {isRunning ? (
+                  <span className="text-xs text-neutral-500">
+                    {topics.find((t) => t.id === selectedTopic)?.name || "—"}
+                  </span>
+                ) : (
+                  <select
+                    value={selectedTopic}
+                    onChange={(e) => setSelectedTopic(e.target.value)}
+                    className="text-xs bg-transparent text-neutral-500 outline-none cursor-pointer appearance-none"
+                  >
+                    <option
+                      value=""
+                      className="bg-neutral-900 text-neutral-500"
+                    >
+                      No Topic
+                    </option>
+                    {filteredTopics.map((t) => (
+                      <option
+                        key={t.id}
+                        value={t.id}
+                        className="bg-neutral-900 text-white"
+                      >
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            <div className="hidden md:flex items-center gap-1.5 shrink-0">
+              <div className="h-4 w-px bg-neutral-800" />
+              {isRunning ? (
+                <span className="text-xs text-neutral-400 capitalize">
+                  {activityType}
+                </span>
+              ) : (
+                <select
+                  value={activityType}
+                  onChange={(e) =>
+                    setActivityType(
+                      e.target
+                        .value as Tables<"study_sessions">["activity_type"],
+                    )
+                  }
+                  className="text-xs bg-transparent text-neutral-400 outline-none cursor-pointer appearance-none"
+                >
+                  <option
+                    value="practice"
+                    className="bg-neutral-900 text-white"
+                  >
+                    Practice
+                  </option>
+                  <option value="lecture" className="bg-neutral-900 text-white">
+                    Lecture
+                  </option>
+                  <option
+                    value="revision"
+                    className="bg-neutral-900 text-white"
+                  >
+                    Revision
+                  </option>
+                  <option value="mock" className="bg-neutral-900 text-white">
+                    Mock
+                  </option>
+                  <option value="reading" className="bg-neutral-900 text-white">
+                    Reading
+                  </option>
+                  <option value="other" className="bg-neutral-900 text-white">
+                    Other
+                  </option>
+                </select>
+              )}
+            </div>
+
+            {error && (
+              <span className="text-xs text-rose-400 ml-2 truncate hidden sm:block">
+                {error}
               </span>
-            ) : (
-              <select
-                value={activityType}
-                onChange={(e) =>
-                  setActivityType(
-                    e.target.value as Tables<"study_sessions">["activity_type"],
-                  )
-                }
-                className="text-xs bg-transparent text-neutral-400 outline-none cursor-pointer appearance-none"
-              >
-                <option value="practice" className="bg-neutral-900 text-white">
-                  Practice
-                </option>
-                <option value="lecture" className="bg-neutral-900 text-white">
-                  Lecture
-                </option>
-                <option value="revision" className="bg-neutral-900 text-white">
-                  Revision
-                </option>
-                <option value="mock" className="bg-neutral-900 text-white">
-                  Mock
-                </option>
-                <option value="reading" className="bg-neutral-900 text-white">
-                  Reading
-                </option>
-                <option value="other" className="bg-neutral-900 text-white">
-                  Other
-                </option>
-              </select>
             )}
           </div>
-
-          {error && (
-            <span className="text-xs text-rose-400 ml-2 truncate hidden sm:block">
-              {error}
-            </span>
-          )}
-        </div>
         )}
 
         <div className="flex items-center gap-2 shrink-0">
+          {/* +5/+10 min are now shown as notification action buttons — not on the timer bar */}
 
-          
-          {pomodoroPhase === "overtime" && (
-            <>
-              <button
-                onClick={() => extendPomodoro(5 * 60)}
-                className="text-xs px-2 py-1 rounded-lg font-medium transition-all hover:opacity-80"
-                style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}
-              >+5 min</button>
-              <button
-                onClick={() => extendPomodoro(10 * 60)}
-                className="text-xs px-2 py-1 rounded-lg font-medium transition-all hover:opacity-80"
-                style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}
-              >+10 min</button>
-            </>
-          )}
-
-          
           {(pomodoroPhase === "study" || pomodoroPhase === "overtime") && (
-            <span className="text-[10px] font-medium hidden sm:inline" style={{ color: pomodoroPhase === "overtime" ? "#ef4444" : "#fb923c" }}>
+            <span
+              className="text-[10px] font-medium hidden sm:inline"
+              style={{
+                color: pomodoroPhase === "overtime" ? "#ef4444" : "#fb923c",
+              }}
+            >
               {pomodoroPhase === "overtime" ? "⏰ Overtime" : "🍅 Work"}
             </span>
           )}
 
-          
           <div
             className="text-xl font-mono font-semibold tabular-nums tracking-tight transition-colors"
             style={{
-              color: pomodoroPhase === "study"
-                ? "#fb923c"
-                : pomodoroPhase === "overtime"
-                  ? "#ef4444"
-                  : isRunning
-                    ? "#ededed"
-                    : pomodoroMode
-                      ? "rgba(251,146,60,0.4)"
-                      : "rgba(226,226,240,0.2)",
+              color:
+                pomodoroPhase === "study"
+                  ? "#fb923c"
+                  : pomodoroPhase === "overtime"
+                    ? "#ef4444"
+                    : isRunning
+                      ? "#ededed"
+                      : pomodoroMode
+                        ? "rgba(251,146,60,0.4)"
+                        : "rgba(226,226,240,0.2)",
             }}
           >
             {pomodoroPhase === "break"
-              ? null 
+              ? null
               : pomodoroSecsLeft !== null
                 ? formatCountdown(pomodoroSecsLeft)
                 : pomodoroMode && !isRunning
@@ -977,20 +1047,28 @@ export function GlobalTimer({
                   : formatElapsed(displayedSec)}
           </div>
 
-          
           {!isRunning && pomodoroPhase !== "break" && (
             <button
               onClick={togglePomodoro}
-              title={pomodoroMode ? "Disable Pomodoro mode" : "Enable Pomodoro (55 min)"}
+              title={
+                pomodoroMode
+                  ? "Disable Pomodoro mode"
+                  : "Enable Pomodoro (55 min)"
+              }
               className="w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all hover:scale-110 active:scale-95"
               style={{
-                background: pomodoroMode ? "rgba(251,146,60,0.2)" : "transparent",
-                border: pomodoroMode ? "1px solid rgba(251,146,60,0.4)" : "1px solid rgba(255,255,255,0.08)",
+                background: pomodoroMode
+                  ? "rgba(251,146,60,0.2)"
+                  : "transparent",
+                border: pomodoroMode
+                  ? "1px solid rgba(251,146,60,0.4)"
+                  : "1px solid rgba(255,255,255,0.08)",
               }}
-            >🍅</button>
+            >
+              🍅
+            </button>
           )}
 
-          
           {pomodoroPhase === "break" ? null : isRunning ? (
             <button
               onClick={handleStop}
@@ -1002,7 +1080,10 @@ export function GlobalTimer({
             </button>
           ) : (
             <button
-              onClick={() => { handleStart(); if (pomodoroMode) handlePomodoroStart(); }}
+              onClick={() => {
+                handleStart();
+                if (pomodoroMode) handlePomodoroStart();
+              }}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 pl-0.5"
               style={{ background: pomodoroMode ? "#fb923c" : "#d946ef" }}
               aria-label="Start Timer"
@@ -1025,7 +1106,6 @@ export function GlobalTimer({
         </div>
       </div>
 
-      
       {postLog && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
@@ -1046,7 +1126,6 @@ export function GlobalTimer({
             role="dialog"
             aria-label={`Log ${isMock ? "mock" : "practice"} session`}
           >
-            
             <div className="flex items-start justify-between px-5 pt-5 pb-3 shrink-0">
               <div>
                 <p
@@ -1075,7 +1154,6 @@ export function GlobalTimer({
               </button>
             </div>
 
-            
             <div className="overflow-y-auto px-5 pb-5 space-y-3 flex-1">
               {postSuccess ? (
                 <div className="text-center py-8">
@@ -1253,7 +1331,6 @@ function PracticeFields({
 
   return (
     <>
-      
       <div className="grid grid-cols-2 gap-2">
         <div
           className="px-3 py-2 rounded-xl text-xs"
@@ -1281,7 +1358,6 @@ function PracticeFields({
         )}
       </div>
 
-      
       <div className="grid grid-cols-3 gap-2">
         {(
           [
@@ -1347,7 +1423,6 @@ function PracticeFields({
         ))}
       </div>
 
-      
       {attemptedNum > 0 && (
         <div className="space-y-1.5">
           <div
@@ -1369,7 +1444,6 @@ function PracticeFields({
         </div>
       )}
 
-      
       <div>
         <label className={lbl}>Source / Book *</label>
         <input
@@ -1383,7 +1457,6 @@ function PracticeFields({
         />
       </div>
 
-      
       <div>
         <label className={lbl}>Notes (optional)</label>
         <input
@@ -1477,7 +1550,6 @@ function MockFields({
 
   return (
     <>
-      
       <div className="grid grid-cols-3 gap-2">
         <div
           className="px-3 py-2 rounded-xl text-xs"
@@ -1512,7 +1584,6 @@ function MockFields({
         )}
       </div>
 
-      
       <div>
         <label className={lbl}>Mock Name *</label>
         <input
@@ -1526,7 +1597,6 @@ function MockFields({
         />
       </div>
 
-      
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className={lbl}>Platform / Source *</label>
@@ -1556,7 +1626,6 @@ function MockFields({
         </div>
       </div>
 
-      
       <div>
         <label className={lbl}>Stage (optional)</label>
         <input
@@ -1569,7 +1638,6 @@ function MockFields({
         />
       </div>
 
-      
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className={lbl}>Score *</label>
@@ -1596,7 +1664,6 @@ function MockFields({
         </div>
       </div>
 
-      
       <div className="grid grid-cols-4 gap-2">
         {(
           [
