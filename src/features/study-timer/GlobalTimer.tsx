@@ -55,7 +55,7 @@ function makeOptimisticSession(opts: {
   } as unknown as Tables<"study_sessions">;
 }
 
-const POMODORO_STUDY_SECS = 2 * 60; // TODO: revert to 55 * 60
+const POMODORO_STUDY_SECS = 55 * 60;
 const POMODORO_BREAK_SECS = 5 * 60;
 
 type PomodoroPhase = "study" | "overtime" | "break" | null;
@@ -123,45 +123,73 @@ export function GlobalTimer({
     logData: PostLog | null;
   } | null>(null);
 
-  const [pomodoroMode, setPomodoroMode] = useState(false);
-  const [pomodoroPhase, setPomodoroPhase] = useState<PomodoroPhase>(null);
-  const [pomodoroTargetSecs, setPomodoroTargetSecs] =
-    useState(POMODORO_STUDY_SECS);
-  const [breakSecsLeft, setBreakSecsLeft] = useState(POMODORO_BREAK_SECS);
-  const breakRafRef = useRef<number | null>(null);
-  const breakMonoStartRef = useRef<number | null>(null);
-  const breakSecsLeftRef = useRef(POMODORO_BREAK_SECS);
-  const hasNotifiedPomodoroRef = useRef(false);
-  const pomodoroTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
+  const [pomodoroMode, setPomodoroMode] = useState<boolean>(() => {
     try {
-      const savedMode = localStorage.getItem("pomodoroMode");
-      if (savedMode === "true") setPomodoroMode(true);
+      if (typeof window !== "undefined") {
+        return localStorage.getItem("pomodoroMode") === "true";
+      }
+    } catch {}
+    return false;
+  });
 
-      const savedPhase = localStorage.getItem("pomodoroPhase") as PomodoroPhase;
-      if (savedPhase) setPomodoroPhase(savedPhase);
+  const [pomodoroPhase, setPomodoroPhase] = useState<PomodoroPhase>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const savedPhase = localStorage.getItem("pomodoroPhase") as PomodoroPhase;
+        if (savedPhase === "break") {
+          const savedBreakEnd = localStorage.getItem("pomodoroBreakEndMs");
+          if (savedBreakEnd && Math.floor((Number(savedBreakEnd) - Date.now()) / 1000) > 0) {
+            return "break";
+          }
+          return null;
+        }
+        return savedPhase || null;
+      }
+    } catch {}
+    return null;
+  });
 
-      const savedTarget = localStorage.getItem("pomodoroTargetSecs");
-      if (savedTarget) setPomodoroTargetSecs(Number(savedTarget));
+  const [pomodoroTargetSecs, setPomodoroTargetSecs] = useState<number>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const savedTarget = localStorage.getItem("pomodoroTargetSecs");
+        if (savedTarget) return Number(savedTarget);
+      }
+    } catch {}
+    return POMODORO_STUDY_SECS;
+  });
 
-      const savedBreakEnd = localStorage.getItem("pomodoroBreakEndMs");
-      if (savedPhase === "break" && savedBreakEnd) {
-        const left = Math.floor((Number(savedBreakEnd) - Date.now()) / 1000);
-        if (left > 0) {
-          setBreakSecsLeft(left);
-          breakSecsLeftRef.current = left;
-        } else {
-          setPomodoroPhase(null);
+  const [breakSecsLeft, setBreakSecsLeft] = useState<number>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const savedBreakEnd = localStorage.getItem("pomodoroBreakEndMs");
+        const savedPhase = localStorage.getItem("pomodoroPhase");
+        if (savedPhase === "break" && savedBreakEnd) {
+          const left = Math.floor((Number(savedBreakEnd) - Date.now()) / 1000);
+          if (left > 0) return left;
         }
       }
-    } catch (e) {}
-  }, []);
+    } catch {}
+    return POMODORO_BREAK_SECS;
+  });
+
+  const breakRafRef = useRef<number | null>(null);
+  const breakMonoStartRef = useRef<number | null>(null);
+  const breakSecsLeftRef = useRef(breakSecsLeft);
+  const [showPomodoroAlert, setShowPomodoroAlert] = useState(false);
+
+  const displayedSecRef = useRef(0);
+  const pomodoroEndDisplayRef = useRef(0);
+  const segmentStartMonoRef = useRef<number | null>(null);
+  const overtimeStartMonoRef = useRef<number | null>(null);
+  const totalPausedMonoRef = useRef<number>(0);
+  const pomodoroPhaseRef = useRef(pomodoroPhase);
+  const pomodoroTargetSecsRef = useRef(pomodoroTargetSecs);
 
   useEffect(() => {
     try {
       localStorage.setItem("pomodoroMode", pomodoroMode ? "true" : "false");
-    } catch (e) {}
+    } catch {}
   }, [pomodoroMode]);
 
   useEffect(() => {
@@ -175,13 +203,13 @@ export function GlobalTimer({
       } else {
         localStorage.removeItem("pomodoroBreakEndMs");
       }
-    } catch (e) {}
+    } catch {}
   }, [pomodoroPhase]);
 
   useEffect(() => {
     try {
       localStorage.setItem("pomodoroTargetSecs", String(pomodoroTargetSecs));
-    } catch (e) {}
+    } catch {}
   }, [pomodoroTargetSecs]);
 
   useEffect(() => {
@@ -194,65 +222,81 @@ export function GlobalTimer({
       if (Notification.permission !== "granted") return;
 
       try {
-        const reg =
-          "serviceWorker" in navigator
-            ? await navigator.serviceWorker.ready
-            : null;
+        let shown = false;
 
-        if (reg) {
-          type SWNotifOptions = NotificationOptions & {
-            tag?: string;
-            renotify?: boolean;
-            actions?: Array<{ action: string; title: string }>;
-          };
-          const opts: SWNotifOptions = {
-            body: msg,
-            icon: "/favicon.ico",
-            tag: "pomodoro",
-            renotify: true,
-            actions: actions ?? [],
-          };
-          await reg.showNotification("Study OS", opts);
-        } else {
+        if ("serviceWorker" in navigator) {
+          try {
+            const reg = await Promise.race([
+              navigator.serviceWorker.getRegistration(),
+              new Promise<undefined>((resolve) =>
+                setTimeout(() => resolve(undefined), 2000),
+              ),
+            ]);
+
+            if (reg?.active) {
+              type SWNotifOptions = NotificationOptions & {
+                tag?: string;
+                renotify?: boolean;
+                actions?: Array<{ action: string; title: string }>;
+              };
+              const opts: SWNotifOptions = {
+                body: msg,
+                icon: "/favicon.ico",
+                tag: "pomodoro",
+                renotify: true,
+                actions: actions ?? [],
+              };
+              await reg.showNotification("Study OS", opts);
+              shown = true;
+            }
+          } catch {}
+        }
+
+        if (!shown) {
           new Notification("Study OS", { body: msg, icon: "/favicon.ico" });
         }
       } catch {
-        new Notification("Study OS", { body: msg, icon: "/favicon.ico" });
+        try {
+          new Notification("Study OS", { body: msg, icon: "/favicon.ico" });
+        } catch {}
       }
     },
     [],
   );
 
-  const displayedSecRef = useRef(0);
-
-  const triggerPomodoroOvertime = useCallback(() => {
-    if (hasNotifiedPomodoroRef.current) return;
-    hasNotifiedPomodoroRef.current = true;
-    pomodoroPhaseRef.current = "overtime";
-    setPomodoroPhase("overtime");
-    notify("🍅 Pomodoro done! Keep going or take a break.", [
-      { action: "extend5", title: "+5 min" },
-      { action: "extend10", title: "+10 min" },
-    ]);
-    try {
-      new Audio("/bell.wav").play().catch(() => {});
-    } catch (e) {}
-  }, [notify]);
-
   const extendPomodoro = useCallback((extraSecs: number) => {
     const newTarget = displayedSecRef.current + extraSecs;
     setPomodoroTargetSecs(newTarget);
     pomodoroTargetSecsRef.current = newTarget;
-    hasNotifiedPomodoroRef.current = false;
-    setPomodoroPhase("study");
-    if (pomodoroTimeoutRef.current !== null) {
-      clearTimeout(pomodoroTimeoutRef.current);
+    
+    if (overtimeStartMonoRef.current !== null) {
+      totalPausedMonoRef.current += (performance.now() - overtimeStartMonoRef.current);
+      overtimeStartMonoRef.current = null;
     }
-    pomodoroTimeoutRef.current = setTimeout(
-      () => triggerPomodoroOvertime(),
-      extraSecs * 1000,
-    );
-  }, [triggerPomodoroOvertime]);
+    
+    setPomodoroPhase("study");
+    setShowPomodoroAlert(false);
+  }, []);
+
+  const triggerPomodoroOvertime = useCallback((elapsed: number) => {
+    if (pomodoroPhaseRef.current !== "study") return;
+    
+    pomodoroPhaseRef.current = "overtime";
+    pomodoroEndDisplayRef.current = pomodoroTargetSecsRef.current;
+    
+    const overshootSecs = Math.max(0, elapsed - pomodoroTargetSecsRef.current);
+    overtimeStartMonoRef.current = performance.now() - (overshootSecs * 1000);
+    
+    setPomodoroPhase("overtime");
+    setShowPomodoroAlert(true);
+    
+    notify("🍅 Pomodoro done! Keep going or take a break.");
+
+    try {
+      new Audio("/bell.wav").play().catch(() => {});
+    } catch {}
+  }, [notify]);
+
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -282,7 +326,6 @@ export function GlobalTimer({
   }, [session, pomodoroMode]);
 
   const handlePomodoroStart = useCallback(() => {
-    hasNotifiedPomodoroRef.current = false;
     setPomodoroPhase("study");
     setPomodoroTargetSecs(POMODORO_STUDY_SECS);
   }, []);
@@ -310,7 +353,7 @@ export function GlobalTimer({
         notify("☕ Break over — ready for the next one!");
         try {
           new Audio("/bell.wav").play().catch(() => {});
-        } catch (e) {}
+        } catch {}
         return;
       }
       breakRafRef.current = requestAnimationFrame(tick);
@@ -370,7 +413,7 @@ export function GlobalTimer({
     return () => window.removeEventListener("timer:prefill", handler);
   }, [session]);
 
-  const segmentStartMonoRef = useRef<number | null>(null);
+
   const [accumulatedSec, setAccumulatedSec] = useState<number>(() => {
     if (!activeSession?.start_timestamp) return 0;
     const sessionMs = new Date(activeSession.start_timestamp).getTime();
@@ -386,8 +429,7 @@ export function GlobalTimer({
     displayedSecRef.current = displayedSec;
   }, [displayedSec]);
 
-  const pomodoroPhaseRef = useRef(pomodoroPhase);
-  const pomodoroTargetSecsRef = useRef(pomodoroTargetSecs);
+
   useEffect(() => {
     pomodoroPhaseRef.current = pomodoroPhase;
   }, [pomodoroPhase]);
@@ -398,37 +440,61 @@ export function GlobalTimer({
   const isRunning = !!session;
 
   useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    
     if (isRunning) {
       segmentStartMonoRef.current = performance.now();
 
+      const checkPomodoro = (elapsed: number) => {
+        if (pomodoroPhaseRef.current === "study" && elapsed >= pomodoroTargetSecsRef.current) {
+          triggerPomodoroOvertime(elapsed);
+        }
+      };
+
+      const getAdjustedElapsed = () => {
+        if (segmentStartMonoRef.current === null) return 0;
+        let pauseAdjustment = totalPausedMonoRef.current;
+        if (pomodoroPhaseRef.current === "overtime" && overtimeStartMonoRef.current !== null) {
+          pauseAdjustment += (performance.now() - overtimeStartMonoRef.current);
+        }
+        const monoElapsed = (performance.now() - segmentStartMonoRef.current - pauseAdjustment) / 1000;
+        return Math.floor(accumulatedSecRef.current + monoElapsed);
+      };
+
       const tick = () => {
         if (segmentStartMonoRef.current === null) return;
-        const monoElapsed =
-          (performance.now() - segmentStartMonoRef.current) / 1000;
-        const elapsed = Math.floor(accumulatedSecRef.current + monoElapsed);
+        const elapsed = getAdjustedElapsed();
         setDisplayedSec(elapsed);
+        checkPomodoro(elapsed);
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
+
+      intervalId = setInterval(() => {
+        if (segmentStartMonoRef.current === null) return;
+        const elapsed = getAdjustedElapsed();
+        checkPomodoro(elapsed);
+      }, 1000);
     } else {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
-      segmentStartMonoRef.current = null;
-      if (pomodoroTimeoutRef.current !== null) {
-        clearTimeout(pomodoroTimeoutRef.current);
-        pomodoroTimeoutRef.current = null;
+      if (intervalId !== null) {
+        clearInterval(intervalId);
       }
+      segmentStartMonoRef.current = null;
     }
     return () => {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+      }
     };
-  }, [isRunning]);
-
+  }, [isRunning, triggerPomodoroOvertime, pomodoroMode]);
   const openPostLog = useCallback((log: PostLog) => {
     setPostLog(log);
     setPostAttempted("");
@@ -452,14 +518,8 @@ export function GlobalTimer({
   const handleStart = useCallback(() => {
     setError(null);
     if (pomodoroMode) {
-      hasNotifiedPomodoroRef.current = false;
       setPomodoroTargetSecs(POMODORO_STUDY_SECS);
       pomodoroTargetSecsRef.current = POMODORO_STUDY_SECS;
-      if (pomodoroTimeoutRef.current !== null) clearTimeout(pomodoroTimeoutRef.current);
-      pomodoroTimeoutRef.current = setTimeout(
-        () => triggerPomodoroOvertime(),
-        POMODORO_STUDY_SECS * 1000,
-      );
     }
     const optimistic = makeOptimisticSession({
       subjectId: selectedSubject,
@@ -471,6 +531,8 @@ export function GlobalTimer({
     setAccumulatedSec(0);
     setDisplayedSec(0);
     displayedSecRef.current = 0;
+    totalPausedMonoRef.current = 0;
+    overtimeStartMonoRef.current = null;
 
     startSession({
       userId,
@@ -528,7 +590,6 @@ export function GlobalTimer({
     activityType,
     openPostLog,
     pomodoroMode,
-    triggerPomodoroOvertime,
   ]);
 
   const handleStopInner = useCallback(() => {
@@ -544,10 +605,12 @@ export function GlobalTimer({
     const elapsedSecs =
       sessionId === "__optimistic__"
         ? displayedSec
-        : Math.max(
-            0,
-            (clickedAtMs - new Date(session.start_timestamp).getTime()) / 1000,
-          );
+        : Math.max(0, displayedSec);
+
+    let finalPauseSecs = Math.floor(totalPausedMonoRef.current / 1000);
+    if (pomodoroPhaseRef.current === "overtime" && overtimeStartMonoRef.current !== null) {
+      finalPauseSecs += Math.floor((performance.now() - overtimeStartMonoRef.current) / 1000);
+    }
 
     const finalNotes = notes.trim();
 
@@ -607,7 +670,7 @@ export function GlobalTimer({
     stopSession({
       sessionId,
       userId,
-      pauseDurationSeconds: 0,
+      pauseDurationSeconds: finalPauseSecs,
       notes: finalNotes || undefined,
       endTimestamp: clickedAtIso,
     }).then((result) => {
@@ -1010,8 +1073,7 @@ export function GlobalTimer({
         )}
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* +5/+10 min are now shown as notification action buttons — not on the timer bar */}
-
+          
           {(pomodoroPhase === "study" || pomodoroPhase === "overtime") && (
             <span
               className="text-[10px] font-medium hidden sm:inline"
@@ -1040,11 +1102,13 @@ export function GlobalTimer({
           >
             {pomodoroPhase === "break"
               ? null
-              : pomodoroSecsLeft !== null
-                ? formatCountdown(pomodoroSecsLeft)
-                : pomodoroMode && !isRunning
-                  ? formatCountdown(POMODORO_STUDY_SECS)
-                  : formatElapsed(displayedSec)}
+              : pomodoroPhase === "overtime"
+                ? formatElapsed(pomodoroTargetSecs)
+                : pomodoroSecsLeft !== null
+                  ? formatCountdown(pomodoroSecsLeft)
+                  : pomodoroMode && !isRunning
+                    ? formatCountdown(POMODORO_STUDY_SECS)
+                    : formatElapsed(displayedSec)}
           </div>
 
           {!isRunning && pomodoroPhase !== "break" && (
@@ -1267,6 +1331,43 @@ export function GlobalTimer({
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {showPomodoroAlert && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-heat-0 border border-white/10 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center max-w-sm w-full animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center mb-6 ring-1 ring-rose-500/20">
+              <span className="text-4xl">🍅</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Focus Complete!</h2>
+            <p className="text-neutral-400 text-sm mb-8 leading-relaxed">
+              You reached your Pomodoro goal. Would you like to extend your focus time or wrap up the session?
+            </p>
+            <div className="w-full flex flex-col gap-3">
+              <button
+                onClick={() => extendPomodoro(5 * 60)}
+                className="w-full py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition-colors active:scale-[0.98]"
+              >
+                Add 5 Minutes
+              </button>
+              <button
+                onClick={() => extendPomodoro(10 * 60)}
+                className="w-full py-3.5 bg-white/10 hover:bg-white/15 text-white font-medium rounded-xl transition-colors active:scale-[0.98]"
+              >
+                Add 10 Minutes
+              </button>
+              <div className="h-px w-full bg-white/5 my-2" />
+              <button
+                onClick={() => {
+                  setShowPomodoroAlert(false);
+                  handleStop();
+                }}
+                className="w-full py-3.5 text-rose-400 hover:bg-rose-400/10 font-medium rounded-xl transition-colors active:scale-[0.98]"
+              >
+                Stop Session
+              </button>
             </div>
           </div>
         </div>
