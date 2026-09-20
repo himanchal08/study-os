@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { dayBoundaryAwareDate } from "@/lib/calculations";
 import { LogBatchForm } from "@/features/questions/LogBatchForm";
 import type { Tables } from "@/types/database";
+import { QuestionsClient } from "@/features/questions/QuestionsClient";
 
 type BatchRow = Pick<
   Tables<"question_batches">,
@@ -14,19 +15,6 @@ type BatchRow = Pick<
 };
 
 export const metadata: Metadata = { title: "Question Practice" };
-
-function AccuracyBar({ correct, attempted }: { correct: number; attempted: number }) {
-  const pct = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
-  const color = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#1a1a1a" }}>
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-      </div>
-      <span className="text-xs tabular-nums shrink-0 font-medium" style={{ color }}>{pct}%</span>
-    </div>
-  );
-}
 
 export default async function QuestionsPage() {
   const supabase = await createClient();
@@ -45,7 +33,7 @@ export default async function QuestionsPage() {
   const todayStr = dayBoundaryAwareDate(nowMs, offsetMin, timezone);
   const batchWindowStart = new Date(nowMs - 30 * 86400000).toISOString();
 
-  const [{ data: subjectsRaw }, { data: topicsRaw }, { data: batchesRaw }] = await Promise.all([
+  const [{ data: subjectsRaw }, { data: topicsRaw }, { data: batchesRaw }, { data: allBatchesRaw }] = await Promise.all([
     supabase.from("subjects").select("id, name, color, exam_type").order("name"),
     supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("name"),
     supabase
@@ -56,18 +44,59 @@ export default async function QuestionsPage() {
       .gte("logged_at", batchWindowStart)
       .order("logged_at", { ascending: false })
       .limit(300),
+    // All-time stats (no date filter, just aggregate data)
+    supabase
+      .from("question_batches")
+      .select("attempted, correct, subject_id, subjects(name, color)")
+      .eq("user_id", user.id)
+      .is("deleted_at", null),
   ]);
 
-  const subjects = subjectsRaw ?? [];
-  const topics   = topicsRaw ?? [];
-  const batches  = (batchesRaw ?? []) as unknown as BatchRow[];
+  const subjects   = subjectsRaw ?? [];
+  const topics     = topicsRaw ?? [];
+  const batches    = (batchesRaw ?? []) as unknown as BatchRow[];
+  const allBatches = (allBatchesRaw ?? []) as unknown as BatchRow[];
 
+  // Today's stats
   const todayBatches   = batches.filter(b =>
     dayBoundaryAwareDate(new Date(b.logged_at).getTime(), offsetMin, timezone) === todayStr
   );
-  const totalAttempted = todayBatches.reduce((s, b) => s + b.attempted, 0);
-  const totalCorrect   = todayBatches.reduce((s, b) => s + b.correct, 0);
-  const todayAccuracy  = totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : null;
+
+  // Week stats (7 days)
+  const weekStart = dayBoundaryAwareDate(nowMs - 6 * 86400000, offsetMin, timezone);
+  const weekBatches = batches.filter(b =>
+    dayBoundaryAwareDate(new Date(b.logged_at).getTime(), offsetMin, timezone) >= weekStart
+  );
+
+  // All-time subject-wise breakdown
+  type SubjectStat = { name: string; color: string; attempted: number; correct: number };
+  const subjectMap = new Map<string, SubjectStat>();
+
+  for (const b of allBatches) {
+    const sub = b.subjects as { name: string; color: string | null } | null;
+    const key = b.subject_id ?? "__none__";
+    const name = sub?.name ?? "No Subject";
+    const color = sub?.color ?? "#52525b";
+    if (!subjectMap.has(key)) subjectMap.set(key, { name, color, attempted: 0, correct: 0 });
+    const entry = subjectMap.get(key)!;
+    entry.attempted += b.attempted;
+    entry.correct   += b.correct;
+  }
+  const subjectStats = Array.from(subjectMap.values())
+    .filter(s => s.attempted > 0)
+    .sort((a, b) => b.attempted - a.attempted);
+
+  // Compute stats helper
+  function computeStats(rows: BatchRow[]) {
+    const attempted = rows.reduce((s, b) => s + b.attempted, 0);
+    const correct   = rows.reduce((s, b) => s + b.correct, 0);
+    const accuracy  = attempted > 0 ? Math.round((correct / attempted) * 100) : null;
+    return { attempted, correct, accuracy };
+  }
+
+  const todayStats  = computeStats(todayBatches);
+  const weekStats   = computeStats(weekBatches);
+  const allStats    = computeStats(allBatches);
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
@@ -76,27 +105,28 @@ export default async function QuestionsPage() {
         <p className="text-xs mt-1 text-neutral-500">Log batches, track accuracy over time.</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: "Attempted", value: totalAttempted || "—" },
-          { label: "Correct",   value: totalCorrect   || "—" },
-          {
-            label: "Accuracy",
-            value: todayAccuracy !== null ? `${todayAccuracy}%` : "—",
-            color: todayAccuracy !== null
-              ? todayAccuracy >= 80 ? "#10b981" : todayAccuracy >= 60 ? "#f59e0b" : "#ef4444"
-              : undefined,
-          },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="rounded-xl p-3 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-            <p className="text-[9px] uppercase tracking-wider text-neutral-600 mb-1">{label}</p>
-            <p className="text-lg font-bold tabular-nums" style={{ color: color ?? "#ededed" }}>{value}</p>
-          </div>
-        ))}
-      </div>
+      <QuestionsClient
+        todayStats={todayStats}
+        weekStats={weekStats}
+        allStats={allStats}
+        subjectStats={subjectStats}
+        batches={batches.map(b => ({
+          id: b.id,
+          logged_at: b.logged_at,
+          attempted: b.attempted,
+          correct: b.correct,
+          source: b.source ?? null,
+          notes: b.notes ?? null,
+          duration_minutes: b.duration_minutes ?? null,
+          subject: b.subjects as { name: string; color: string | null } | null,
+          topic: b.topics as { name: string } | null,
+        }))}
+        todayStr={todayStr}
+        offsetMin={offsetMin}
+        timezone={timezone}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
         <div className="lg:col-span-2">
           <div className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
             <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Log New Batch</p>
@@ -116,6 +146,8 @@ export default async function QuestionsPage() {
               const subject = b.subjects as { name: string; color: string | null } | null;
               const topic   = b.topics   as { name: string } | null;
               const isToday = dayBoundaryAwareDate(new Date(b.logged_at).getTime(), offsetMin, timezone) === todayStr;
+              const pct = b.attempted > 0 ? Math.round((b.correct / b.attempted) * 100) : 0;
+              const barColor = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
               return (
                 <div
                   key={b.id}
@@ -148,7 +180,12 @@ export default async function QuestionsPage() {
                     </div>
                   </div>
 
-                  <AccuracyBar correct={b.correct} attempted={b.attempted} />
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#1a1a1a" }}>
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
+                    </div>
+                    <span className="text-xs tabular-nums shrink-0 font-medium" style={{ color: barColor }}>{pct}%</span>
+                  </div>
 
                   {b.notes && <p className="text-xs text-neutral-600 mt-2 leading-relaxed">{b.notes}</p>}
 
@@ -165,4 +202,3 @@ export default async function QuestionsPage() {
     </div>
   );
 }
-
