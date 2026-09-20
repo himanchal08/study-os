@@ -74,7 +74,6 @@ export default async function TasksPage() {
         <div className="lg:col-span-2">
           <TaskList
             tasks={tasks}
-            userId={user.id}
             todayDate={todayDate}
             subjects={subjects ?? []}
             timezone={timezone}

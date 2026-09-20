@@ -7,9 +7,10 @@ interface TopBarProps {
   profile: Tables<"profiles"> | null;
   userId: string;
   userEmail: string;
+  pendingTaskCount?: number;
 }
 
-export function TopBar({ profile, userEmail }: TopBarProps) {
+export function TopBar({ profile, userEmail, pendingTaskCount = 0 }: TopBarProps) {
   const today = getFormattedToday(profile);
   const dailyTarget = profile?.daily_target_hours ?? 8;
 
@@ -22,7 +23,7 @@ export function TopBar({ profile, userEmail }: TopBarProps) {
       }}
     >
       <div className="flex items-center gap-3">
-        <MobileSidebar userEmail={userEmail} />
+        <MobileSidebar userEmail={userEmail} pendingTaskCount={pendingTaskCount} />
 
         <p suppressHydrationWarning className="text-sm hidden sm:block" style={{ color: "rgba(226,226,240,0.5)" }}>
           {today}

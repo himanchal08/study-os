@@ -3,9 +3,10 @@ import { NavLinks } from "./NavLinks";
 
 interface SidebarProps {
   userEmail: string;
+  pendingTaskCount?: number;
 }
 
-export function Sidebar({ userEmail }: SidebarProps) {
+export function Sidebar({ userEmail, pendingTaskCount = 0 }: SidebarProps) {
   return (
     <nav
       aria-label="Main navigation"
@@ -44,7 +45,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
       </div>
 
       <Suspense fallback={<NavLinksSkeleton />}>
-        <NavLinks />
+        <NavLinks pendingTaskCount={pendingTaskCount} />
       </Suspense>
 
       <div

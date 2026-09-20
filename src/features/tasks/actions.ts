@@ -80,6 +80,12 @@ export async function createTask(
         next.setUTCDate(baseDate.getUTCDate() + i * 7);
         datesToInsert.push(next.toISOString().split("T")[0]);
       }
+    } else if (recurrencePattern === "monthly") {
+      for (let i = 1; i <= 2; i++) {
+        const next = new Date(baseDate);
+        next.setUTCMonth(baseDate.getUTCMonth() + i);
+        datesToInsert.push(next.toISOString().split("T")[0]);
+      }
     }
   }
 

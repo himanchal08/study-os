@@ -13,7 +13,6 @@ interface SubjectOption {
 
 interface TaskListProps {
   tasks: TaskItem[];
-  userId: string;
   todayDate: string;
   subjects: SubjectOption[];
   timezone: string;
@@ -21,7 +20,16 @@ interface TaskListProps {
 
 type FilterTab = "today" | "upcoming" | "completed" | "all";
 
-export function TaskList({ tasks, userId, todayDate, subjects, timezone }: TaskListProps) {
+function formatDateHeader(dateStr: string, todayDate: string): string {
+  const date = new Date(dateStr + "T00:00:00Z");
+  const today = new Date(todayDate + "T00:00:00Z");
+  const diffDays = Math.round((date.getTime() - today.getTime()) / 86400000);
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays === 2) return "In 2 days";
+  return date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+}
+
+export function TaskList({ tasks, todayDate, subjects, timezone }: TaskListProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("today");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,11 +85,22 @@ export function TaskList({ tasks, userId, todayDate, subjects, timezone }: TaskL
   const completionRate = taskCompletionRate(totalCompletedToday, totalPlannedToday);
 
   const tabs = [
-    { key: "today",     label: "Today",     count: todayTasks.length },
-    { key: "upcoming",  label: "Upcoming",  count: upcomingTasks.length },
-    { key: "completed", label: "Done",      count: completedTasks.length },
-    { key: "all",       label: "All",       count: tasks.length },
+    { key: "today",     label: "Today",    count: todayTasks.length },
+    { key: "upcoming",  label: "Upcoming", count: upcomingTasks.length },
+    { key: "completed", label: "Done",     count: completedTasks.length },
+    { key: "all",       label: "All",      count: tasks.length },
   ] as const;
+
+  const upcomingByDate = useMemo(() => {
+    if (activeTab !== "upcoming") return null;
+    const grouped = new Map<string, TaskItem[]>();
+    for (const t of filteredTasks) {
+      const existing = grouped.get(t.planned_date) ?? [];
+      existing.push(t);
+      grouped.set(t.planned_date, existing);
+    }
+    return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [activeTab, filteredTasks]);
 
   return (
     <div className="space-y-4 overflow-x-hidden">
@@ -140,6 +159,10 @@ export function TaskList({ tasks, userId, todayDate, subjects, timezone }: TaskL
         })}
       </div>
 
+      {activeTab === "completed" && (
+        <p className="text-[10px] text-neutral-700">Showing tasks completed today. Use the &quot;All&quot; tab to see everything.</p>
+      )}
+
       <div className="flex gap-2 overflow-hidden">
         <select
           value={selectedSubject}
@@ -173,10 +196,29 @@ export function TaskList({ tasks, userId, todayDate, subjects, timezone }: TaskL
             {activeTab === "today" ? "Tap + to plan your day" : "Try a different filter"}
           </p>
         </div>
+      ) : activeTab === "upcoming" && upcomingByDate ? (
+        <div className="space-y-4">
+          {upcomingByDate.map(([dateStr, dateTasks]) => (
+            <div key={dateStr}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-600 mb-2">
+                {formatDateHeader(dateStr, todayDate)}
+              </p>
+              <div className="space-y-2">
+                {dateTasks.map((task) => (
+                  <TaskCard key={task.id} task={task} isToday={false} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="space-y-2">
           {filteredTasks.map((task) => (
-            <TaskCard key={task.id} task={task} userId={userId} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              isToday={task.planned_date === todayDate}
+            />
           ))}
         </div>
       )}

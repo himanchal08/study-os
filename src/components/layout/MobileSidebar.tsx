@@ -6,9 +6,10 @@ import { usePathname } from "next/navigation";
 
 interface MobileSidebarProps {
   userEmail: string;
+  pendingTaskCount?: number;
 }
 
-export function MobileSidebar({ userEmail }: MobileSidebarProps) {
+export function MobileSidebar({ userEmail, pendingTaskCount = 0 }: MobileSidebarProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -90,7 +91,7 @@ export function MobileSidebar({ userEmail }: MobileSidebarProps) {
           </button>
         </div>
 
-        <NavLinks />
+        <NavLinks pendingTaskCount={pendingTaskCount} />
 
         <div className="px-3 py-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
           <div

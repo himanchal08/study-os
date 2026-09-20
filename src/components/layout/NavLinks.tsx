@@ -141,7 +141,7 @@ function NavPendingDot() {
   );
 }
 
-export function NavLinks() {
+export function NavLinks({ pendingTaskCount = 0 }: { pendingTaskCount?: number }) {
   const pathname = usePathname();
 
   return (
@@ -171,6 +171,14 @@ export function NavLinks() {
                 {item.icon}
               </span>
               {item.label}
+              {item.href === "/tasks" && pendingTaskCount > 0 && (
+                <span
+                  className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                  style={{ background: "rgba(52,211,153,0.18)", color: "#34d399" }}
+                >
+                  {pendingTaskCount}
+                </span>
+              )}
               <NavPendingDot />
             </Link>
           </li>

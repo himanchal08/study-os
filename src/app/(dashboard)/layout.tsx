@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import type { Tables } from "@/types/database";
 import { GlobalTimer } from "@/features/study-timer/GlobalTimer";
+import { dayBoundaryAwareDate } from "@/lib/calculations";
 
 export default async function DashboardLayout({
   children,
@@ -21,17 +22,22 @@ export default async function DashboardLayout({
 
   const safeUser = user!;
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", safeUser.id)
+    .single();
+
+  const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
+  const timezone  = profile?.timezone ?? "Asia/Kolkata";
+  const todayStr  = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
+
   const [
-    { data: profile },
     { data: activeSession },
     { data: rawSubjects },
     { data: rawTopics },
+    { count: pendingTaskCount },
   ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", safeUser.id)
-      .single(),
     supabase
       .from("study_sessions")
       .select("*")
@@ -51,6 +57,13 @@ export default async function DashboardLayout({
       .is("deleted_at", null)
       .is("archived_at", null)
       .order("name", { ascending: true }),
+    supabase
+      .from("tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", safeUser.id)
+      .eq("planned_date", todayStr)
+      .neq("status", "completed")
+      .is("deleted_at", null),
   ]);
 
   const subjectsSeen = new Set<string>();
@@ -75,13 +88,14 @@ export default async function DashboardLayout({
 
   return (
     <div key={safeUser.id} className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>
-      <Sidebar userEmail={safeUser.email ?? ""} />
+      <Sidebar userEmail={safeUser.email ?? ""} pendingTaskCount={pendingTaskCount ?? 0} />
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <TopBar
           profile={profile as Tables<"profiles"> | null}
           userId={safeUser.id}
           userEmail={safeUser.email ?? ""}
+          pendingTaskCount={pendingTaskCount ?? 0}
         />
         <GlobalTimer
           userId={safeUser.id}

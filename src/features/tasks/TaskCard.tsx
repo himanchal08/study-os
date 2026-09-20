@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { updateTaskStatus, postponeTask, deleteTask, type TaskStatus } from "./actions";
-import { startSession } from "@/features/study-timer/actions";
 import type { Database } from "@/types/database";
 
 export interface TaskItem {
@@ -25,10 +24,10 @@ export interface TaskItem {
 
 interface TaskCardProps {
   task: TaskItem;
-  userId: string;
+  isToday?: boolean;
 }
 
-export function TaskCard({ task, userId }: TaskCardProps) {
+export function TaskCard({ task, isToday = true }: TaskCardProps) {
   const [isPending, startTransition] = useTransition();
   const [showPostponeModal, setShowPostponeModal] = useState(false);
   const [postponeDate, setPostponeDate] = useState(() => {
@@ -40,26 +39,29 @@ export function TaskCard({ task, userId }: TaskCardProps) {
     return `${y}-${m}-${d}`;
   });
   const [postponeReason, setPostponeReason] = useState("");
+  const [prefillFeedback, setPrefillFeedback] = useState(false);
 
   const isCompleted = task.status === "completed";
-  const canStartSession = !!(task.subjects || task.topics);
 
   function handleToggleComplete() {
+    if (!isToday && !isCompleted) return;
     const newStatus: TaskStatus = isCompleted ? "pending" : "completed";
     startTransition(async () => { await updateTaskStatus(task.id, newStatus); });
   }
 
-  function handleStartStudy() {
-    startTransition(async () => {
-      await startSession({
-        userId,
-        taskId: task.id,
-        subjectId: task.subjects?.id,
-        topicId: task.topics?.id,
-        notes: task.title,
-        activityType: "practice",
-      });
-    });
+  function handlePrefillTimer() {
+    window.dispatchEvent(
+      new CustomEvent("timer:prefill", {
+        detail: {
+          subjectId: task.subjects?.id ?? "",
+          topicId: task.topics?.id ?? "",
+          activityType: "practice",
+          notes: task.title,
+        },
+      })
+    );
+    setPrefillFeedback(true);
+    setTimeout(() => setPrefillFeedback(false), 2500);
   }
 
   function handlePostponeSubmit(e: React.FormEvent) {
@@ -74,26 +76,29 @@ export function TaskCard({ task, userId }: TaskCardProps) {
     startTransition(async () => { await deleteTask(task.id); });
   }
 
+  const cardOpacity = !isToday && !isCompleted ? 0.45 : isPending ? 0.6 : 1;
+
   return (
     <div
       className="rounded-xl transition-all overflow-hidden"
       style={{
         background: isCompleted ? "rgba(255,255,255,0.015)" : "rgba(255,255,255,0.035)",
         border: isCompleted ? "1px solid rgba(255,255,255,0.04)" : "1px solid var(--border-subtle)",
-        opacity: isPending ? 0.6 : 1,
+        opacity: cardOpacity,
       }}
     >
       <div className="flex items-start gap-3 p-3.5">
         <button
           type="button"
           onClick={handleToggleComplete}
-          disabled={isPending}
+          disabled={isPending || (!isToday && !isCompleted)}
           aria-label={isCompleted ? "Mark incomplete" : "Mark complete"}
           className="mt-0.5 w-5 h-5 rounded-lg flex items-center justify-center transition-all shrink-0"
           style={{
             background: isCompleted ? "#22c55e" : "rgba(255,255,255,0.06)",
             border: isCompleted ? "1px solid #22c55e" : "1px solid var(--border)",
             color: "#fff",
+            cursor: !isToday && !isCompleted ? "not-allowed" : "pointer",
           }}
         >
           {isCompleted && (
@@ -128,6 +133,11 @@ export function TaskCard({ task, userId }: TaskCardProps) {
                 {task.topics.name}
               </span>
             )}
+            {task.estimated_minutes && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium" style={{ background: "rgba(255,255,255,0.05)", color: "#737373" }}>
+                ~{task.estimated_minutes}m
+              </span>
+            )}
             {task.is_recurring && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium" style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8" }}>
                 🔄 {task.recurrence_pattern}
@@ -144,6 +154,11 @@ export function TaskCard({ task, userId }: TaskCardProps) {
                 ↩ {task.postpone_count}x
               </span>
             )}
+            {prefillFeedback && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium animate-fade-in" style={{ background: "rgba(99,102,241,0.18)", color: "#a5b4fc" }}>
+                ↑ Timer prefilled
+              </span>
+            )}
           </div>
         </div>
 
@@ -151,14 +166,14 @@ export function TaskCard({ task, userId }: TaskCardProps) {
           <div className="hidden sm:flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={handleStartStudy}
-              disabled={isPending || !canStartSession}
-              title={canStartSession ? "Start study session" : "Add a subject or topic to enable"}
-              className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all hover:opacity-90 active:scale-95 flex items-center gap-1 disabled:opacity-40"
+              onClick={handlePrefillTimer}
+              disabled={isPending}
+              title="Prefill timer — set subject & start when ready"
+              className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all hover:opacity-90 active:scale-95 flex items-center gap-1"
               style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.25)" }}
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Start
+              Focus
             </button>
             <button
               type="button"
@@ -206,13 +221,13 @@ export function TaskCard({ task, userId }: TaskCardProps) {
         <div className="flex sm:hidden items-center gap-2 px-3.5 pb-3 border-t border-neutral-900 pt-2.5">
           <button
             type="button"
-            onClick={handleStartStudy}
-            disabled={isPending || !canStartSession}
-            className="flex-1 text-xs py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-40"
+            onClick={handlePrefillTimer}
+            disabled={isPending}
+            className="flex-1 text-xs py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95"
             style={{ background: "rgba(99,102,241,0.18)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Start Session
+            Focus
           </button>
           <button
             type="button"

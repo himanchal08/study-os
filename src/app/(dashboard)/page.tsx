@@ -251,7 +251,7 @@ export default async function HomePage() {
           </h2>
           <div className="space-y-2">
             {todayTasks.map(task => (
-              <TaskCard key={task.id} task={task} userId={user.id} />
+              <TaskCard key={task.id} task={task} />
             ))}
           </div>
         </section>

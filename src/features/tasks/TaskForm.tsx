@@ -8,6 +8,7 @@ interface SubjectOption {
   id: string;
   name: string;
   color: string | null;
+  exam_type?: string | null;
 }
 
 interface TopicOption {
@@ -24,6 +25,9 @@ interface TaskFormProps {
 }
 
 const INITIAL_STATE: TaskActionState = null;
+
+const sel = "w-full px-3 py-2.5 rounded-xl text-sm outline-none appearance-none cursor-pointer";
+const selS = { background: "#111", border: "1px solid #1e1e1e", color: "#ededed" };
 
 export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormProps) {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
@@ -58,17 +62,14 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
           name="subject_id"
           value={selectedSubject}
           onChange={e => setSelectedSubject(e.target.value)}
-          className="select-premium"
+          className={sel}
+          style={selS}
         >
           <option value="">Subject</option>
           <SubjectOptions subjects={subjects} />
         </select>
 
-        <select
-          id="task-topic"
-          name="topic_id"
-          className="select-premium"
-        >
+        <select id="task-topic" name="topic_id" className={sel} style={selS}>
           <option value="">Topic</option>
           {filteredTopics.map(top => (
             <option key={top.id} value={top.id}>{top.name}</option>
@@ -76,16 +77,43 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
         </select>
       </div>
 
-      <input
-        id="task-planned-date"
-        name="planned_date"
-        type="date"
-        required
-        defaultValue={defaultDate}
-        className="input-premium"
-      />
+      <div className="grid grid-cols-2 gap-2">
+        <select id="task-activity-type" name="activity_type" className={sel} style={selS}>
+          <option value="practice">Practice</option>
+          <option value="lecture">Lecture</option>
+          <option value="revision">Revision</option>
+          <option value="mock">Mock Test</option>
+          <option value="reading">Reading</option>
+        </select>
 
-      <input type="hidden" name="recurrence_pattern" value="none" />
+        <select id="task-recurrence" name="recurrence_pattern" className={sel} style={selS}>
+          <option value="none">No repeat</option>
+          <option value="daily">Daily (7 days)</option>
+          <option value="weekdays">Weekdays</option>
+          <option value="weekly">Weekly (4 wks)</option>
+          <option value="monthly">Monthly (3 mo)</option>
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          id="task-planned-date"
+          name="planned_date"
+          type="date"
+          required
+          defaultValue={defaultDate}
+          className="input-premium"
+        />
+        <input
+          id="task-estimated-minutes"
+          name="estimated_minutes"
+          type="number"
+          min="5"
+          max="480"
+          placeholder="Est. min"
+          className="input-premium"
+        />
+      </div>
 
       {state?.error && (
         <p role="alert" className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5" }}>
