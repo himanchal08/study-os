@@ -5,8 +5,9 @@ export async function TaskPlanningAnalytics() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase.from("profiles").select("timezone").eq("user_id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("timezone, daily_questions_cap").eq("user_id", user.id).single();
   const tz = profile?.timezone || "Asia/Kolkata";
+  const dailyQuestionsCap = profile?.daily_questions_cap ?? 250;
   
   const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
   const toUserYYYYMMDD = (d: Date) => {
@@ -23,7 +24,7 @@ export async function TaskPlanningAnalytics() {
 
   const { data: tasks } = await supabase
     .from("tasks")
-    .select("status, planned_date, updated_at, questions_count")
+    .select("status, planned_date, updated_at, questions_count, actual_questions_count")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .not("planned_date", "is", null)
@@ -37,10 +38,12 @@ export async function TaskPlanningAnalytics() {
   const currentCompleted = currentTasks.filter(t => t.status === "completed").length;
   const currentPostponed = currentTasks.filter(t => t.status === "postponed").length;
   const currentTotalQuestions = currentTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
+  const currentTotalActualQuestions = currentTasks.reduce((sum, t) => sum + (t.actual_questions_count || 0), 0);
 
   const currentCompletionRate = currentPlanned > 0 ? (currentCompleted / currentPlanned) * 100 : null;
   const currentPostponementRate = currentPlanned > 0 ? (currentPostponed / currentPlanned) * 100 : null;
   const currentDailyQuestionsAvg = Math.round(currentTotalQuestions / 7);
+  const currentDailyActualQuestionsAvg = Math.round(currentTotalActualQuestions / 7);
 
   
   const pastTasks = validTasks.filter(t => t.planned_date! >= fourteenDaysAgoStr && t.planned_date! < sevenDaysAgoStr);
@@ -93,15 +96,17 @@ export async function TaskPlanningAnalytics() {
 
         <div className="p-4 rounded-xl border flex flex-col justify-between" style={{ background: "#0a0a0a", borderColor: "#1a1a1a" }}>
           <p className="text-xs text-neutral-500 mb-2 uppercase tracking-wider font-semibold">Avg Daily Questions (7d)</p>
-          <div className="flex items-end gap-3">
-            <span className="text-2xl font-bold text-indigo-400 tabular-nums">{currentDailyQuestionsAvg}</span>
-            {pastDailyQuestionsAvg > 0 && (
-              <span className={`text-xs font-medium mb-1 ${questionsDiff <= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                {questionsDiff > 0 ? "+" : ""}{questionsDiff} vs last week
+          <div className="flex items-baseline gap-1.5 mt-2">
+            <span className="text-xl md:text-2xl font-bold text-neutral-100">
+              {currentDailyActualQuestionsAvg} <span className="text-sm font-normal text-neutral-400">/ {currentDailyQuestionsAvg}</span>
+            </span>
+            {questionsDiff !== 0 && (
+              <span className={`text-[10px] font-medium ml-1 px-1.5 py-0.5 rounded-sm ${questionsDiff > 0 ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"}`}>
+                {questionsDiff > 0 ? "↑" : "↓"} {Math.abs(questionsDiff)}
               </span>
             )}
           </div>
-          <p className="text-[10px] text-neutral-600 mt-2">Target: 200-250 qs/day. {currentDailyQuestionsAvg > 250 ? "You might be over-planning!" : currentDailyQuestionsAvg < 200 ? "You can push a bit more." : "Optimal pacing."}</p>
+          <p className="text-[10px] text-neutral-600 mt-2">Target: {dailyQuestionsCap} qs/day. {currentDailyQuestionsAvg > dailyQuestionsCap ? "You might be over-planning!" : currentDailyActualQuestionsAvg < currentDailyQuestionsAvg * 0.8 ? "Falling behind planned questions." : "Optimal pacing."}</p>
         </div>
       </div>
     </div>

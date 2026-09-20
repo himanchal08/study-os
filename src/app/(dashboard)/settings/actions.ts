@@ -16,6 +16,7 @@ export async function updateProfile(prevState: unknown, formData: FormData) {
     const offsetMin = Number(formData.get("day_boundary_offset_minutes"));
     const timezone = formData.get("timezone") as string;
     const fullName = (formData.get("full_name") as string)?.trim() || null;
+    const dailyQuestionsCap = Number(formData.get("daily_questions_cap"));
 
     
     const examTargets: string[] = [];
@@ -34,6 +35,7 @@ export async function updateProfile(prevState: unknown, formData: FormData) {
         daily_target_hours: targetHours,
         daily_goal_minutes: targetHours * 60,
         day_boundary_offset_minutes: isNaN(offsetMin) ? 0 : offsetMin,
+        daily_questions_cap: isNaN(dailyQuestionsCap) ? 250 : dailyQuestionsCap,
         timezone: timezone || "Asia/Kolkata",
         updated_at: new Date().toISOString(),
       })

@@ -15,6 +15,7 @@ type PostLog = {
   activityType: string;
   durationSecs: number;
   todayStr: string;
+  taskId?: string;
 };
 
 interface GlobalTimerProps {
@@ -84,6 +85,9 @@ export function GlobalTimer({
   );
   const [selectedTopic, setSelectedTopic] = useState<string>(
     activeSession?.topic_id ?? "",
+  );
+  const [linkedTaskId, setLinkedTaskId] = useState<string | null>(
+    activeSession?.task_id ?? null,
   );
   const [activityType, setActivityType] = useState<
     Tables<"study_sessions">["activity_type"]
@@ -382,6 +386,7 @@ export function GlobalTimer({
     setSession(activeSession);
     setSelectedSubject(activeSession?.subject_id ?? "");
     setSelectedTopic(activeSession?.topic_id ?? "");
+    setLinkedTaskId(activeSession?.task_id ?? null);
     setActivityType(activeSession?.activity_type ?? "practice");
     setNotes(activeSession?.notes ?? "");
   }, [activeSession]);
@@ -396,18 +401,21 @@ export function GlobalTimer({
         topicId,
         activityType: at,
         notes: n,
+        taskId: tId,
       } = (
         e as CustomEvent<{
           subjectId: string;
           topicId: string;
           activityType: string;
           notes: string;
+          taskId?: string;
         }>
       ).detail;
       if (subjectId) setSelectedSubject(subjectId);
       if (topicId) setSelectedTopic(topicId);
       if (at) setActivityType(at as Tables<"study_sessions">["activity_type"]);
       setNotes(n ?? "");
+      if (tId) setLinkedTaskId(tId);
     };
     window.addEventListener("timer:prefill", handler);
     return () => window.removeEventListener("timer:prefill", handler);
@@ -540,6 +548,7 @@ export function GlobalTimer({
       topicId: selectedTopic || null,
       activityType,
       notes: notes.trim() || null,
+      taskId: linkedTaskId || undefined,
     }).then((result) => {
       if ("error" in result && result.error) {
         setError(result.error);
@@ -627,6 +636,7 @@ export function GlobalTimer({
     setDisplayedSec(0);
     setNotes("");
     setSelectedTopic("");
+    setLinkedTaskId(null);
 
     if (elapsedSecs < 30) return;
 
@@ -642,6 +652,7 @@ export function GlobalTimer({
         activityType: capturedActivityType,
         durationSecs: Math.round(elapsedSecs),
         todayStr: getTodayStr(timezone),
+        taskId: linkedTaskId || undefined,
       };
 
       if (sessionId === "__optimistic__") {
@@ -758,6 +769,7 @@ export function GlobalTimer({
       fd.set("source", postSource.trim());
       if (postLog.subjectId) fd.set("subject_id", postLog.subjectId);
       if (postLog.topicId) fd.set("topic_id", postLog.topicId);
+      if (postLog.taskId) fd.set("task_id", postLog.taskId);
       fd.set("duration_minutes", String(Math.round(postLog.durationSecs / 60)));
       if (postNotes.trim()) fd.set("notes", postNotes.trim());
 

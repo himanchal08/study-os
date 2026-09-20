@@ -18,6 +18,8 @@ export interface TaskItem {
   postpone_count: number;
   is_recurring: boolean;
   recurrence_pattern: string | null;
+  questions_count?: number | null;
+  actual_questions_count?: number | null;
   subjects?: { id: string; name: string; color: string | null } | null;
   topics?: { id: string; name: string } | null;
 }
@@ -57,6 +59,8 @@ export function TaskCard({ task, isToday = true }: TaskCardProps) {
           topicId: task.topics?.id ?? "",
           activityType: "practice",
           notes: task.title,
+          taskId: task.id,
+          plannedQuestions: task.questions_count ?? null,
         },
       })
     );

@@ -41,7 +41,7 @@ export default async function HomePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("daily_target_hours, daily_goal_minutes, day_boundary_offset_minutes, timezone")
+    .select("daily_target_hours, daily_goal_minutes, day_boundary_offset_minutes, timezone, daily_questions_cap")
     .eq("user_id", user.id)
     .single();
 
@@ -144,16 +144,22 @@ export default async function HomePage() {
     knownDates,
   });
 
+  const todayPlannedQs = todayTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
+  const todayActualQs = todayTasks.reduce((sum, t) => sum + ((t as any).actual_questions_count || 0), 0);
+  const qsCap = profile?.daily_questions_cap ?? 250;
+  const qsPct = todayPlannedQs > 0 ? Math.min(100, (todayActualQs / todayPlannedQs) * 100) : 0;
+
   return (
     <div className="space-y-6 animate-fade-in pb-12">
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           { label: "Today", value: formatHours(todaySecs), sub: `of ${targetLabel}`, pct: targetPct },
+          { label: "Questions", value: `${todayActualQs} / ${todayPlannedQs}`, sub: todayPlannedQs > qsCap ? `Over Cap (${qsCap})` : `Cap: ${qsCap}`, pct: qsPct, isWarning: todayPlannedQs > qsCap },
           { label: "This Week", value: formatHours(weekSecs), sub: null, pct: null },
           { label: "This Month", value: formatHours(monthSecs), sub: null, pct: null },
           { label: "Streak", value: `${currentStreak} day${currentStreak !== 1 ? 's' : ''}`, sub: null, pct: null, isStreak: true },
-        ].map(({ label, value, sub, pct, isStreak }) => (
+        ].map(({ label, value, sub, pct, isStreak, isWarning }) => (
           <div
             key={label}
             className="rounded-xl p-4 flex flex-col gap-1 relative overflow-hidden"
@@ -163,12 +169,12 @@ export default async function HomePage() {
               <div className="absolute -right-2 -top-2 text-5xl opacity-10 blur-sm pointer-events-none">🔥</div>
             )}
             <p className="text-[10px] uppercase tracking-wider text-neutral-600">{label}</p>
-            <p className="text-lg md:text-xl font-bold tabular-nums text-neutral-100 flex items-center gap-2">
+            <p className={`text-lg md:text-xl font-bold tabular-nums flex items-center gap-2 ${isWarning ? 'text-orange-500' : 'text-neutral-100'}`}>
               {value || "0m"}
               {isStreak && currentStreak > 2 && <span className="text-orange-500 text-sm">🔥</span>}
             </p>
 
-            {sub && <p className="text-[10px] text-neutral-600">{sub}</p>}
+            {sub && <p className={`text-[10px] ${isWarning ? 'text-orange-500/70 font-semibold' : 'text-neutral-600'}`}>{sub}</p>}
             {pct !== null && (
               <div className="w-full h-1 rounded-full mt-1" style={{ background: "#1a1a1a" }}>
                 <div

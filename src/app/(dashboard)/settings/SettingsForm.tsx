@@ -10,6 +10,7 @@ interface SettingsFormProps {
     daily_target_hours: number;
     day_boundary_offset_minutes: number;
     timezone: string;
+    daily_questions_cap: number;
   };
 }
 
@@ -120,6 +121,25 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
           />
           <p className={FIELD.hint}>
             The Home &amp; Analytics progress bars track you against this number every day.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="daily_questions_cap" className={FIELD.label}>
+            Daily Questions Cap
+          </label>
+          <input
+            id="daily_questions_cap"
+            name="daily_questions_cap"
+            type="number"
+            min="10"
+            max="1000"
+            defaultValue={initialProfile.daily_questions_cap ?? 250}
+            className={FIELD.input}
+            required
+          />
+          <p className={FIELD.hint}>
+            Used to warn you if you are over-planning your days in Task Analytics.
           </p>
         </div>
 

@@ -21,6 +21,7 @@ interface TaskFormProps {
   subjects: SubjectOption[];
   topics: TopicOption[];
   defaultDate: string;
+  dailyQuestionsCap?: number;
   onSuccess?: () => void;
 }
 
@@ -29,7 +30,7 @@ const INITIAL_STATE: TaskActionState = null;
 const sel = "w-full px-3 py-2.5 rounded-xl text-sm outline-none appearance-none cursor-pointer";
 const selS = { background: "#111", border: "1px solid #1e1e1e", color: "#ededed" };
 
-export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormProps) {
+export function TaskForm({ subjects, topics, defaultDate, dailyQuestionsCap = 250, onSuccess }: TaskFormProps) {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [activityType, setActivityType] = useState<string>("practice");
   const [state, formAction, pending] = useActionState(createTask, INITIAL_STATE);
@@ -135,7 +136,7 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
             className="input-premium"
           />
           <p className="text-[10px] text-neutral-500 pl-1">
-            *Toppers usually attempt 200-250 questions per day.
+            *Your daily target is {dailyQuestionsCap} questions.
           </p>
         </div>
       )}

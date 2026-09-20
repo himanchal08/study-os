@@ -18,6 +18,7 @@ export async function logQuestionBatch(prevState: unknown, formData: FormData) {
     const source = (formData.get("source") as string)?.trim() || null;
     const durationMinutes = formData.get("duration_minutes") ? Number(formData.get("duration_minutes")) : null;
     const notes = (formData.get("notes") as string)?.trim() || null;
+    const taskId = (formData.get("task_id") as string) || null;
 
     if (isNaN(attempted) || attempted <= 0) return { error: "Attempted must be > 0" };
     if (correct + wrong + skipped > attempted) return { error: "Correct + wrong + skipped cannot exceed attempted" };
@@ -37,6 +38,22 @@ export async function logQuestionBatch(prevState: unknown, formData: FormData) {
     });
 
     if (error) return { error: error.message };
+
+    if (taskId) {
+      const { data: currentTask } = await supabase
+        .from("tasks")
+        .select("actual_questions_count")
+        .eq("id", taskId)
+        .eq("user_id", user.id)
+        .single();
+      
+      const newActual = (currentTask?.actual_questions_count || 0) + attempted;
+      await supabase
+        .from("tasks")
+        .update({ actual_questions_count: newActual })
+        .eq("id", taskId)
+        .eq("user_id", user.id);
+    }
 
     revalidatePath("/questions");
     revalidatePath("/");

@@ -543,6 +543,7 @@ export type Database = {
         Row: {
           created_at: string
           daily_goal_minutes: number | null
+          daily_questions_cap: number
           daily_target_hours: number
           day_boundary_offset_minutes: number
           exam_targets: string[] | null
@@ -559,6 +560,7 @@ export type Database = {
         Insert: {
           created_at?: string
           daily_goal_minutes?: number | null
+          daily_questions_cap?: number
           daily_target_hours?: number
           day_boundary_offset_minutes?: number
           exam_targets?: string[] | null
@@ -575,6 +577,7 @@ export type Database = {
         Update: {
           created_at?: string
           daily_goal_minutes?: number | null
+          daily_questions_cap?: number
           daily_target_hours?: number
           day_boundary_offset_minutes?: number
           exam_targets?: string[] | null
@@ -1082,6 +1085,7 @@ export type Database = {
           parent_task_id: string | null
           planned_date: string
           postpone_count: number
+          actual_questions_count: number | null
           questions_count: number | null
           recurrence_pattern: string | null
           source_client: Database["public"]["Enums"]["source_client_enum"]
@@ -1108,6 +1112,7 @@ export type Database = {
           parent_task_id?: string | null
           planned_date: string
           postpone_count?: number
+          actual_questions_count?: number | null
           questions_count?: number | null
           recurrence_pattern?: string | null
           source_client?: Database["public"]["Enums"]["source_client_enum"]
@@ -1134,6 +1139,7 @@ export type Database = {
           parent_task_id?: string | null
           planned_date?: string
           postpone_count?: number
+          actual_questions_count?: number | null
           questions_count?: number | null
           recurrence_pattern?: string | null
           source_client?: Database["public"]["Enums"]["source_client_enum"]

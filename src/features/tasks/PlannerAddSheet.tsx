@@ -7,6 +7,7 @@ interface PlannerAddSheetProps {
   subjects: Array<{ id: string; name: string; color: string | null }>;
   topics: Array<{ id: string; name: string; subject_id: string }>;
   defaultDate: string;
+  dailyQuestionsCap: number;
   desktopOnly?: boolean;
   mobileOnly?: boolean;
 }
@@ -15,6 +16,7 @@ export function PlannerAddSheet({
   subjects,
   topics,
   defaultDate,
+  dailyQuestionsCap,
   desktopOnly = false,
   mobileOnly = false,
 }: PlannerAddSheetProps) {
@@ -26,6 +28,7 @@ export function PlannerAddSheet({
         subjects={subjects}
         topics={topics}
         defaultDate={defaultDate}
+        dailyQuestionsCap={dailyQuestionsCap}
         onSuccess={() => {}}
       />
     );
@@ -71,6 +74,7 @@ export function PlannerAddSheet({
             subjects={subjects}
             topics={topics}
             defaultDate={defaultDate}
+            dailyQuestionsCap={dailyQuestionsCap}
             onSuccess={() => setOpen(false)}
           />
         </div>

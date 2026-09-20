@@ -17,7 +17,7 @@ export default async function SettingsPage(props: { searchParams: Promise<{ [key
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, exam_targets, daily_target_hours, day_boundary_offset_minutes, timezone, google_refresh_token, google_last_synced_at, tutorial_completed')
+    .select('full_name, exam_targets, daily_target_hours, day_boundary_offset_minutes, timezone, google_refresh_token, google_last_synced_at, tutorial_completed, daily_questions_cap')
     .eq('user_id', user.id)
     .single();
 
@@ -48,6 +48,7 @@ export default async function SettingsPage(props: { searchParams: Promise<{ [key
           daily_target_hours: profile?.daily_target_hours ?? 8,
           day_boundary_offset_minutes: profile?.day_boundary_offset_minutes ?? 0,
           timezone: profile?.timezone ?? 'Asia/Kolkata',
+          daily_questions_cap: profile?.daily_questions_cap ?? 250,
         }}
       />
 

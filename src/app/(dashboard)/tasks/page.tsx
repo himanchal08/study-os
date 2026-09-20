@@ -17,12 +17,13 @@ export default async function TasksPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("day_boundary_offset_minutes, timezone")
+    .select("day_boundary_offset_minutes, timezone, daily_questions_cap")
     .eq("user_id", user.id)
     .single();
 
   const timezone = profile?.timezone ?? "Asia/Kolkata";
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
+  const dailyQuestionsCap = profile?.daily_questions_cap ?? 250;
   const todayDate = dayBoundaryAwareDate(new Date().getTime(), offsetMin, timezone);
 
   const { data: rawSubjects } = await supabase
@@ -87,6 +88,7 @@ export default async function TasksPage() {
               subjects={subjects ?? []}
               topics={topics ?? []}
               defaultDate={todayDate}
+              dailyQuestionsCap={dailyQuestionsCap}
               desktopOnly
             />
           </div>
@@ -97,6 +99,7 @@ export default async function TasksPage() {
         subjects={subjects ?? []}
         topics={topics ?? []}
         defaultDate={todayDate}
+        dailyQuestionsCap={dailyQuestionsCap}
         mobileOnly
       />
     </div>
