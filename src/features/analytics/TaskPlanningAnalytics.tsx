@@ -23,7 +23,7 @@ export async function TaskPlanningAnalytics() {
 
   const { data: tasks } = await supabase
     .from("tasks")
-    .select("status, planned_date, updated_at")
+    .select("status, planned_date, updated_at, questions_count")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .not("planned_date", "is", null)
@@ -36,21 +36,26 @@ export async function TaskPlanningAnalytics() {
   const currentPlanned = currentTasks.length;
   const currentCompleted = currentTasks.filter(t => t.status === "completed").length;
   const currentPostponed = currentTasks.filter(t => t.status === "postponed").length;
+  const currentTotalQuestions = currentTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
 
   const currentCompletionRate = currentPlanned > 0 ? (currentCompleted / currentPlanned) * 100 : null;
   const currentPostponementRate = currentPlanned > 0 ? (currentPostponed / currentPlanned) * 100 : null;
+  const currentDailyQuestionsAvg = Math.round(currentTotalQuestions / 7);
 
   
   const pastTasks = validTasks.filter(t => t.planned_date! >= fourteenDaysAgoStr && t.planned_date! < sevenDaysAgoStr);
   const pastPlanned = pastTasks.length;
   const pastCompleted = pastTasks.filter(t => t.status === "completed").length;
   const pastPostponed = pastTasks.filter(t => t.status === "postponed").length;
+  const pastTotalQuestions = pastTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
 
   const pastCompletionRate = pastPlanned > 0 ? (pastCompleted / pastPlanned) * 100 : null;
   const pastPostponementRate = pastPlanned > 0 ? (pastPostponed / pastPlanned) * 100 : null;
+  const pastDailyQuestionsAvg = Math.round(pastTotalQuestions / 7);
 
   const compDiff = currentCompletionRate !== null && pastCompletionRate !== null ? currentCompletionRate - pastCompletionRate : 0;
   const postDiff = currentPostponementRate !== null && pastPostponementRate !== null ? currentPostponementRate - pastPostponementRate : 0;
+  const questionsDiff = currentDailyQuestionsAvg - pastDailyQuestionsAvg;
 
   return (
     <div className="glass rounded-2xl p-5 mt-6">
@@ -59,7 +64,7 @@ export async function TaskPlanningAnalytics() {
         <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>Are you over-planning your days?</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl border flex flex-col justify-between" style={{ background: "#0a0a0a", borderColor: "#1a1a1a" }}>
           <p className="text-xs text-neutral-500 mb-2 uppercase tracking-wider font-semibold">Completion Rate (7d)</p>
           <div className="flex items-end gap-3">
@@ -84,6 +89,19 @@ export async function TaskPlanningAnalytics() {
             )}
           </div>
           <p className="text-[10px] text-neutral-600 mt-2">Target: &lt;10%. High postponement means you are packing too much into a single day.</p>
+        </div>
+
+        <div className="p-4 rounded-xl border flex flex-col justify-between" style={{ background: "#0a0a0a", borderColor: "#1a1a1a" }}>
+          <p className="text-xs text-neutral-500 mb-2 uppercase tracking-wider font-semibold">Avg Daily Questions (7d)</p>
+          <div className="flex items-end gap-3">
+            <span className="text-2xl font-bold text-indigo-400 tabular-nums">{currentDailyQuestionsAvg}</span>
+            {pastDailyQuestionsAvg > 0 && (
+              <span className={`text-xs font-medium mb-1 ${questionsDiff <= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                {questionsDiff > 0 ? "+" : ""}{questionsDiff} vs last week
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-neutral-600 mt-2">Target: 200-250 qs/day. {currentDailyQuestionsAvg > 250 ? "You might be over-planning!" : currentDailyQuestionsAvg < 200 ? "You can push a bit more." : "Optimal pacing."}</p>
         </div>
       </div>
     </div>

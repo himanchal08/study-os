@@ -33,6 +33,9 @@ export async function createTask(
   const dueDate = (formData.get("due_date") as string) || null;
   const estimatedMinutesStr = formData.get("estimated_minutes") as string;
   const recurrencePattern = (formData.get("recurrence_pattern") as string) || "none";
+  const activityType = (formData.get("activity_type") as string) || "practice";
+  const questionsCountStr = formData.get("questions_count") as string;
+  const questionsCount = questionsCountStr ? parseInt(questionsCountStr, 10) : null;
 
   if (!title) {
     return { error: "Task title is required." };
@@ -103,7 +106,29 @@ export async function createTask(
     parent_task_id: idx === 0 ? null : parentTaskId,
     client_generated_id: randomUUID(),
     source_client: "web" as const,
+    questions_count: activityType === "lecture" ? null : questionsCount,
   }));
+
+  if (activityType === "lecture") {
+    datesToInsert.forEach(date => {
+      rows.push({
+        id: randomUUID(),
+        user_id: user.id,
+        title: `[DPP] ${title}`,
+        subject_id: subjectId,
+        topic_id: topicId,
+        planned_date: date,
+        due_date: null,
+        estimated_minutes: estimatedMinutes,
+        is_recurring: isRecurring,
+        recurrence_pattern: isRecurring ? recurrencePattern : null,
+        parent_task_id: null,
+        client_generated_id: randomUUID(),
+        source_client: "web" as const,
+        questions_count: null,
+      });
+    });
+  }
 
   const { data: inserted, error } = await supabase
     .from("tasks")

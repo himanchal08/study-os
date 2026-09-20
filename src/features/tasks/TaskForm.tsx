@@ -31,6 +31,7 @@ const selS = { background: "#111", border: "1px solid #1e1e1e", color: "#ededed"
 
 export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormProps) {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [activityType, setActivityType] = useState<string>("practice");
   const [state, formAction, pending] = useActionState(createTask, INITIAL_STATE);
 
   const filteredTopics = (selectedSubject
@@ -51,7 +52,7 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
         name="title"
         type="text"
         required
-        placeholder="e.g. Percentage Level 2 (50 Qs)"
+        placeholder="e.g. Percentage Level 2"
         className="input-premium"
         autoComplete="off"
       />
@@ -78,7 +79,14 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <select id="task-activity-type" name="activity_type" className={sel} style={selS}>
+        <select 
+          id="task-activity-type" 
+          name="activity_type" 
+          className={sel} 
+          style={selS}
+          value={activityType}
+          onChange={(e) => setActivityType(e.target.value)}
+        >
           <option value="practice">Practice</option>
           <option value="lecture">Lecture</option>
           <option value="revision">Revision</option>
@@ -114,6 +122,23 @@ export function TaskForm({ subjects, topics, defaultDate, onSuccess }: TaskFormP
           className="input-premium"
         />
       </div>
+
+      {activityType !== "lecture" && (
+        <div className="space-y-1">
+          <input
+            id="task-questions-count"
+            name="questions_count"
+            type="number"
+            min="1"
+            max="500"
+            placeholder="No. of questions (optional)"
+            className="input-premium"
+          />
+          <p className="text-[10px] text-neutral-500 pl-1">
+            *Toppers usually attempt 200-250 questions per day.
+          </p>
+        </div>
+      )}
 
       {state?.error && (
         <p role="alert" className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5" }}>
