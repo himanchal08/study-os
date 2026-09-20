@@ -83,18 +83,18 @@ export default async function TasksPage() {
         </div>
 
         <div className="hidden lg:block">
-          <div className="rounded-xl p-5 sticky top-6" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">+ Plan New Task</p>
-            <PlannerAddSheet
-              subjects={subjects ?? []}
-              topics={topics ?? []}
-              defaultDate={todayDate}
-              dailyQuestionsCap={dailyQuestionsCap}
-              desktopOnly
-            />
-          </div>
+          <div className="sticky top-6 space-y-6">
+            <div className="rounded-xl p-5" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">+ Plan New Task</p>
+              <PlannerAddSheet
+                subjects={subjects ?? []}
+                topics={topics ?? []}
+                defaultDate={todayDate}
+                dailyQuestionsCap={dailyQuestionsCap}
+                desktopOnly
+              />
+            </div>
 
-          <div className="mt-6">
             <GoogleCalendarPanel
               isConnected={!!profile?.google_refresh_token}
               lastSyncedAt={profile?.google_last_synced_at ?? null}

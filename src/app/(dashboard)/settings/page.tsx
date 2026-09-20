@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { SettingsForm } from './SettingsForm';
+import { GoogleCalendarPanel } from './GoogleCalendarPanel';
 
 export const metadata: Metadata = { title: 'Settings' };
 
@@ -50,6 +51,14 @@ export default async function SettingsPage(props: { searchParams: Promise<{ [key
           daily_questions_cap: profile?.daily_questions_cap ?? 250,
         }}
       />
+      
+      <div className="mt-8">
+        <GoogleCalendarPanel
+          isConnected={!!profile?.google_refresh_token}
+          lastSyncedAt={profile?.google_last_synced_at ?? null}
+          mode="settings"
+        />
+      </div>
     </div>
   );
 }

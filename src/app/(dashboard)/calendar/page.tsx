@@ -50,14 +50,6 @@ export default async function CalendarPage() {
         <div className="flex items-center gap-4 text-[10px] text-neutral-600">
           <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm" style={{ background: "#262626" }} /> Task</span>
           <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm border-l-2 border-[#818cf8]" style={{ background: "rgba(129,140,248,0.1)" }} /> Session</span>
-          
-          <div className="ml-2 w-55">
-            <GoogleCalendarPanel
-              isConnected={!!profile?.google_refresh_token}
-              lastSyncedAt={profile?.google_last_synced_at ?? null}
-              mode="sessions"
-            />
-          </div>
         </div>
       </div>
 
