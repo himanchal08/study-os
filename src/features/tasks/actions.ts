@@ -36,6 +36,14 @@ export async function createTask(
   const activityType = (formData.get("activity_type") as string) || "practice";
   const questionsCountStr = formData.get("questions_count") as string;
   const questionsCount = questionsCountStr ? parseInt(questionsCountStr, 10) : null;
+  
+  const checklistStr = formData.get("checklist") as string;
+  let checklist = null;
+  if (checklistStr) {
+    try {
+      checklist = JSON.parse(checklistStr);
+    } catch {}
+  }
 
   if (!title) {
     return { error: "Task title is required." };
@@ -107,6 +115,7 @@ export async function createTask(
     client_generated_id: randomUUID(),
     source_client: "web" as const,
     questions_count: activityType === "lecture" ? null : questionsCount,
+    checklist,
   }));
 
   if (activityType === "lecture") {
@@ -126,6 +135,7 @@ export async function createTask(
         client_generated_id: randomUUID(),
         source_client: "web" as const,
         questions_count: null,
+        checklist: null,
       });
     });
   }
@@ -282,5 +292,121 @@ export async function deleteTask(taskId: string) {
 
   revalidatePath("/tasks");
   revalidatePath("/");
+  return { success: true };
+}
+
+export async function cleanupDuplicates() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  // Find duplicates manually
+  const { data: allTasks } = await supabase
+    .from("tasks")
+    .select("id, title, subject_id, topic_id, planned_date, created_at")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+    
+  if (!allTasks) return { success: true };
+
+  const seen = new Set<string>();
+  const toDelete = [];
+
+  for (const t of allTasks) {
+    const key = `${t.title}|${t.subject_id}|${t.topic_id}|${t.planned_date}`;
+    if (seen.has(key)) {
+      toDelete.push(t.id);
+    } else {
+      seen.add(key);
+    }
+  }
+
+  if (toDelete.length > 0) {
+    await supabase
+      .from("tasks")
+      .update({ deleted_at: new Date().toISOString() })
+      .in("id", toDelete)
+      .eq("user_id", user.id);
+  }
+
+  return { success: true };
+}
+
+export async function handleOverdueTasks(action: "rollover" | "delete" | "dismiss", todayStr: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  // First, get overdue tasks
+  const { data: overdue } = await supabase
+    .from("tasks")
+    .select("id, title, subject_id, topic_id")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .neq("status", "completed")
+    .lt("planned_date", todayStr);
+
+  if (!overdue || overdue.length === 0) return { success: true };
+
+  if (action === "delete") {
+    await supabase
+      .from("tasks")
+      .update({ deleted_at: new Date().toISOString() })
+      .in("id", overdue.map(t => t.id))
+      .eq("user_id", user.id);
+  } else if (action === "dismiss") {
+    await supabase
+      .from("tasks")
+      .update({ status: "cancelled" })
+      .in("id", overdue.map(t => t.id))
+      .eq("user_id", user.id);
+  } else if (action === "rollover") {
+    // We need to check if there's already an identical task today to avoid conflicts.
+    const { data: todayTasks } = await supabase
+      .from("tasks")
+      .select("title, subject_id, topic_id")
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .eq("planned_date", todayStr);
+
+    const todaySet = new Set((todayTasks || []).map(t => `${t.title}|${t.subject_id}|${t.topic_id}`));
+    const toRollover = [];
+    const toDelete = [];
+
+    for (const t of overdue) {
+      if (todaySet.has(`${t.title}|${t.subject_id}|${t.topic_id}`)) {
+        toDelete.push(t.id);
+      } else {
+        toRollover.push(t.id);
+      }
+    }
+
+    if (toDelete.length > 0) {
+      await supabase.from("tasks").update({ deleted_at: new Date().toISOString() }).in("id", toDelete);
+    }
+    if (toRollover.length > 0) {
+      await supabase.from("tasks").update({ planned_date: todayStr }).in("id", toRollover);
+    }
+  }
+
+  revalidatePath("/tasks");
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function updateTaskChecklist(taskId: string, checklist: { id: string; title: string; completed: boolean }[] | null) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("tasks")
+    .update({ checklist })
+    .eq("id", taskId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/tasks");
   return { success: true };
 }

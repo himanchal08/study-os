@@ -4,6 +4,8 @@ import { dayBoundaryAwareDate, buildHeatmapData, computeStreaks } from "@/lib/ca
 import { WeeklyTimesheet } from "@/features/study-timer/WeeklyTimesheet";
 import { HeatmapGrid } from "@/features/analytics/HeatmapGrid";
 import { TaskCard, type TaskItem } from "@/features/tasks/TaskCard";
+import { OverdueManager } from "@/features/tasks/OverdueManager";
+import { DeduplicationRunner } from "@/features/tasks/DeduplicationRunner";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -68,6 +70,7 @@ export default async function HomePage() {
     { data: revisionsDue },
     { data: todayTasksRaw },
     { data: heatSessionsRaw },
+    { count: overdueCountRaw },
   ] = await Promise.all([
     supabase
       .from("study_sessions")
@@ -108,6 +111,13 @@ export default async function HomePage() {
       .eq("user_id", user.id)
       .gte("start_timestamp", heatStartDate.toISOString())
       .is("deleted_at", null),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact" })
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .neq("status", "completed")
+      .lt("planned_date", todayStr),
   ]);
 
   const todaySecs = calcTotalSecs(todaySessionsRaw ?? []);
@@ -118,6 +128,7 @@ export default async function HomePage() {
   const targetPct = Math.min(100, (todaySecs / 60 / targetMinutes) * 100);
   const targetLabel = `${Math.round(targetMinutes / 60)}h target`;
 
+  const overdueCount = overdueCountRaw ?? 0;
   const revisionsCount = revisionsDue?.length ?? 0;
   const todayTasks = (todayTasksRaw ?? []) as unknown as TaskItem[];
 
@@ -145,12 +156,14 @@ export default async function HomePage() {
   });
 
   const todayPlannedQs = todayTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
-  const todayActualQs = todayTasks.reduce((sum, t) => sum + ((t as any).actual_questions_count || 0), 0);
+  const todayActualQs = todayTasks.reduce((sum, t) => sum + (t.actual_questions_count || 0), 0);
   const qsCap = profile?.daily_questions_cap ?? 250;
   const qsPct = todayPlannedQs > 0 ? Math.min(100, (todayActualQs / todayPlannedQs) * 100) : 0;
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
+      <DeduplicationRunner />
+      <OverdueManager overdueCount={overdueCount} todayStr={todayStr} />
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[

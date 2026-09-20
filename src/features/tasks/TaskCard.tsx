@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateTaskStatus, postponeTask, deleteTask, type TaskStatus } from "./actions";
+import { updateTaskStatus, postponeTask, deleteTask, updateTaskChecklist, type TaskStatus } from "./actions";
 import type { Database } from "@/types/database";
 
 export interface TaskItem {
@@ -20,6 +20,7 @@ export interface TaskItem {
   recurrence_pattern: string | null;
   questions_count?: number | null;
   actual_questions_count?: number | null;
+  checklist?: { id: string; title: string; completed: boolean }[] | null;
   subjects?: { id: string; name: string; color: string | null } | null;
   topics?: { id: string; name: string } | null;
 }
@@ -78,6 +79,17 @@ export function TaskCard({ task, isToday = true }: TaskCardProps) {
 
   function handleDelete() {
     startTransition(async () => { await deleteTask(task.id); });
+  }
+
+  function handleToggleChecklistItem(itemId: string) {
+    if (!task.checklist) return;
+    const newChecklist = task.checklist.map(item => 
+      item.id === itemId ? { ...item, completed: !item.completed } : item
+    );
+    // Optimistic update locally could be done, but server action handles it
+    startTransition(async () => {
+      await updateTaskChecklist(task.id, newChecklist);
+    });
   }
 
   const cardOpacity = !isToday && !isCompleted ? 0.45 : isPending ? 0.6 : 1;
@@ -145,6 +157,11 @@ export function TaskCard({ task, isToday = true }: TaskCardProps) {
             {task.is_recurring && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium" style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8" }}>
                 🔄 {task.recurrence_pattern}
+              </span>
+            )}
+            {task.questions_count != null && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md font-medium" style={{ background: "rgba(52,211,153,0.12)", color: "#34d399" }}>
+                {task.actual_questions_count != null ? `${task.actual_questions_count} / ` : ""}{task.questions_count} Qs
               </span>
             )}
             {task.postpone_count > 0 && (
@@ -263,6 +280,29 @@ export function TaskCard({ task, isToday = true }: TaskCardProps) {
           <p className="text-xs px-2.5 py-1.5 rounded-lg italic" style={{ background: "rgba(245,158,11,0.08)", color: "#fbbf24", border: "1px solid rgba(245,158,11,0.2)" }}>
             Note: {task.failure_reason}
           </p>
+        </div>
+      )}
+
+      {task.checklist && task.checklist.length > 0 && !isCompleted && (
+        <div className="px-3.5 pb-3 space-y-1">
+          {task.checklist.map(item => (
+            <label 
+              key={item.id} 
+              className="flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors"
+              style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              <input 
+                type="checkbox" 
+                checked={item.completed} 
+                onChange={() => handleToggleChecklistItem(item.id)}
+                disabled={isPending}
+                className="mt-0.5 shrink-0 accent-indigo-500"
+              />
+              <span className="text-xs text-neutral-300" style={{ textDecoration: item.completed ? "line-through" : "none", opacity: item.completed ? 0.5 : 1 }}>
+                {item.title}
+              </span>
+            </label>
+          ))}
         </div>
       )}
 

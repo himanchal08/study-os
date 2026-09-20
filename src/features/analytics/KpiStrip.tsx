@@ -53,6 +53,14 @@ const kpiConfig = [
     glowColor: "rgba(168,85,247,0.12)",
     borderColor: "rgba(168,85,247,0.18)",
   },
+  {
+    id: "kpi-pomodoro",
+    label: "Pomodoros",
+    icon: "🍅",
+    accentColor: "#f43f5e",
+    glowColor: "rgba(244,63,94,0.12)",
+    borderColor: "rgba(244,63,94,0.18)",
+  },
 ];
 
 export async function KpiStrip({
@@ -66,7 +74,7 @@ export async function KpiStrip({
 
   const { data: sessions } = await supabase
     .from("study_sessions")
-    .select("start_timestamp, end_timestamp, pause_duration_seconds")
+    .select("start_timestamp, end_timestamp, pause_duration_seconds, pomodoro_breaks_count, pomodoro_breaks_time_seconds")
     .eq("user_id", userId)
     .gte("start_timestamp", `${todayStr}T00:00:00`)
     .is("deleted_at", null);
@@ -81,6 +89,9 @@ export async function KpiStrip({
   }, 0);
   
   const totalStudySeconds = totalHours * 3600;
+
+  const totalPomodoroBreaks = (sessions ?? []).reduce((sum, s) => sum + (s.pomodoro_breaks_count || 0), 0);
+  const totalPomodoroBreakTime = (sessions ?? []).reduce((sum, s) => sum + (s.pomodoro_breaks_time_seconds || 0), 0);
 
   const { data: distractions } = await supabase
     .from("browser_events")
@@ -180,10 +191,16 @@ export async function KpiStrip({
         : (phonePickups > 0 ? `${phonePickups} phone pickups` : "100% focused"),
       progress: focusScore,
     },
+    {
+      ...kpiConfig[5],
+      value: totalPomodoroBreaks.toString(),
+      sub: totalPomodoroBreakTime > 0 ? `${Math.round(totalPomodoroBreakTime / 60)}m total break time` : "No breaks yet",
+      progress: totalPomodoroBreaks > 0 ? 100 : 0,
+    }
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4" role="list" aria-label="Today's KPIs">
+    <div className="grid grid-cols-2 lg:grid-cols-6 gap-4" role="list" aria-label="Today's KPIs">
       {kpis.map((kpi) => (
         <div
           key={kpi.id}

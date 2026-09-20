@@ -5,6 +5,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import type { Tables } from "@/types/database";
 import { GlobalTimer } from "@/features/study-timer/GlobalTimer";
 import { dayBoundaryAwareDate } from "@/lib/calculations";
+import { CommandPalette } from "@/components/ui/CommandPalette";
 
 export default async function DashboardLayout({
   children,
@@ -30,6 +31,7 @@ export default async function DashboardLayout({
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
+  // eslint-disable-next-line react-hooks/purity
   const todayStr  = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
 
   const [
@@ -114,6 +116,7 @@ export default async function DashboardLayout({
           </div>
         </main>
       </div>
+      <CommandPalette />
     </div>
   );
 }

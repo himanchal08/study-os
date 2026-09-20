@@ -79,9 +79,11 @@ export async function stopSession(params: {
   pauseDurationSeconds?: number;
   notes?: string;
   endTimestamp?: string; // client-captured ISO string — prevents server-latency drift
+  pomodoroBreaksCount?: number;
+  pomodoroBreaksTimeSeconds?: number;
 }) {
   const supabase = await createClient();
-  const { sessionId, userId, pauseDurationSeconds = 0, notes, endTimestamp } = params;
+  const { sessionId, userId, pauseDurationSeconds = 0, notes, endTimestamp, pomodoroBreaksCount = 0, pomodoroBreaksTimeSeconds = 0 } = params;
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || user.id !== userId) {
@@ -101,9 +103,11 @@ export async function stopSession(params: {
     resolvedEnd = new Date().toISOString();
   }
 
-  const updateData: { end_timestamp: string; pause_duration_seconds: number; notes?: string } = {
+  const updateData: { end_timestamp: string; pause_duration_seconds: number; notes?: string; pomodoro_breaks_count?: number; pomodoro_breaks_time_seconds?: number } = {
     end_timestamp: resolvedEnd,
     pause_duration_seconds: pauseDurationSeconds,
+    pomodoro_breaks_count: pomodoroBreaksCount,
+    pomodoro_breaks_time_seconds: pomodoroBreaksTimeSeconds,
   };
   if (notes !== undefined) {
     updateData.notes = notes;

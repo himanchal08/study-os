@@ -64,6 +64,18 @@ export function RevisionCard({
     });
   };
 
+  const handlePrefillTimer = () => {
+    window.dispatchEvent(
+      new CustomEvent("timer:prefill", {
+        detail: {
+          activityType: "revision",
+          notes: topicName,
+          revisionId: id,
+        },
+      })
+    );
+  };
+
   if (completedAt) {
     return (
       <div
@@ -120,9 +132,19 @@ export function RevisionCard({
             <button
               type="button"
               disabled={isPending}
+              onClick={handlePrefillTimer}
+              title="Prefill timer for this revision"
+              className="opacity-0 group-hover:opacity-100 transition-all text-xs w-6 h-6 flex items-center justify-center rounded bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+
+            <button
+              type="button"
+              disabled={isPending}
               onClick={handleDelete}
               title={confirmDelete ? "Click again to confirm delete" : "Delete this revision"}
-              className="opacity-0 group-hover:opacity-100 transition-all text-xs w-5 h-5 flex items-center justify-center rounded"
+              className="opacity-0 group-hover:opacity-100 transition-all text-xs w-6 h-6 flex items-center justify-center rounded"
               style={{ color: confirmDelete ? "#ef4444" : "#525252" }}
             >
               {confirmDelete ? "✕" : "✕"}

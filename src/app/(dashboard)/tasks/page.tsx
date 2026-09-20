@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { dayBoundaryAwareDate } from "@/lib/calculations";
 import { TaskList } from "@/features/tasks/TaskList";
-import { PlannerAddSheet } from "@/features/tasks/PlannerAddSheet";
 import type { TaskItem } from "@/features/tasks/TaskCard";
+import { PlannerAddSheet } from "@/features/tasks/PlannerAddSheet";
+import { GoogleCalendarPanel } from "../settings/GoogleCalendarPanel";
 
 export const metadata: Metadata = { title: "Daily Planner" };
 
@@ -17,7 +18,7 @@ export default async function TasksPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("day_boundary_offset_minutes, timezone, daily_questions_cap")
+    .select("day_boundary_offset_minutes, timezone, daily_questions_cap, google_refresh_token, google_last_synced_at")
     .eq("user_id", user.id)
     .single();
 
@@ -92,6 +93,14 @@ export default async function TasksPage() {
               desktopOnly
             />
           </div>
+
+          <div className="mt-6">
+            <GoogleCalendarPanel
+              isConnected={!!profile?.google_refresh_token}
+              lastSyncedAt={profile?.google_last_synced_at ?? null}
+              mode="tasks"
+            />
+          </div>
         </div>
       </div>
 
@@ -102,6 +111,14 @@ export default async function TasksPage() {
         dailyQuestionsCap={dailyQuestionsCap}
         mobileOnly
       />
+
+      <div className="lg:hidden mt-6">
+        <GoogleCalendarPanel
+          isConnected={!!profile?.google_refresh_token}
+          lastSyncedAt={profile?.google_last_synced_at ?? null}
+          mode="tasks"
+        />
+      </div>
     </div>
   );
 }

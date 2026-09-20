@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useTransition } from "react";
 import { startSession, stopSession } from "./actions";
 import { logQuestionBatch } from "@/app/(dashboard)/questions/actions";
 import { logMock } from "@/app/(dashboard)/mocks/actions";
+import { markRevisionDone } from "@/app/(dashboard)/revisions/actions";
 import type { Tables } from "@/types/database";
 import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
@@ -16,6 +17,7 @@ type PostLog = {
   durationSecs: number;
   todayStr: string;
   taskId?: string;
+  revisionId?: string;
 };
 
 interface GlobalTimerProps {
@@ -89,6 +91,7 @@ export function GlobalTimer({
   const [linkedTaskId, setLinkedTaskId] = useState<string | null>(
     activeSession?.task_id ?? null,
   );
+  const [linkedRevisionId, setLinkedRevisionId] = useState<string | null>(null);
   const [activityType, setActivityType] = useState<
     Tables<"study_sessions">["activity_type"]
   >(activeSession?.activity_type ?? "practice");
@@ -113,6 +116,7 @@ export function GlobalTimer({
   const [postPercentile, setPostPercentile] = useState("");
   const [postRank, setPostRank] = useState("");
   const [postRecommendedDuration, setPostRecommendedDuration] = useState("");
+  const [postRevisionScore, setPostRevisionScore] = useState<number | null>(null);
 
   const [postPending, startPostTransition] = useTransition();
   const [postError, setPostError] = useState<string | null>(null);
@@ -181,6 +185,9 @@ export function GlobalTimer({
   const breakMonoStartRef = useRef<number | null>(null);
   const breakSecsLeftRef = useRef(breakSecsLeft);
   const [showPomodoroAlert, setShowPomodoroAlert] = useState(false);
+
+  const pomodoroBreaksCountRef = useRef(0);
+  const pomodoroBreaksTimeSecondsRef = useRef(0);
 
   const displayedSecRef = useRef(0);
   const pomodoroEndDisplayRef = useRef(0);
@@ -358,6 +365,8 @@ export function GlobalTimer({
         try {
           new Audio("/bell.wav").play().catch(() => {});
         } catch {}
+        pomodoroBreaksCountRef.current += 1;
+        pomodoroBreaksTimeSecondsRef.current += POMODORO_BREAK_SECS;
         return;
       }
       breakRafRef.current = requestAnimationFrame(tick);
@@ -402,6 +411,7 @@ export function GlobalTimer({
         activityType: at,
         notes: n,
         taskId: tId,
+        revisionId: rId,
       } = (
         e as CustomEvent<{
           subjectId: string;
@@ -409,6 +419,7 @@ export function GlobalTimer({
           activityType: string;
           notes: string;
           taskId?: string;
+          revisionId?: string;
         }>
       ).detail;
       if (subjectId) setSelectedSubject(subjectId);
@@ -416,6 +427,7 @@ export function GlobalTimer({
       if (at) setActivityType(at as Tables<"study_sessions">["activity_type"]);
       setNotes(n ?? "");
       if (tId) setLinkedTaskId(tId);
+      if (rId) setLinkedRevisionId(rId);
     };
     window.addEventListener("timer:prefill", handler);
     return () => window.removeEventListener("timer:prefill", handler);
@@ -519,6 +531,7 @@ export function GlobalTimer({
     setPostPercentile("");
     setPostRank("");
     setPostRecommendedDuration("");
+    setPostRevisionScore(null);
     setPostError(null);
     setPostSuccess(false);
   }, []);
@@ -541,6 +554,8 @@ export function GlobalTimer({
     displayedSecRef.current = 0;
     totalPausedMonoRef.current = 0;
     overtimeStartMonoRef.current = null;
+    pomodoroBreaksCountRef.current = 0;
+    pomodoroBreaksTimeSecondsRef.current = 0;
 
     startSession({
       userId,
@@ -599,6 +614,7 @@ export function GlobalTimer({
     activityType,
     openPostLog,
     pomodoroMode,
+    linkedTaskId,
   ]);
 
   const handleStopInner = useCallback(() => {
@@ -637,12 +653,14 @@ export function GlobalTimer({
     setNotes("");
     setSelectedTopic("");
     setLinkedTaskId(null);
+    setLinkedRevisionId(null);
 
     if (elapsedSecs < 30) return;
 
     if (
       capturedActivityType === "practice" ||
-      capturedActivityType === "mock"
+      capturedActivityType === "mock" ||
+      capturedActivityType === "revision"
     ) {
       const logData: PostLog = {
         subjectId: capturedSubjectId,
@@ -653,6 +671,7 @@ export function GlobalTimer({
         durationSecs: Math.round(elapsedSecs),
         todayStr: getTodayStr(timezone),
         taskId: linkedTaskId || undefined,
+        revisionId: linkedRevisionId || undefined,
       };
 
       if (sessionId === "__optimistic__") {
@@ -684,6 +703,8 @@ export function GlobalTimer({
       pauseDurationSeconds: finalPauseSecs,
       notes: finalNotes || undefined,
       endTimestamp: clickedAtIso,
+      pomodoroBreaksCount: pomodoroBreaksCountRef.current,
+      pomodoroBreaksTimeSeconds: pomodoroBreaksTimeSecondsRef.current,
     }).then((result) => {
       stoppingRef.current = false;
       if ("error" in result && result.error) {
@@ -701,6 +722,8 @@ export function GlobalTimer({
     displayedSec,
     openPostLog,
     timezone,
+    linkedTaskId,
+    linkedRevisionId,
   ]);
 
   const handleStop = useCallback(() => {
@@ -859,7 +882,26 @@ export function GlobalTimer({
     postNotes,
   ]);
 
+  const handleRevisionSubmit = useCallback(() => {
+    if (!postLog || !postLog.revisionId) return;
+    if (!postRevisionScore) {
+      setPostError("Please select a recall score.");
+      return;
+    }
+    
+    setPostError(null);
+    startPostTransition(async () => {
+      const res = await markRevisionDone(postLog.revisionId!, postRevisionScore);
+      if (res && "error" in res) {
+        setPostError(res.error ?? "Failed to log revision.");
+      } else {
+        setPostSuccess(true);
+      }
+    });
+  }, [postLog, postRevisionScore]);
+
   const isMock = postLog?.activityType === "mock";
+  const isRevision = postLog?.activityType === "revision";
 
   const pomodoroSecsLeft =
     pomodoroPhase === "study" || pomodoroPhase === "overtime"
@@ -924,6 +966,8 @@ export function GlobalTimer({
             <button
               onClick={() => {
                 setPomodoroPhase(null);
+                pomodoroBreaksCountRef.current += 1;
+                pomodoroBreaksTimeSecondsRef.current += (POMODORO_BREAK_SECS - breakSecsLeft);
               }}
               className="text-xs px-2 py-1 rounded-lg transition-all hover:opacity-80"
               style={{
@@ -1206,12 +1250,12 @@ export function GlobalTimer({
               <div>
                 <p
                   className="text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: isMock ? "#a78bfa" : "#34d399" }}
+                  style={{ color: isMock ? "#a78bfa" : isRevision ? "#38bdf8" : "#34d399" }}
                 >
-                  {isMock ? "🏆 Mock Ended" : "✅ Practice Ended"}
+                  {isMock ? "🏆 Mock Ended" : isRevision ? "🔄 Revision Ended" : "✅ Practice Ended"}
                 </p>
                 <h3 className="text-sm font-semibold text-neutral-100 mt-0.5">
-                  Log your {isMock ? "mock test" : "questions"}
+                  {isMock ? "Log your mock test" : isRevision ? "How well did you recall?" : "Log your questions"}
                 </h3>
                 <p className="text-xs text-neutral-500 mt-0.5">
                   {[postLog.subjectName, postLog.topicName]
@@ -1235,7 +1279,7 @@ export function GlobalTimer({
                 <div className="text-center py-8">
                   <p className="text-3xl mb-2">{isMock ? "🏆" : "✅"}</p>
                   <p className="text-sm font-medium text-neutral-200">
-                    {isMock ? "Mock logged!" : "Questions logged!"}
+                    {isMock ? "Mock logged!" : isRevision ? "Revision logged!" : "Questions logged!"}
                   </p>
                   <p className="text-xs text-neutral-500 mt-1">
                     Great work — keep it up.
@@ -1246,9 +1290,11 @@ export function GlobalTimer({
                     style={{
                       background: isMock
                         ? "rgba(167,139,250,0.15)"
-                        : "rgba(52,211,153,0.15)",
-                      color: isMock ? "#a78bfa" : "#34d399",
-                      border: `1px solid ${isMock ? "rgba(167,139,250,0.3)" : "rgba(52,211,153,0.3)"}`,
+                        : isRevision
+                          ? "rgba(56,189,248,0.15)"
+                          : "rgba(52,211,153,0.15)",
+                      color: isMock ? "#a78bfa" : isRevision ? "#38bdf8" : "#34d399",
+                      border: `1px solid ${isMock ? "rgba(167,139,250,0.3)" : isRevision ? "rgba(56,189,248,0.3)" : "rgba(52,211,153,0.3)"}`,
                     }}
                   >
                     Close
@@ -1286,6 +1332,12 @@ export function GlobalTimer({
                   postNotes={postNotes}
                   setPostNotes={setPostNotes}
                 />
+              ) : isRevision ? (
+                <RevisionFields
+                  postLog={postLog}
+                  revisionScore={postRevisionScore}
+                  setRevisionScore={setPostRevisionScore}
+                />
               ) : (
                 <PracticeFields
                   postLog={postLog}
@@ -1318,22 +1370,26 @@ export function GlobalTimer({
               {!postSuccess && (
                 <div className="flex gap-2 pt-1">
                   <button
-                    onClick={isMock ? handleMockSubmit : handlePracticeSubmit}
-                    disabled={postPending}
+                    onClick={isMock ? handleMockSubmit : isRevision ? handleRevisionSubmit : handlePracticeSubmit}
+                    disabled={postPending || (isRevision && !postRevisionScore)}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-40"
                     style={{
                       background: isMock
                         ? "rgba(167,139,250,0.15)"
-                        : "rgba(52,211,153,0.15)",
-                      color: isMock ? "#a78bfa" : "#34d399",
-                      border: `1px solid ${isMock ? "rgba(167,139,250,0.3)" : "rgba(52,211,153,0.3)"}`,
+                        : isRevision
+                          ? "rgba(56,189,248,0.15)"
+                          : "rgba(52,211,153,0.15)",
+                      color: isMock ? "#a78bfa" : isRevision ? "#38bdf8" : "#34d399",
+                      border: `1px solid ${isMock ? "rgba(167,139,250,0.3)" : isRevision ? "rgba(56,189,248,0.3)" : "rgba(52,211,153,0.3)"}`,
                     }}
                   >
                     {postPending
                       ? "Saving…"
                       : isMock
                         ? "Log Mock"
-                        : "Log Questions"}
+                        : isRevision
+                          ? "Save Score"
+                          : "Log Questions"}
                   </button>
                   <button
                     onClick={() => setPostLog(null)}
@@ -1384,6 +1440,76 @@ export function GlobalTimer({
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+interface RevisionFieldsProps {
+  postLog: PostLog;
+  revisionScore: number | null;
+  setRevisionScore: (v: number) => void;
+}
+
+function RevisionFields({ postLog, revisionScore, setRevisionScore }: RevisionFieldsProps) {
+  const RECALL_LABELS = [
+    { score: 1, label: "Forgot",  color: "#ef4444" },
+    { score: 2, label: "Vague",   color: "#fb923c" },
+    { score: 3, label: "Hard",    color: "#f59e0b" },
+    { score: 4, label: "Good",    color: "#10b981" },
+    { score: 5, label: "Easy",    color: "#34d399" },
+  ];
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div
+          className="px-3 py-2 rounded-xl text-xs"
+          style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
+        >
+          <span className="text-neutral-600 block text-[10px] uppercase tracking-wider mb-0.5">
+            Duration
+          </span>
+          <span className="text-neutral-300 font-mono">
+            {Math.round(postLog.durationSecs / 60)} min
+          </span>
+        </div>
+        {postLog.subjectName && (
+          <div
+            className="px-3 py-2 rounded-xl text-xs"
+            style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
+          >
+            <span className="text-neutral-600 block text-[10px] uppercase tracking-wider mb-0.5">
+              Subject
+            </span>
+            <span className="text-neutral-300 truncate block">
+              {postLog.subjectName}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-5 gap-2">
+        {RECALL_LABELS.map(({ score, label, color }) => (
+          <button
+            key={score}
+            type="button"
+            onClick={() => setRevisionScore(score)}
+            className="py-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+            style={{
+              background: revisionScore === score ? `${color}25` : "#111",
+              border: `1px solid ${revisionScore === score ? color : "#1a1a1a"}`,
+              color: revisionScore === score ? color : "#888",
+            }}
+          >
+            <span className="text-lg leading-none font-bold tabular-nums">
+              {score}
+            </span>
+            <span className="text-[9px] uppercase tracking-wider font-semibold">
+              {label}
+            </span>
+          </button>
+        ))}
+      </div>
     </>
   );
 }

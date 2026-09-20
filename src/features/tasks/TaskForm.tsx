@@ -33,6 +33,8 @@ const selS = { background: "#111", border: "1px solid #1e1e1e", color: "#ededed"
 export function TaskForm({ subjects, topics, defaultDate, dailyQuestionsCap = 250, onSuccess }: TaskFormProps) {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [activityType, setActivityType] = useState<string>("practice");
+  const [checklist, setChecklist] = useState<{ id: string; title: string; completed: boolean }[]>([]);
+  const [newChecklistItem, setNewChecklistItem] = useState("");
   const [state, formAction, pending] = useActionState(createTask, INITIAL_STATE);
 
   const filteredTopics = (selectedSubject
@@ -46,8 +48,22 @@ export function TaskForm({ subjects, topics, defaultDate, dailyQuestionsCap = 25
     }
   }, [state?.success, onSuccess]);
 
+  function handleAddChecklistItem(e: React.KeyboardEvent | React.MouseEvent) {
+    e.preventDefault();
+    if (!newChecklistItem.trim()) return;
+    setChecklist(prev => [...prev, { id: crypto.randomUUID(), title: newChecklistItem.trim(), completed: false }]);
+    setNewChecklistItem("");
+  }
+
+  function removeChecklistItem(id: string) {
+    setChecklist(prev => prev.filter(item => item.id !== id));
+  }
+
   return (
     <form action={formAction} className="space-y-3">
+      {checklist.length > 0 && (
+        <input type="hidden" name="checklist" value={JSON.stringify(checklist)} />
+      )}
       <input
         id="task-title"
         name="title"
@@ -140,6 +156,33 @@ export function TaskForm({ subjects, topics, defaultDate, dailyQuestionsCap = 25
           </p>
         </div>
       )}
+
+      <div className="space-y-2 pt-1 border-t border-neutral-800">
+        <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Subtasks (Optional)</label>
+        {checklist.length > 0 && (
+          <div className="space-y-1.5 mb-2">
+            {checklist.map(item => (
+              <div key={item.id} className="flex items-center justify-between bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-800">
+                <span className="text-xs text-neutral-300">{item.title}</span>
+                <button type="button" onClick={() => removeChecklistItem(item.id)} className="text-neutral-500 hover:text-red-400 p-1">×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newChecklistItem}
+            onChange={e => setNewChecklistItem(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleAddChecklistItem(e)}
+            placeholder="Add a step..."
+            className="input-premium flex-1 py-1.5!"
+          />
+          <button type="button" onClick={handleAddChecklistItem} className="px-3 rounded-lg bg-neutral-800 text-neutral-300 text-xs font-medium hover:bg-neutral-700 transition-colors">
+            Add
+          </button>
+        </div>
+      </div>
 
       {state?.error && (
         <p role="alert" className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5" }}>

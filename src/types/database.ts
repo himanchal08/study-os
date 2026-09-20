@@ -895,6 +895,8 @@ export type Database = {
           id: string
           notes: string | null
           pause_duration_seconds: number
+          pomodoro_breaks_count: number
+          pomodoro_breaks_time_seconds: number
           source_client: Database["public"]["Enums"]["source_client_enum"]
           start_timestamp: string
           subject_id: string | null
@@ -914,6 +916,8 @@ export type Database = {
           id?: string
           notes?: string | null
           pause_duration_seconds?: number
+          pomodoro_breaks_count?: number
+          pomodoro_breaks_time_seconds?: number
           source_client?: Database["public"]["Enums"]["source_client_enum"]
           start_timestamp?: string
           subject_id?: string | null
@@ -933,6 +937,8 @@ export type Database = {
           id?: string
           notes?: string | null
           pause_duration_seconds?: number
+          pomodoro_breaks_count?: number
+          pomodoro_breaks_time_seconds?: number
           source_client?: Database["public"]["Enums"]["source_client_enum"]
           start_timestamp?: string
           subject_id?: string | null
@@ -1086,6 +1092,7 @@ export type Database = {
           planned_date: string
           postpone_count: number
           actual_questions_count: number | null
+          checklist: Json | null
           questions_count: number | null
           recurrence_pattern: string | null
           source_client: Database["public"]["Enums"]["source_client_enum"]
@@ -1113,6 +1120,7 @@ export type Database = {
           planned_date: string
           postpone_count?: number
           actual_questions_count?: number | null
+          checklist?: Json | null
           questions_count?: number | null
           recurrence_pattern?: string | null
           source_client?: Database["public"]["Enums"]["source_client_enum"]
@@ -1140,6 +1148,7 @@ export type Database = {
           planned_date?: string
           postpone_count?: number
           actual_questions_count?: number | null
+          checklist?: Json | null
           questions_count?: number | null
           recurrence_pattern?: string | null
           source_client?: Database["public"]["Enums"]["source_client_enum"]
