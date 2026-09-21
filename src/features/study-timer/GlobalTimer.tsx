@@ -68,6 +68,8 @@ function makeOptimisticSession(opts: {
 
 const POMODORO_STUDY_SECS = 55 * 60;
 const POMODORO_BREAK_SECS = 5 * 60;
+const STRETCH_REMINDER_SECS = 2 * 60;
+const STRETCH_REPEAT_SECS = 1.5 * 60;
 
 type PomodoroPhase = "study" | "overtime" | "break" | null;
 
@@ -320,6 +322,13 @@ export function GlobalTimer({
     const onMessage = (e: MessageEvent) => {
       if (e.data?.type === "POMODORO_EXTEND") {
         extendPomodoro(e.data.seconds as number);
+      } else if (e.data?.type === "TIMER_BREAK") {
+        const secs = e.data.seconds as number;
+        pendingBreakSecsRef.current = secs;
+        setShowStretchAlert(false);
+        // Dispatch a custom event so handleStop (which may have closed over stale refs)
+        // can be called from its own effect, or call stop via window event
+        window.dispatchEvent(new CustomEvent("timer:stop-for-break"));
       }
     };
     navigator.serviceWorker.addEventListener("message", onMessage);
@@ -384,12 +393,17 @@ export function GlobalTimer({
     };
   }, [pomodoroPhase, notify]);
 
-  const startBreak = useCallback(() => {
-    setBreakSecsLeft(POMODORO_BREAK_SECS);
-    breakSecsLeftRef.current = POMODORO_BREAK_SECS;
+  const startBreak = useCallback((secs: number = POMODORO_BREAK_SECS) => {
+    setBreakSecsLeft(secs);
+    breakSecsLeftRef.current = secs;
     setPomodoroPhase("break");
-    notify("☕ Take a 5-minute break!");
+    notify(`☕ Take a ${Math.round(secs / 60)}-minute break!`);
   }, [notify]);
+
+  const [showStretchAlert, setShowStretchAlert] = useState(false);
+  const nextStretchThresholdRef = useRef(STRETCH_REMINDER_SECS);
+  const pendingBreakSecsRef = useRef<number | null>(null);
+
 
   const prevSessionIdRef = useRef(activeSession?.id);
   useEffect(() => {
@@ -463,6 +477,14 @@ export function GlobalTimer({
   const isRunning = !!session;
 
   useEffect(() => {
+    if (!isRunning && pendingBreakSecsRef.current !== null) {
+      const secs = pendingBreakSecsRef.current;
+      pendingBreakSecsRef.current = null;
+      startBreak(secs);
+    }
+  }, [isRunning, startBreak]);
+
+  useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
     
     if (isRunning) {
@@ -471,6 +493,24 @@ export function GlobalTimer({
       const checkPomodoro = (elapsed: number) => {
         if (pomodoroPhaseRef.current === "study" && elapsed >= pomodoroTargetSecsRef.current) {
           triggerPomodoroOvertime(elapsed);
+        }
+      };
+
+      const checkStretchReminder = (elapsed: number) => {
+        if (
+          !pomodoroMode &&
+          elapsed >= nextStretchThresholdRef.current
+        ) {
+          nextStretchThresholdRef.current = elapsed + STRETCH_REPEAT_SECS;
+          setShowStretchAlert(true);
+          playBell();
+          notify(
+            "🧘 Time to stretch! You've been studying for 55+ minutes.",
+            [
+              { action: "break5", title: "5-min Break" },
+              { action: "break10", title: "10-min Break" },
+            ]
+          );
         }
       };
 
@@ -489,6 +529,7 @@ export function GlobalTimer({
         const elapsed = getAdjustedElapsed();
         setDisplayedSec(elapsed);
         checkPomodoro(elapsed);
+        checkStretchReminder(elapsed);
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -497,6 +538,7 @@ export function GlobalTimer({
         if (segmentStartMonoRef.current === null) return;
         const elapsed = getAdjustedElapsed();
         checkPomodoro(elapsed);
+        checkStretchReminder(elapsed);
       }, 1000);
     } else {
       if (rafRef.current !== null) {
@@ -567,6 +609,8 @@ export function GlobalTimer({
     overtimeStartMonoRef.current = null;
     pomodoroBreaksCountRef.current = 0;
     pomodoroBreaksTimeSecondsRef.current = 0;
+    nextStretchThresholdRef.current = STRETCH_REMINDER_SECS;
+    setShowStretchAlert(false);
 
     startSession({
       userId,
@@ -744,6 +788,13 @@ export function GlobalTimer({
     handleStopInner();
     if (wasInPomodoro) startBreak();
   }, [pomodoroMode, pomodoroPhase, startBreak, handleStopInner]);
+
+  // Handle break trigger from service worker notification action buttons
+  useEffect(() => {
+    const handler = () => handleStopInner();
+    window.addEventListener("timer:stop-for-break", handler);
+    return () => window.removeEventListener("timer:stop-for-break", handler);
+  }, [handleStopInner]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1446,6 +1497,48 @@ export function GlobalTimer({
                 className="w-full py-3.5 text-rose-400 hover:bg-rose-400/10 font-medium rounded-xl transition-colors active:scale-[0.98]"
               >
                 Stop Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showStretchAlert && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-heat-0 border border-white/10 rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center max-w-sm w-full animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 ring-1 ring-emerald-500/20">
+              <span className="text-4xl">🧘</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Time to Stretch!</h2>
+            <p className="text-neutral-400 text-sm mb-8 leading-relaxed">
+              You&apos;ve been studying for 55+ minutes. Take a quick break to recharge — your session will end and a break timer will start.
+            </p>
+            <div className="w-full flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  setShowStretchAlert(false);
+                  pendingBreakSecsRef.current = 5 * 60;
+                  handleStopInner();
+                }}
+                className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-xl transition-colors active:scale-[0.98]"
+              >
+                5-Minute Break
+              </button>
+              <button
+                onClick={() => {
+                  setShowStretchAlert(false);
+                  pendingBreakSecsRef.current = 10 * 60;
+                  handleStopInner();
+                }}
+                className="w-full py-3.5 bg-white/10 hover:bg-white/15 text-white font-medium rounded-xl transition-colors active:scale-[0.98]"
+              >
+                10-Minute Break
+              </button>
+              <div className="h-px w-full bg-white/5 my-2" />
+              <button
+                onClick={() => setShowStretchAlert(false)}
+                className="w-full py-3.5 text-neutral-500 hover:bg-white/5 font-medium rounded-xl transition-colors active:scale-[0.98]"
+              >
+                Dismiss
               </button>
             </div>
           </div>

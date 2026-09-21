@@ -71,6 +71,7 @@ export default async function HomePage() {
     { data: todayTasksRaw },
     { data: heatSessionsRaw },
     { count: overdueCountRaw },
+    { data: todayBatchesRaw },
   ] = await Promise.all([
     supabase
       .from("study_sessions")
@@ -118,6 +119,12 @@ export default async function HomePage() {
       .is("deleted_at", null)
       .neq("status", "completed")
       .lt("planned_date", todayStr),
+    supabase
+      .from("question_batches")
+      .select("attempted")
+      .eq("user_id", user.id)
+      .gte("created_at", todayStartStr)
+      .is("deleted_at", null),
   ]);
 
   const todaySecs = calcTotalSecs(todaySessionsRaw ?? []);
@@ -156,7 +163,8 @@ export default async function HomePage() {
   });
 
   const todayPlannedQs = todayTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
-  const todayActualQs = todayTasks.reduce((sum, t) => sum + (t.actual_questions_count || 0), 0);
+  const todayBatchQs = (todayBatchesRaw ?? []).reduce((sum, b) => sum + (b.attempted || 0), 0);
+  const todayActualQs = todayTasks.reduce((sum, t) => sum + (t.actual_questions_count || 0), 0) + todayBatchQs;
   const qsCap = profile?.daily_questions_cap ?? 250;
   const qsPct = todayPlannedQs > 0 ? Math.min(100, (todayActualQs / todayPlannedQs) * 100) : 0;
 

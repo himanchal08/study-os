@@ -13,14 +13,19 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const action = event.action; 
+  const action = event.action;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      const seconds = action === "extend5" ? 300 : action === "extend10" ? 600 : 0;
+      // Pomodoro extend actions
+      const extendSeconds = action === "extend5" ? 300 : action === "extend10" ? 600 : 0;
+      // Stretch break actions
+      const breakSeconds = action === "break5" ? 300 : action === "break10" ? 600 : 0;
 
       for (const client of clientList) {
-        if (seconds > 0) {
-          client.postMessage({ type: "POMODORO_EXTEND", seconds });
+        if (extendSeconds > 0) {
+          client.postMessage({ type: "POMODORO_EXTEND", seconds: extendSeconds });
+        } else if (breakSeconds > 0) {
+          client.postMessage({ type: "TIMER_BREAK", seconds: breakSeconds });
         }
         if ("focus" in client) {
           client.focus();
