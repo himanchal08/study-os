@@ -68,8 +68,8 @@ function makeOptimisticSession(opts: {
 
 const POMODORO_STUDY_SECS = 55 * 60;
 const POMODORO_BREAK_SECS = 5 * 60;
-const STRETCH_REMINDER_SECS = 2 * 60;
-const STRETCH_REPEAT_SECS = 1.5 * 60;
+const STRETCH_REMINDER_SECS = 55* 60;
+const STRETCH_REPEAT_SECS = 50* 60;
 
 type PomodoroPhase = "study" | "overtime" | "break" | null;
 
