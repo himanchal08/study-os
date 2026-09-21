@@ -20,6 +20,14 @@ type PostLog = {
   revisionId?: string;
 };
 
+const bellAudio = typeof window !== "undefined" ? new Audio("/bell.wav") : null;
+const playBell = () => {
+  if (bellAudio) {
+    bellAudio.currentTime = 0;
+    bellAudio.play().catch(() => {});
+  }
+};
+
 interface GlobalTimerProps {
   userId: string;
   activeSession: Tables<"study_sessions"> | null;
@@ -302,10 +310,7 @@ export function GlobalTimer({
     setShowPomodoroAlert(true);
     
     notify("🍅 Pomodoro done! Keep going or take a break.");
-
-    try {
-      new Audio("/bell.wav").play().catch(() => {});
-    } catch {}
+    playBell();
   }, [notify]);
 
 
@@ -362,9 +367,7 @@ export function GlobalTimer({
       if (left <= 0) {
         setPomodoroPhase(null);
         notify("☕ Break over — ready for the next one!");
-        try {
-          new Audio("/bell.wav").play().catch(() => {});
-        } catch {}
+        playBell();
         pomodoroBreaksCountRef.current += 1;
         pomodoroBreaksTimeSecondsRef.current += POMODORO_BREAK_SECS;
         return;
@@ -537,6 +540,14 @@ export function GlobalTimer({
   }, []);
 
   const handleStart = useCallback(() => {
+    if (bellAudio) {
+      bellAudio.volume = 0;
+      bellAudio.play().then(() => {
+        bellAudio!.pause();
+        bellAudio!.currentTime = 0;
+        bellAudio!.volume = 1;
+      }).catch(() => {});
+    }
     setError(null);
     if (pomodoroMode) {
       setPomodoroTargetSecs(POMODORO_STUDY_SECS);
