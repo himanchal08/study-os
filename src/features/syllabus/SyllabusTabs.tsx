@@ -41,6 +41,9 @@ export function SyllabusTabs({ subjects, initialExamTargets }: { subjects: Subje
   const [examTargets, setExamTargets] = useState<string[]>(initialExamTargets);
   const [isPending, startTransition] = useTransition();
 
+  const defaultTab = examTargets.length === 1 && examTargets[0] !== "both" ? (examTargets[0] as ExamTab) : "all";
+  const [active, setActive] = useState<ExamTab>(defaultTab);
+
   // If no targets selected, force them to choose
   if (examTargets.length === 0) {
     return (
@@ -63,6 +66,7 @@ export function SyllabusTabs({ subjects, initialExamTargets }: { subjects: Subje
                 startTransition(() => {
                   updateExamTargets([tab.key]);
                   setExamTargets([tab.key]);
+                  setActive(tab.key);
                 });
               }}
               className="flex-1 py-3.5 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
@@ -77,6 +81,7 @@ export function SyllabusTabs({ subjects, initialExamTargets }: { subjects: Subje
               startTransition(() => {
                 updateExamTargets(["both"]);
                 setExamTargets(["both"]);
+                setActive("all");
               });
             }}
             className="flex-1 py-3.5 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 bg-white text-black"
@@ -94,11 +99,6 @@ export function SyllabusTabs({ subjects, initialExamTargets }: { subjects: Subje
   const userSubjects = isBoth 
     ? subjects 
     : subjects.filter(s => examTargets.some(target => s.exam_type === target || s.exam_type === "both"));
-
-  // The active tab allows them to further sub-filter if they want
-  // Default to their specific target if they only picked one, otherwise "all"
-  const defaultTab = examTargets.length === 1 && examTargets[0] !== "both" ? (examTargets[0] as ExamTab) : "all";
-  const [active, setActive] = useState<ExamTab>(defaultTab);
 
   const filtered   = userSubjects.filter(s => matchesTab(s, active));
   const allTopics  = filtered.flatMap(s => s.topics);

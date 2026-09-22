@@ -22,7 +22,7 @@ export default async function SyllabusPage() {
 
   const subjectWithTopics = ((subjects as {id: string; name: string; color: string; exam_type: string}[]) ?? []).map(s => ({
     ...s,
-    topics:   ((topics   as {id: string; name: string; status: any; subject_id: string; chapter_id: string | null}[]) ?? []).filter(t  => t.subject_id  === s.id).map(t => {
+    topics:   ((topics   as {id: string; name: string; status: string; subject_id: string; chapter_id: string | null}[]) ?? []).filter(t  => t.subject_id  === s.id).map(t => {
       const lc = ((lifecycles as {topic_id: string; book_practice_done: boolean; dpp_done: boolean; pyq_done: boolean; tests_attempted_count: number}[]) ?? []).find(l => l.topic_id === t.id);
       return { ...t, status: t.status as "not_started" | "learning" | "learned" | "revising" | "strong" | "weak", lifecycle: lc || null };
     }),
