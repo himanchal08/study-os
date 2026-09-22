@@ -47,7 +47,7 @@ export default function GlobalError({
             </Link>
           </div>
           <Link
-            href={`mailto:support@studyos.com?subject=Fatal Error Report&body=A fatal error occurred:%0D%0A%0D%0ADigest: ${error.digest ?? 'None'}`}
+            href={`mailto:khattrihimanchal17@gmail.com?subject=Fatal Error Report&body=A fatal error occurred:%0D%0A%0D%0ADigest: ${error.digest ?? 'None'}`}
             className="mt-6 text-xs text-neutral-500 hover:text-neutral-300 transition-colors underline decoration-neutral-700 underline-offset-4"
           >
             Report this error so we can fix it
