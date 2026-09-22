@@ -161,7 +161,7 @@ export function SyllabusTabs({ subjects, initialExamTargets }: { subjects: Subje
             <div>
               <p className="text-neutral-300 font-semibold mb-1">Your Syllabus is Empty</p>
               <p className="text-neutral-500 text-xs max-w-sm">
-                We couldn't find any subjects for this exam. You can seed your syllabus with our canonical preset.
+                We could not find any subjects for this exam. You can seed your syllabus with our canonical preset.
               </p>
             </div>
             <button
