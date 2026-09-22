@@ -22,5 +22,6 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${appUrl}/login?error=auth_callback_failed`);
+  // Redirect to login silently — never expose error details in the URL
+  return NextResponse.redirect(`${appUrl}/login`);
 }

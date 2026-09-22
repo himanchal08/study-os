@@ -38,12 +38,16 @@ export async function signUp(
 ): Promise<AuthState> {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
 
   if (!email || !password) {
     return { error: "Email and password are required." };
   }
   if (password.length < 6) {
     return { error: "Password must be at least 6 characters." };
+  }
+  if (confirmPassword && password !== confirmPassword) {
+    return { error: "Passwords do not match." };
   }
 
   const supabase = await createClient();
@@ -111,21 +115,25 @@ export async function updatePassword(
   redirect("/");
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(): Promise<AuthState> {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`,
+      redirectTo: `${
+        process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+      }/auth/callback`,
     },
   });
 
   if (error) {
     console.error("Google Auth Error:", error.message);
-    redirect("/login?error=Could not sign in with Google");
+    return { error: "Could not sign in with Google. Please try again." };
   }
 
   if (data.url) {
     redirect(data.url);
   }
+
+  return { error: "Failed to get Google sign-in URL. Please try again." };
 }
