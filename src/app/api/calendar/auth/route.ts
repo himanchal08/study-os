@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const redirectUri = `${origin}/api/calendar/callback`;
 
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect(`${origin}/settings?error=missing_google_credentials`);
+    return NextResponse.redirect(`${origin}/settings`);
   }
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);

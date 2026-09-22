@@ -11,7 +11,7 @@ export default async function ResetPasswordPage() {
 
   
   if (!user) {
-    redirect("/login?error=unauthorized");
+    redirect("/login");
   }
 
   return (
