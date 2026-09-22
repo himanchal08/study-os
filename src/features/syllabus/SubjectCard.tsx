@@ -155,7 +155,7 @@ function TopicRow({ topic, onAddPlanner }: { topic: Topic; onAddPlanner: (id: st
         <button
           type="button"
           onClick={() => onAddPlanner(topic.id)}
-          className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-indigo-400 transition-colors p-1"
+          className="text-white hover:text-indigo-400 transition-colors p-1"
           title="Add in Planner"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

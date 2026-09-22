@@ -157,9 +157,24 @@ export function SyllabusTabs({ subjects, initialExamTargets }: { subjects: Subje
       <div className="space-y-2">
         <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Subjects &amp; Topics</p>
         {filtered.length === 0 ? (
-          <div className="rounded-xl p-8 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-            <p className="text-neutral-600 text-sm">No subjects for this exam yet.</p>
-            <p className="text-neutral-700 text-xs mt-1">Run the seed SQL in Supabase to populate this tab.</p>
+          <div className="rounded-xl p-8 text-center flex flex-col items-center justify-center gap-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+            <div>
+              <p className="text-neutral-300 font-semibold mb-1">Your Syllabus is Empty</p>
+              <p className="text-neutral-500 text-xs max-w-sm">
+                We couldn't find any subjects for this exam. You can seed your syllabus with our canonical preset.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                startTransition(() => {
+                  import("@/app/(dashboard)/syllabus/actions").then((a) => a.seedSyllabus());
+                });
+              }}
+              disabled={isPending}
+              className="px-4 py-2 bg-white text-black font-semibold text-sm rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50"
+            >
+              Seed Canonical Syllabus
+            </button>
           </div>
         ) : (
           filtered.map(s => <SubjectCard key={s.id} subject={s as React.ComponentProps<typeof SubjectCard>["subject"]} allSubjects={subjects} />)

@@ -197,3 +197,17 @@ export async function updateExamTargets(targets: string[]) {
   revalidatePath("/");
   return { success: true };
 }
+
+export async function seedSyllabus() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { error } = await supabase.rpc("seed_user_canonical_syllabus", { p_user_id: user.id });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/syllabus");
+  revalidatePath("/");
+  return { success: true };
+}
