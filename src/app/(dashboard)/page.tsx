@@ -104,8 +104,7 @@ export default async function HomePage() {
       .eq("user_id", user.id)
       .eq("planned_date", todayStr)
       .neq("status", "completed")
-      .is("deleted_at", null)
-      .limit(8),
+      .is("deleted_at", null),
     supabase
       .from("study_sessions")
       .select("start_timestamp, end_timestamp, pause_duration_seconds")
@@ -276,7 +275,7 @@ export default async function HomePage() {
           <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
             Today&apos;s Tasks
           </h2>
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-65 overflow-y-auto pr-2">
             {todayTasks.map(task => (
               <TaskCard key={task.id} task={task} />
             ))}
