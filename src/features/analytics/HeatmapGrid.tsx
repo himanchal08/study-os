@@ -53,14 +53,28 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
   const gridStart = new Date(today);
   gridStart.setDate(today.getDate() - today.getDay() - (weeks - 1) * 7);
 
-  const columns: Array<Array<{ fill: string; isToday: boolean; date: string; value: number } | null>> = [];
-  const monthLabels: Array<{ col: number; month: string }> = [];
+  const columns: Array<{
+    week: Array<{ fill: string; isToday: boolean; date: string; value: number } | null>;
+    monthGap: number;
+  }> = [];
+  const monthLabels: Array<{ col: number; month: string; monthGap: number }> = [];
 
   let prevMonth = -1;
+  let currentMonthGap = 0;
   const cursor = new Date(gridStart);
 
   for (let col = 0; col < weeks; col++) {
     const week: Array<{ fill: string; isToday: boolean; date: string; value: number } | null> = [];
+    
+    const sundayMonth = cursor.getMonth();
+    if (prevMonth !== -1 && sundayMonth !== prevMonth) {
+      currentMonthGap++;
+      monthLabels.push({ col, month: MONTH_NAMES[sundayMonth], monthGap: currentMonthGap });
+    } else if (prevMonth === -1) {
+      monthLabels.push({ col, month: MONTH_NAMES[sundayMonth], monthGap: currentMonthGap });
+    }
+    prevMonth = sundayMonth;
+
     for (let day = 0; day < 7; day++) {
       const y = cursor.getFullYear();
       const m = String(cursor.getMonth() + 1).padStart(2, "0");
@@ -83,16 +97,9 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
         week.push({ fill, isToday: dateStr === todayStr, date: dateStr, value: cell?.value ?? 0 });
       }
 
-      if (day === 0) {
-        const mo = cursor.getMonth();
-        if (mo !== prevMonth) {
-          monthLabels.push({ col, month: MONTH_NAMES[mo] });
-          prevMonth = mo;
-        }
-      }
       cursor.setDate(cursor.getDate() + 1);
     }
-    columns.push(week);
+    columns.push({ week, monthGap: currentMonthGap });
   }
 
   const CELL_SIZE = 11;
@@ -101,7 +108,8 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
   const ROW_H     = CELL_SIZE + CELL_GAP;
   const LEFT_PAD  = 28;
   const TOP_PAD   = 18;
-  const svgW = LEFT_PAD + weeks * COL_W;
+  const MONTH_GAP_SIZE = 8;
+  const svgW = LEFT_PAD + weeks * COL_W + currentMonthGap * MONTH_GAP_SIZE;
   const svgH = TOP_PAD + 7 * ROW_H;
 
   return (
@@ -112,10 +120,10 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
         style={{ display: "block", overflow: "visible" }}
         aria-label="Study activity heatmap"
       >
-        {monthLabels.map(({ col, month }) => (
+        {monthLabels.map(({ col, month, monthGap }) => (
           <text
             key={`${col}-${month}`}
-            x={LEFT_PAD + col * COL_W}
+            x={LEFT_PAD + col * COL_W + monthGap * MONTH_GAP_SIZE}
             y={TOP_PAD - 5}
             fontSize={7}
             fill="rgba(232,232,240,0.3)"
@@ -139,10 +147,10 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
           </text>
         ))}
 
-        {columns.map((week, colIdx) =>
+        {columns.map(({ week, monthGap }, colIdx) =>
           week.map((cell, rowIdx) => {
             if (!cell) return null;
-            const x = LEFT_PAD + colIdx * COL_W;
+            const x = LEFT_PAD + colIdx * COL_W + monthGap * MONTH_GAP_SIZE;
             const y = TOP_PAD + rowIdx * ROW_H;
             return (
               <rect
