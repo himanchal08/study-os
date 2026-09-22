@@ -2,6 +2,7 @@
 
 import { useTransition, useState, useRef } from "react";
 import { updateTopicStatus, updateSubjectColor, deleteSubject, archiveTopic, updateTopicLifecycle } from "@/app/(dashboard)/syllabus/actions";
+import { TaskForm } from "@/features/tasks/TaskForm";
 
 type TopicStatus = "not_started" | "learning" | "learned" | "revising" | "strong" | "weak";
 
@@ -16,6 +17,7 @@ interface Topic {
     pyq_done: boolean;
     tests_attempted_count: number;
   } | null;
+  subject_id: string;
 }
 
 interface Chapter {
@@ -45,7 +47,7 @@ const STATUS_CONFIG: Record<TopicStatus, { label: string; color: string; bg: str
 
 const STATUS_ORDER: TopicStatus[] = ["not_started", "learning", "learned", "revising", "strong", "weak"];
 
-function TopicRow({ topic }: { topic: Topic }) {
+function TopicRow({ topic, onAddPlanner }: { topic: Topic; onAddPlanner: (id: string) => void }) {
   const [isPending, startTransition] = useTransition();
   const [archived, setArchived] = useState(false);
   const [status, setStatus] = useState<TopicStatus>(topic.status);
@@ -82,7 +84,7 @@ function TopicRow({ topic }: { topic: Topic }) {
   if (archived) return null;
 
   return (
-    <div className="grid grid-cols-[1fr_80px_48px_48px_48px_72px_24px] gap-2 items-center px-3 py-1.5 rounded-lg group hover:bg-white/5 transition-colors border-b border-[#1a1a1a]/50 last:border-0">
+    <div className="grid grid-cols-[1fr_80px_48px_48px_48px_72px_56px] gap-2 items-center px-3 py-1.5 rounded-lg group hover:bg-white/5 transition-colors border-b border-[#1a1a1a]/50 last:border-0">
       <span className="text-sm text-neutral-300 truncate" title={topic.name}>{topic.name}</span>
       
       <div className="flex justify-center">
@@ -149,11 +151,21 @@ function TopicRow({ topic }: { topic: Topic }) {
         </button>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onAddPlanner(topic.id)}
+          className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-indigo-400 transition-colors p-1"
+          title="Add in Planner"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={() => { setArchived(true); startTransition(() => archiveTopic(topic.id)); }}
-          className="opacity-0 group-hover:opacity-100 text-xs text-neutral-700 hover:text-rose-400 transition-all px-1"
+          className="opacity-0 group-hover:opacity-100 text-xs text-neutral-700 hover:text-rose-400 transition-all p-1"
           title="Archive topic"
         >
           ✕
@@ -165,12 +177,14 @@ function TopicRow({ topic }: { topic: Topic }) {
 
 interface SubjectCardProps {
   subject: Subject;
+  allSubjects?: Subject[];
 }
 
-export function SubjectCard({ subject }: SubjectCardProps) {
+export function SubjectCard({ subject, allSubjects }: SubjectCardProps) {
   const [expanded, setExpanded] = useState(true);
   const [color, setColor] = useState(subject.color ?? "#6366f1");
   const [deleted, setDeleted] = useState(false);
+  const [plannerTopic, setPlannerTopic] = useState<string | null>(null);
   const [, startColorTransition] = useTransition();
   const [, startDeleteTransition] = useTransition();
   const colorRef = useRef<HTMLInputElement>(null);
@@ -271,7 +285,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
                       </div>
                       <div className="space-y-0.5">
                         {chTopics.map(t => (
-                          <TopicRow key={t.id} topic={t} />
+                          <TopicRow key={t.id} topic={t} onAddPlanner={setPlannerTopic} />
                         ))}
                       </div>
                     </div>
@@ -288,7 +302,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
                     </div>
                     <div className="space-y-0.5">
                       {subject.topics.filter(t => !t.chapter_id).map(t => (
-                        <TopicRow key={t.id} topic={t} />
+                        <TopicRow key={t.id} topic={t} onAddPlanner={setPlannerTopic} />
                       ))}
                     </div>
                   </div>
@@ -302,6 +316,29 @@ export function SubjectCard({ subject }: SubjectCardProps) {
           )}
         </div>
       </div>
+
+      {plannerTopic && allSubjects && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl w-full max-w-md p-5 shadow-2xl relative">
+            <button 
+              onClick={() => setPlannerTopic(null)}
+              className="absolute top-4 right-4 text-neutral-500 hover:text-white transition-colors"
+            >
+              ✕
+            </button>
+            <h2 className="text-lg font-bold text-neutral-100 mb-1">Add to Planner</h2>
+            <p className="text-xs text-neutral-400 mb-4">Schedule a task for this topic in your calendar.</p>
+            <TaskForm
+              subjects={allSubjects}
+              topics={allSubjects.flatMap(s => s.topics)}
+              defaultDate={new Date().toLocaleDateString("en-CA")}
+              initialSubjectId={subject.id}
+              initialTopicId={plannerTopic}
+              onSuccess={() => setPlannerTopic(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,5 @@
-﻿create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer as $$
 begin
   insert into public.profiles (user_id, full_name)
   values (

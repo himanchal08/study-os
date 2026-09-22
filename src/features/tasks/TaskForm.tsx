@@ -22,6 +22,8 @@ interface TaskFormProps {
   topics: TopicOption[];
   defaultDate: string;
   dailyQuestionsCap?: number;
+  initialSubjectId?: string;
+  initialTopicId?: string;
   onSuccess?: () => void;
 }
 
@@ -30,8 +32,9 @@ const INITIAL_STATE: TaskActionState = null;
 const sel = "w-full px-3 py-2.5 rounded-xl text-sm outline-none appearance-none cursor-pointer";
 const selS = { background: "#111", border: "1px solid #1e1e1e", color: "#ededed" };
 
-export function TaskForm({ subjects, topics, defaultDate, dailyQuestionsCap = 250, onSuccess }: TaskFormProps) {
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
+export function TaskForm({ subjects, topics, defaultDate, dailyQuestionsCap = 250, initialSubjectId = "", initialTopicId = "", onSuccess }: TaskFormProps) {
+  const [selectedSubject, setSelectedSubject] = useState<string>(initialSubjectId);
+  const [selectedTopic, setSelectedTopic] = useState<string>(initialTopicId);
   const [activityType, setActivityType] = useState<string>("practice");
   const [checklist, setChecklist] = useState<{ id: string; title: string; completed: boolean }[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState("");
@@ -87,7 +90,14 @@ export function TaskForm({ subjects, topics, defaultDate, dailyQuestionsCap = 25
           <SubjectOptions subjects={subjects} />
         </select>
 
-        <select id="task-topic" name="topic_id" className={sel} style={selS}>
+        <select 
+          id="task-topic" 
+          name="topic_id" 
+          className={sel} 
+          style={selS}
+          value={selectedTopic}
+          onChange={e => setSelectedTopic(e.target.value)}
+        >
           <option value="">Topic</option>
           {filteredTopics.map(top => (
             <option key={top.id} value={top.id}>{top.name}</option>
