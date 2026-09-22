@@ -1,4 +1,4 @@
-﻿-- Update the handle_new_user trigger to also seed the default syllabus
+-- Update the handle_new_user trigger to also seed the default syllabus
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
