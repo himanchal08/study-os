@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 
@@ -41,11 +41,17 @@ export default function GlobalError({
             </button>
             <Link
               href="/"
-              className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all bg-white hover:bg-neutral-200 text-black flex items-center justify-center"
+              className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all bg-neutral-800 hover:bg-neutral-700 text-white flex items-center justify-center"
             >
               Reload App
             </Link>
           </div>
+          <Link
+            href={`mailto:support@studyos.com?subject=Fatal Error Report&body=A fatal error occurred:%0D%0A%0D%0ADigest: ${error.digest ?? 'None'}`}
+            className="mt-6 text-xs text-neutral-500 hover:text-neutral-300 transition-colors underline decoration-neutral-700 underline-offset-4"
+          >
+            Report this error so we can fix it
+          </Link>
         </div>
       </body>
     </html>
