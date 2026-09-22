@@ -261,7 +261,7 @@ export function SubjectCard({ subject, allSubjects }: SubjectCardProps) {
         <div className="p-4 overflow-x-auto">
           {subject.topics.length > 0 && (
             <div className="min-w-125">
-              <div className="grid grid-cols-[1fr_80px_48px_48px_48px_72px_24px] gap-2 px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-2 border-b border-[#1a1a1a]">
+              <div className="grid grid-cols-[1fr_80px_48px_48px_48px_72px_56px] gap-2 px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-2 border-b border-[#1a1a1a]">
                 <div>Topic</div>
                 <div className="text-center">Status</div>
                 <div className="text-center" title="Book Practice">Book</div>
