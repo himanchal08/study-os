@@ -863,6 +863,7 @@ export function GlobalTimer({
         setPostError(res.error ?? "Failed to log.");
       } else {
         setPostSuccess(true);
+        setTimeout(() => setPostLog(null), 1500);
       }
     });
   }, [postLog, postAttempted, postCorrect, postWrong, postSource, postNotes]);
@@ -924,6 +925,7 @@ export function GlobalTimer({
         setPostError(res.error ?? "Failed to log.");
       } else {
         setPostSuccess(true);
+        setTimeout(() => setPostLog(null), 1500);
       }
     });
   }, [
@@ -958,6 +960,7 @@ export function GlobalTimer({
         setPostError(res.error ?? "Failed to log revision.");
       } else {
         setPostSuccess(true);
+        setTimeout(() => setPostLog(null), 1500);
       }
     });
   }, [postLog, postRevisionScore]);

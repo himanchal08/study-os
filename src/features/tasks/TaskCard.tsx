@@ -53,13 +53,33 @@ export function TaskCard({ task, isToday = true }: TaskCardProps) {
   }
 
   function handlePrefillTimer() {
+    let actType = "practice";
+    let notes = task.title;
+
+    if (task.title.startsWith("[Lecture] ")) {
+      actType = "lecture";
+      notes = task.title.replace("[Lecture] ", "");
+    } else if (task.title.startsWith("[Revision] ")) {
+      actType = "revision";
+      notes = task.title.replace("[Revision] ", "");
+    } else if (task.title.startsWith("[Mock] ")) {
+      actType = "mock";
+      notes = task.title.replace("[Mock] ", "");
+    } else if (task.title.startsWith("[Reading] ")) {
+      actType = "reading";
+      notes = task.title.replace("[Reading] ", "");
+    } else if (task.title.startsWith("[DPP] ")) {
+      actType = "practice";
+      notes = task.title.replace("[DPP] ", "");
+    }
+
     window.dispatchEvent(
       new CustomEvent("timer:prefill", {
         detail: {
           subjectId: task.subjects?.id ?? "",
           topicId: task.topics?.id ?? "",
-          activityType: "practice",
-          notes: task.title,
+          activityType: actType,
+          notes,
           taskId: task.id,
           plannedQuestions: task.questions_count ?? null,
         },

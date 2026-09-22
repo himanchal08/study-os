@@ -100,10 +100,16 @@ export async function createTask(
     }
   }
 
+  let finalTitle = title;
+  if (activityType === "lecture") finalTitle = `[Lecture] ${title}`;
+  else if (activityType === "revision") finalTitle = `[Revision] ${title}`;
+  else if (activityType === "mock") finalTitle = `[Mock] ${title}`;
+  else if (activityType === "reading") finalTitle = `[Reading] ${title}`;
+
   const rows = datesToInsert.map((date, idx) => ({
     id: idx === 0 ? parentTaskId : randomUUID(),
     user_id: user.id,
-    title,
+    title: finalTitle,
     subject_id: subjectId,
     topic_id: topicId,
     planned_date: date,
