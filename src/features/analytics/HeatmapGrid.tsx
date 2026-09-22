@@ -59,47 +59,57 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
   }> = [];
   const monthLabels: Array<{ col: number; month: string; monthGap: number }> = [];
 
-  let prevMonth = -1;
+  let prevMonth = gridStart.getMonth();
   let currentMonthGap = 0;
   const cursor = new Date(gridStart);
+  
+  monthLabels.push({ col: 0, month: MONTH_NAMES[prevMonth], monthGap: 0 });
 
-  for (let col = 0; col < weeks; col++) {
-    const week: Array<{ fill: string; isToday: boolean; date: string; value: number } | null> = [];
-    
-    const sundayMonth = cursor.getMonth();
-    if (prevMonth !== -1 && sundayMonth !== prevMonth) {
-      currentMonthGap++;
-      monthLabels.push({ col, month: MONTH_NAMES[sundayMonth], monthGap: currentMonthGap });
-    } else if (prevMonth === -1) {
-      monthLabels.push({ col, month: MONTH_NAMES[sundayMonth], monthGap: currentMonthGap });
-    }
-    prevMonth = sundayMonth;
+  let currentWeek: Array<{ fill: string; isToday: boolean; date: string; value: number } | null> = new Array(7).fill(null);
+  const totalDays = weeks * 7;
 
-    for (let day = 0; day < 7; day++) {
-      const y = cursor.getFullYear();
-      const m = String(cursor.getMonth() + 1).padStart(2, "0");
-      const d = String(cursor.getDate()).padStart(2, "0");
-      const dateStr = `${y}-${m}-${d}`;
-      const isAfterToday = cursor > today;
-
-      if (isAfterToday) {
-        week.push(null);
-      } else {
-        const cell = cellMap.get(dateStr);
-        let fill: string;
-        if (!cell || cell.isMissing || cell.value <= 0) {
-          fill = HEAT_COLORS[0];
-        } else if (cell.isAnnotated) {
-          fill = "#f59e0b";
-        } else {
-          fill = HEAT_COLORS[toHeatLevel(cell.value, metric)];
-        }
-        week.push({ fill, isToday: dateStr === todayStr, date: dateStr, value: cell?.value ?? 0 });
+  for (let i = 0; i < totalDays; i++) {
+    const m = cursor.getMonth();
+    if (m !== prevMonth) {
+      if (currentWeek.some(c => c !== null)) {
+        columns.push({ week: currentWeek, monthGap: currentMonthGap });
+        currentWeek = new Array(7).fill(null);
       }
-
-      cursor.setDate(cursor.getDate() + 1);
+      currentMonthGap++;
+      monthLabels.push({ col: columns.length, month: MONTH_NAMES[m], monthGap: currentMonthGap });
+      prevMonth = m;
     }
-    columns.push({ week, monthGap: currentMonthGap });
+
+    const dayOfWeek = cursor.getDay();
+    const y = cursor.getFullYear();
+    const mm = String(m + 1).padStart(2, "0");
+    const dd = String(cursor.getDate()).padStart(2, "0");
+    const dateStr = `${y}-${mm}-${dd}`;
+    const isAfterToday = cursor > today;
+
+    if (!isAfterToday) {
+      const cell = cellMap.get(dateStr);
+      let fill: string;
+      if (!cell || cell.isMissing || cell.value <= 0) {
+        fill = HEAT_COLORS[0];
+      } else if (cell.isAnnotated) {
+        fill = "#f59e0b";
+      } else {
+        fill = HEAT_COLORS[toHeatLevel(cell.value, metric)];
+      }
+      currentWeek[dayOfWeek] = { fill, isToday: dateStr === todayStr, date: dateStr, value: cell?.value ?? 0 };
+    }
+
+    if (dayOfWeek === 6) {
+      columns.push({ week: currentWeek, monthGap: currentMonthGap });
+      currentWeek = new Array(7).fill(null);
+    }
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  if (currentWeek.some(c => c !== null)) {
+    columns.push({ week: currentWeek, monthGap: currentMonthGap });
   }
 
   const CELL_SIZE = 11;
@@ -109,7 +119,7 @@ export function HeatmapGrid({ cells, metric, weeks = 52 }: HeatmapGridProps) {
   const LEFT_PAD  = 28;
   const TOP_PAD   = 18;
   const MONTH_GAP_SIZE = 8;
-  const svgW = LEFT_PAD + weeks * COL_W + currentMonthGap * MONTH_GAP_SIZE;
+  const svgW = LEFT_PAD + columns.length * COL_W + currentMonthGap * MONTH_GAP_SIZE;
   const svgH = TOP_PAD + 7 * ROW_H;
 
   return (
