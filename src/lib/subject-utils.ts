@@ -21,5 +21,5 @@ export function deduplicateTopics<T extends { id: string; name: string; subject_
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).sort((a, b) => a.name.localeCompare(b.name));
+  });
 }
