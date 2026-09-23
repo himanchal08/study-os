@@ -35,8 +35,8 @@ export default async function QuestionsPage() {
   const batchWindowStart = new Date(nowMs - 30 * 86400000).toISOString();
 
   const [{ data: subjectsRaw }, { data: topicsRaw }, { data: batchesRaw }, { data: allBatchesRaw }] = await Promise.all([
-    supabase.from("subjects").select("id, name, color, exam_type").order("name"),
-    supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("name"),
+    supabase.from("subjects").select("id, name, color, exam_type").order("sort_order"),
+    supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("created_at"),
     supabase
       .from("question_batches")
       .select("id, logged_at, attempted, correct, wrong, skipped, source, notes, duration_minutes, subject_id, topic_id, subjects(name, color), topics(name)")

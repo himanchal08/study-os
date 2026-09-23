@@ -31,7 +31,7 @@ export default async function TasksPage() {
   const { data: rawSubjects } = await supabase
     .from("subjects")
     .select("id, name, color, exam_type")
-    .order("name", { ascending: true });
+    .order("sort_order", { ascending: true });
 
   const subjects = deduplicateSubjects(rawSubjects ?? []);
   const subjectIds = new Set(subjects.map(s => s.id));
@@ -40,7 +40,7 @@ export default async function TasksPage() {
     .from("topics")
     .select("id, name, subject_id")
     .is("archived_at", null)
-    .order("name", { ascending: true });
+    .order("created_at", { ascending: true });
 
   const topics = deduplicateTopics(rawTopics ?? [], subjectIds);
 

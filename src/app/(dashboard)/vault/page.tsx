@@ -21,8 +21,8 @@ export default async function VaultPage() {
   if (!user) redirect("/login");
 
   const [{ data: rawSubjects }, { data: rawTopics }, { data: questionsRaw }] = await Promise.all([
-    supabase.from("subjects").select("id, name, exam_type").order("name"),
-    supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("name"),
+    supabase.from("subjects").select("id, name, exam_type").order("sort_order"),
+    supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("created_at"),
     supabase
       .from("saved_questions")
       .select("id, source, error_category, explanation, image_path, created_at, topics(name, subject_id, subjects(name))")

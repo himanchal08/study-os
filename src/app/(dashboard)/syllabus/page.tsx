@@ -14,8 +14,8 @@ export default async function SyllabusPage() {
   if (!user) redirect("/login");
 
   const [{ data: rawSubjects }, { data: rawTopics }, { data: chapters }, { data: lifecycles }, { data: profile }] = await Promise.all([
-    supabase.from("subjects").select("id, name, color, exam_type").eq("user_id", user.id).is("deleted_at", null).order("name"),
-    supabase.from("topics").select("id, name, status, subject_id, chapter_id").eq("user_id", user.id).is("deleted_at", null).is("archived_at", null).order("name"),
+    supabase.from("subjects").select("id, name, color, exam_type").eq("user_id", user.id).is("deleted_at", null).order("sort_order"),
+    supabase.from("topics").select("id, name, status, subject_id, chapter_id").eq("user_id", user.id).is("deleted_at", null).is("archived_at", null).order("created_at"),
     supabase.from("chapters").select("id, name, subject_id, sort_order").eq("user_id", user.id).is("deleted_at", null).order("sort_order"),
     supabase.from("topic_lifecycle").select("topic_id, book_practice_done, dpp_done, pyq_done, tests_attempted_count").eq("user_id", user.id),
     supabase.from("profiles").select("exam_targets").eq("user_id", user.id).single(),

@@ -5,7 +5,7 @@ export function deduplicateSubjects<T extends { id: string; name: string }>(rawS
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).sort((a, b) => a.name.localeCompare(b.name));
+  });
 }
 
 export function deduplicateTopics<T extends { id: string; name: string; subject_id: string }>(
@@ -21,5 +21,5 @@ export function deduplicateTopics<T extends { id: string; name: string; subject_
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).sort((a, b) => a.name.localeCompare(b.name));
+  });
 }

@@ -50,7 +50,7 @@ export default async function HistoryPage() {
       .select("id, name, color, exam_type")
       .eq("user_id", user.id)
       .is("deleted_at", null)
-      .order("name"),
+      .order("sort_order"),
   ]);
 
   const statsSessions = (rawStatsSessions ?? []) as unknown as { start_timestamp: string; end_timestamp: string; pause_duration_seconds: number }[];
