@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -221,6 +223,33 @@ export type Database = {
           tag?: Database["public"]["Enums"]["annotation_tag_enum"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      error_reports: {
+        Row: {
+          created_at: string
+          digest: string | null
+          error_details: string | null
+          id: string
+          message: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          digest?: string | null
+          error_details?: string | null
+          id?: string
+          message?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          digest?: string | null
+          error_details?: string | null
+          id?: string
+          message?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1077,6 +1106,8 @@ export type Database = {
       tasks: {
         Row: {
           actual_minutes: number | null
+          actual_questions_count: number | null
+          checklist: Json | null
           client_generated_id: string | null
           completed_at: string | null
           created_at: string
@@ -1091,8 +1122,6 @@ export type Database = {
           parent_task_id: string | null
           planned_date: string
           postpone_count: number
-          actual_questions_count: number | null
-          checklist: Json | null
           questions_count: number | null
           recurrence_pattern: string | null
           source_client: Database["public"]["Enums"]["source_client_enum"]
@@ -1105,6 +1134,8 @@ export type Database = {
         }
         Insert: {
           actual_minutes?: number | null
+          actual_questions_count?: number | null
+          checklist?: Json | null
           client_generated_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -1119,8 +1150,6 @@ export type Database = {
           parent_task_id?: string | null
           planned_date: string
           postpone_count?: number
-          actual_questions_count?: number | null
-          checklist?: Json | null
           questions_count?: number | null
           recurrence_pattern?: string | null
           source_client?: Database["public"]["Enums"]["source_client_enum"]
@@ -1133,6 +1162,8 @@ export type Database = {
         }
         Update: {
           actual_minutes?: number | null
+          actual_questions_count?: number | null
+          checklist?: Json | null
           client_generated_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -1147,8 +1178,6 @@ export type Database = {
           parent_task_id?: string | null
           planned_date?: string
           postpone_count?: number
-          actual_questions_count?: number | null
-          checklist?: Json | null
           questions_count?: number | null
           recurrence_pattern?: string | null
           source_client?: Database["public"]["Enums"]["source_client_enum"]

@@ -21,7 +21,8 @@ export default function ErrorPage({
 
   const handleReport = () => {
     startTransition(async () => {
-      await reportError(error.digest || "Unknown", message);
+      const errorDetails = `Name: ${error.name}\nMessage: ${error.message}\nStack: ${error.stack}`;
+      await reportError(error.digest || "Unknown", message, errorDetails);
       setReported(true);
     });
   };

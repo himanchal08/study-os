@@ -2,15 +2,16 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export async function reportError(digest: string, message?: string) {
+export async function reportError(digest: string, message?: string, errorDetails?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { error } = await supabase.from("error_reports" as any).insert({
+  const { error } = await supabase.from("error_reports").insert({
     user_id: user?.id || null,
     digest,
     message,
-  } as any);
+    error_details: errorDetails,
+  });
 
   if (error) {
     console.error("Failed to insert error report:", error);
