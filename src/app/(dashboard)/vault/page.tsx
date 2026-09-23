@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { VaultUploadForm } from "@/features/vault/VaultUploadForm";
 import { VaultCard } from "@/features/vault/VaultCard";
 import type { Tables } from "@/types/database";
+import { deduplicateSubjects, deduplicateTopics } from "@/lib/subject-utils";
 
 export const metadata: Metadata = { title: "Error Vault" };
 
@@ -19,7 +20,7 @@ export default async function VaultPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: subjects }, { data: topics }, { data: questionsRaw }] = await Promise.all([
+  const [{ data: rawSubjects }, { data: rawTopics }, { data: questionsRaw }] = await Promise.all([
     supabase.from("subjects").select("id, name, exam_type").order("name"),
     supabase.from("topics").select("id, name, subject_id").is("archived_at", null).order("name"),
     supabase
@@ -32,6 +33,9 @@ export default async function VaultPage() {
   ]);
 
   const savedQuestions = (questionsRaw ?? []) as unknown as SavedQuestionRow[];
+  const subjects = deduplicateSubjects(rawSubjects ?? []);
+  const subjectIds = new Set(subjects.map(s => s.id));
+  const topics = deduplicateTopics(rawTopics ?? [], subjectIds);
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">

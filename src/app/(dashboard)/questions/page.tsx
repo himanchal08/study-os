@@ -5,6 +5,7 @@ import { dayBoundaryAwareDate } from "@/lib/calculations";
 import { LogBatchForm } from "@/features/questions/LogBatchForm";
 import type { Tables } from "@/types/database";
 import { QuestionsClient } from "@/features/questions/QuestionsClient";
+import { deduplicateSubjects, deduplicateTopics } from "@/lib/subject-utils";
 
 type BatchRow = Pick<
   Tables<"question_batches">,
@@ -52,8 +53,9 @@ export default async function QuestionsPage() {
       .is("deleted_at", null),
   ]);
 
-  const subjects   = subjectsRaw ?? [];
-  const topics     = topicsRaw ?? [];
+  const subjects = deduplicateSubjects(subjectsRaw ?? []);
+  const subjectIds = new Set(subjects.map(s => s.id));
+  const topics = deduplicateTopics(topicsRaw ?? [], subjectIds);
   const batches    = (batchesRaw ?? []) as unknown as BatchRow[];
   const allBatches = (allBatchesRaw ?? []) as unknown as BatchRow[];
 

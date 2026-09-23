@@ -5,6 +5,7 @@ import { TaskList } from "@/features/tasks/TaskList";
 import type { TaskItem } from "@/features/tasks/TaskCard";
 import { PlannerAddSheet } from "@/features/tasks/PlannerAddSheet";
 import { GoogleCalendarPanel } from "../settings/GoogleCalendarPanel";
+import { deduplicateSubjects, deduplicateTopics } from "@/lib/subject-utils";
 
 export const metadata: Metadata = { title: "Daily Planner" };
 
@@ -32,7 +33,8 @@ export default async function TasksPage() {
     .select("id, name, color, exam_type")
     .order("name", { ascending: true });
 
-  const subjects = rawSubjects ?? [];
+  const subjects = deduplicateSubjects(rawSubjects ?? []);
+  const subjectIds = new Set(subjects.map(s => s.id));
 
   const { data: rawTopics } = await supabase
     .from("topics")
@@ -40,11 +42,7 @@ export default async function TasksPage() {
     .is("archived_at", null)
     .order("name", { ascending: true });
 
-  const topics = rawTopics
-    ? rawTopics
-        .filter(t => t.name.toLowerCase().trim() !== "no specific topic" && t.name.trim() !== "")
-        .sort((a, b) => a.name.localeCompare(b.name))
-    : [];
+  const topics = deduplicateTopics(rawTopics ?? [], subjectIds);
 
   const windowStart = new Date(todayDate);
   windowStart.setUTCDate(windowStart.getUTCDate() - 30);

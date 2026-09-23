@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AddSubjectForm } from "@/features/syllabus/AddSubjectForm";
 import { AddTopicForm } from "@/features/syllabus/AddTopicForm";
 import { SyllabusTabs } from "@/features/syllabus/SyllabusTabs";
+import { deduplicateSubjects, deduplicateTopics } from "@/lib/subject-utils";
 
 export const metadata: Metadata = { title: "Syllabus Coverage" };
 
@@ -12,7 +13,7 @@ export default async function SyllabusPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: subjects }, { data: topics }, { data: chapters }, { data: lifecycles }, { data: profile }] = await Promise.all([
+  const [{ data: rawSubjects }, { data: rawTopics }, { data: chapters }, { data: lifecycles }, { data: profile }] = await Promise.all([
     supabase.from("subjects").select("id, name, color, exam_type").eq("user_id", user.id).is("deleted_at", null).order("name"),
     supabase.from("topics").select("id, name, status, subject_id, chapter_id").eq("user_id", user.id).is("deleted_at", null).is("archived_at", null).order("name"),
     supabase.from("chapters").select("id, name, subject_id, sort_order").eq("user_id", user.id).is("deleted_at", null).order("sort_order"),
@@ -20,9 +21,13 @@ export default async function SyllabusPage() {
     supabase.from("profiles").select("exam_targets").eq("user_id", user.id).single(),
   ]);
 
-  const subjectWithTopics = ((subjects as {id: string; name: string; color: string; exam_type: string}[]) ?? []).map(s => ({
+  const subjects = deduplicateSubjects((rawSubjects as {id: string; name: string; color: string; exam_type: string}[]) ?? []);
+  const subjectIds = new Set(subjects.map(s => s.id));
+  const topics = deduplicateTopics((rawTopics as {id: string; name: string; status: string; subject_id: string; chapter_id: string | null}[]) ?? [], subjectIds);
+
+  const subjectWithTopics = subjects.map(s => ({
     ...s,
-    topics:   ((topics   as {id: string; name: string; status: string; subject_id: string; chapter_id: string | null}[]) ?? []).filter(t  => t.subject_id  === s.id).map(t => {
+    topics:   topics.filter(t  => t.subject_id  === s.id).map(t => {
       const lc = ((lifecycles as {topic_id: string; book_practice_done: boolean; dpp_done: boolean; pyq_done: boolean; tests_attempted_count: number}[]) ?? []).find(l => l.topic_id === t.id);
       return { ...t, status: t.status as "not_started" | "learning" | "learned" | "revising" | "strong" | "weak", lifecycle: lc || null };
     }),

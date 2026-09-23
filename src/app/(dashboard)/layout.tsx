@@ -5,6 +5,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import type { Tables } from "@/types/database";
 import { GlobalTimer } from "@/features/study-timer/GlobalTimer";
 import { dayBoundaryAwareDate } from "@/lib/calculations";
+import { deduplicateSubjects, deduplicateTopics } from "@/lib/subject-utils";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 
 export default async function DashboardLayout({
@@ -68,25 +69,9 @@ export default async function DashboardLayout({
       .is("deleted_at", null),
   ]);
 
-  const subjectsSeen = new Set<string>();
-  const subjects = (rawSubjects ?? []).filter(s => {
-    const key = s.name.toLowerCase().trim();
-    if (subjectsSeen.has(key)) return false;
-    subjectsSeen.add(key);
-    return true;
-  });
-
+  const subjects = deduplicateSubjects(rawSubjects ?? []);
   const subjectIds = new Set(subjects.map(s => s.id));
-
-  const topicsSeen = new Set<string>();
-  const topics = (rawTopics ?? []).filter(t => {
-    if (!subjectIds.has(t.subject_id)) return false;
-    if (t.name.toLowerCase().includes("no specific")) return false;
-    const key = `${t.subject_id}-${t.name.toLowerCase().trim()}`;
-    if (topicsSeen.has(key)) return false;
-    topicsSeen.add(key);
-    return true;
-  });
+  const topics = deduplicateTopics(rawTopics ?? [], subjectIds);
 
   return (
     <div key={safeUser.id} className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>

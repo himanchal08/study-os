@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { dayBoundaryAwareDate } from "@/lib/calculations";
 import { HistoryClient, type HistorySession } from "@/features/study-timer/HistoryClient";
+import { deduplicateSubjects } from "@/lib/subject-utils";
 
 export const metadata: Metadata = { title: "Session History" };
 
@@ -54,7 +55,7 @@ export default async function HistoryPage() {
 
   const statsSessions = (rawStatsSessions ?? []) as unknown as { start_timestamp: string; end_timestamp: string; pause_duration_seconds: number }[];
   const displaySessions = (rawDisplaySessions ?? []) as unknown as HistorySession[];
-  const subjects = rawSubjects ?? [];
+  const subjects = deduplicateSubjects(rawSubjects ?? []);
 
 
   const totalAllTimeSecs = statsSessions.reduce((acc, s) => acc + sessionSecs(s), 0);

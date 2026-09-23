@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PastYouComparison } from "@/features/analytics/PastYouComparison";
 import { studyDurationSeconds } from "@/lib/calculations/time";
 import { accuracy } from "@/lib/calculations/questions";
+import { deduplicateSubjects, deduplicateTopics } from "@/lib/subject-utils";
 
 export const metadata: Metadata = { title: "Subject Performance" };
 
@@ -15,8 +16,8 @@ export default async function SubjectPerformancePage() {
 
   
   const [
-    { data: subjects },
-    { data: topics },
+    { data: rawSubjects },
+    { data: rawTopics },
     { data: sessions },
     { data: questionBatches }
   ] = await Promise.all([
@@ -25,6 +26,10 @@ export default async function SubjectPerformancePage() {
     supabase.from("study_sessions").select("subject_id, start_timestamp, end_timestamp, pause_duration_seconds").eq("user_id", user.id).is("deleted_at", null).not("end_timestamp", "is", null),
     supabase.from("question_batches").select("subject_id, topic_id, correct, attempted, created_at").eq("user_id", user.id)
   ]);
+
+  const subjects = deduplicateSubjects(rawSubjects ?? []);
+  const subjectIds = new Set(subjects.map(s => s.id));
+  const topics = deduplicateTopics(rawTopics ?? [], subjectIds);
 
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
