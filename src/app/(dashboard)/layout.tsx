@@ -52,14 +52,14 @@ export default async function DashboardLayout({
       .select("id, name, color, exam_type")
       .eq("user_id", safeUser.id)
       .is("deleted_at", null)
-      .order("sort_order", { ascending: true }),
+      .order("name", { ascending: true }),
     supabase
       .from("topics")
       .select("id, name, subject_id")
       .eq("user_id", safeUser.id)
       .is("deleted_at", null)
       .is("archived_at", null)
-      .order("created_at", { ascending: true }),
+      .order("name", { ascending: true }),
     supabase
       .from("tasks")
       .select("*", { count: "exact", head: true })
