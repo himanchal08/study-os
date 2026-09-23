@@ -103,7 +103,6 @@ export default async function HomePage() {
       .select("*, subjects(id, name, color), topics(id, name)")
       .eq("user_id", user.id)
       .eq("planned_date", todayStr)
-      .neq("status", "completed")
       .is("deleted_at", null),
     supabase
       .from("study_sessions")
@@ -136,7 +135,11 @@ export default async function HomePage() {
 
   const overdueCount = overdueCountRaw ?? 0;
   const revisionsCount = revisionsDue?.length ?? 0;
-  const todayTasks = (todayTasksRaw ?? []) as unknown as TaskItem[];
+  const todayTasks = ((todayTasksRaw ?? []) as unknown as TaskItem[]).sort((a, b) => {
+    if (a.status === "completed" && b.status !== "completed") return 1;
+    if (a.status !== "completed" && b.status === "completed") return -1;
+    return 0;
+  });
 
   const heatSessions = (heatSessionsRaw ?? []) as unknown as Array<{
     start_timestamp: string;
