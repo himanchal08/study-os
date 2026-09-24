@@ -166,7 +166,7 @@ export default async function HomePage() {
 
   const todayPlannedQs = todayTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
   const todayBatchQs = (todayBatchesRaw ?? []).reduce((sum, b) => sum + (b.attempted || 0), 0);
-  const todayActualQs = todayTasks.reduce((sum, t) => sum + (t.actual_questions_count || 0), 0) + todayBatchQs;
+  const todayActualQs = todayBatchQs;
   const qsCap = profile?.daily_questions_cap ?? 250;
   const qsPct = todayPlannedQs > 0 ? Math.min(100, (todayActualQs / todayPlannedQs) * 100) : 0;
 
