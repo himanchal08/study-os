@@ -8,11 +8,18 @@ interface Stats {
   accuracy: number | null;
 }
 
+interface TopicStat {
+  name: string;
+  attempted: number;
+  correct: number;
+}
+
 interface SubjectStat {
   name: string;
   color: string;
   attempted: number;
   correct: number;
+  topics: TopicStat[];
 }
 
 interface BatchItem {
@@ -121,7 +128,7 @@ export function QuestionsClient({ todayStats, weekStats, allStats, subjectStats 
             Subject Breakdown <span className="text-neutral-700 font-normal normal-case">(all time)</span>
           </p>
 
-          <div className="space-y-2.5">
+          <div className="space-y-4">
             {subjectStats.map(s => {
               const pct = s.attempted > 0 ? Math.round((s.correct / s.attempted) * 100) : 0;
               const barColor = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
@@ -129,7 +136,7 @@ export function QuestionsClient({ todayStats, weekStats, allStats, subjectStats 
                 ? Math.round((s.attempted / allStats.attempted) * 100)
                 : 0;
               return (
-                <div key={s.name}>
+                <div key={s.name} className="space-y-1.5">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2 min-w-0">
                       <span
@@ -158,6 +165,23 @@ export function QuestionsClient({ todayStats, weekStats, allStats, subjectStats 
                       {totalPct}%
                     </span>
                   </div>
+                  {s.topics && s.topics.length > 0 && (
+                    <div className="pl-4 pt-1 space-y-1">
+                      {s.topics.map(t => {
+                        const tPct = t.attempted > 0 ? Math.round((t.correct / t.attempted) * 100) : 0;
+                        const tBarColor = tPct >= 80 ? "#10b981" : tPct >= 60 ? "#f59e0b" : "#ef4444";
+                        return (
+                          <div key={t.name} className="flex items-center justify-between group">
+                            <span className="text-[10px] text-neutral-500 truncate group-hover:text-neutral-400 transition-colors">{t.name}</span>
+                            <div className="flex items-center gap-2 text-[9px] tabular-nums shrink-0">
+                              <span className="text-neutral-600">{t.attempted.toLocaleString()}</span>
+                              <span style={{ color: tBarColor }} className="font-medium">{tPct}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}

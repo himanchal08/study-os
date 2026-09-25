@@ -48,7 +48,7 @@ export default async function QuestionsPage() {
     // All-time stats (no date filter, just aggregate data)
     supabase
       .from("question_batches")
-      .select("attempted, correct, subject_id, subjects(name, color)")
+      .select("attempted, correct, subject_id, topic_id, subjects(name, color), topics(name)")
       .eq("user_id", user.id)
       .is("deleted_at", null),
   ]);
@@ -71,20 +71,48 @@ export default async function QuestionsPage() {
   );
 
   // All-time subject-wise breakdown
-  type SubjectStat = { name: string; color: string; attempted: number; correct: number };
+  type TopicStat = { name: string; attempted: number; correct: number };
+  type SubjectStat = { name: string; color: string; attempted: number; correct: number; topics: TopicStat[] };
   const subjectMap = new Map<string, SubjectStat>();
+  const topicMapBySubject = new Map<string, Map<string, TopicStat>>();
 
   for (const b of allBatches) {
     const sub = b.subjects as { name: string; color: string | null } | null;
+    const top = b.topics as { name: string } | null;
+    
     const key = b.subject_id ?? "__none__";
     const name = sub?.name ?? "No Subject";
     const color = sub?.color ?? "#52525b";
-    if (!subjectMap.has(key)) subjectMap.set(key, { name, color, attempted: 0, correct: 0 });
+
+    const topicKey = b.topic_id ?? "__none__";
+    const topicName = top?.name ?? "No Topic";
+
+    if (!subjectMap.has(key)) {
+      subjectMap.set(key, { name, color, attempted: 0, correct: 0, topics: [] });
+      topicMapBySubject.set(key, new Map<string, TopicStat>());
+    }
+
     const entry = subjectMap.get(key)!;
     entry.attempted += b.attempted;
     entry.correct   += b.correct;
+
+    if (b.topic_id || top) {
+      const tMap = topicMapBySubject.get(key)!;
+      if (!tMap.has(topicKey)) {
+        tMap.set(topicKey, { name: topicName, attempted: 0, correct: 0 });
+      }
+      const tEntry = tMap.get(topicKey)!;
+      tEntry.attempted += b.attempted;
+      tEntry.correct += b.correct;
+    }
   }
-  const subjectStats = Array.from(subjectMap.values())
+  const subjectStats = Array.from(subjectMap.entries())
+    .map(([key, stat]) => {
+      stat.topics = Array.from(topicMapBySubject.get(key)!.values())
+        .filter(t => t.attempted > 0)
+        .sort((a, b) => b.attempted - a.attempted);
+      return stat;
+    })
     .filter(s => s.attempted > 0)
     .sort((a, b) => b.attempted - a.attempted);
 
