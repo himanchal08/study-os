@@ -122,9 +122,9 @@ export function validateMock(mock: {
   if (score > maximumMarks) {
     throw new Error(`score (${score}) cannot exceed maximum_marks (${maximumMarks})`);
   }
-  if (correct + wrong + unattempted !== attempted) {
+  if (correct + wrong !== attempted) {
     throw new Error(
-      `correct (${correct}) + wrong (${wrong}) + unattempted (${unattempted}) must equal attempted (${attempted})`
+      `correct (${correct}) + wrong (${wrong}) must equal attempted (${attempted})`
     );
   }
   if (actualDurationMinutes <= 0) {

@@ -734,6 +734,7 @@ export type Database = {  __InternalSupabase: {
           id: string
           is_adaptive: boolean
           recall_score: number | null
+          skip_count: number
           source_session_id: string | null
           topic_id: string
           updated_at: string
@@ -750,6 +751,7 @@ export type Database = {  __InternalSupabase: {
           id?: string
           is_adaptive?: boolean
           recall_score?: number | null
+          skip_count?: number
           source_session_id?: string | null
           topic_id: string
           updated_at?: string
@@ -766,6 +768,7 @@ export type Database = {  __InternalSupabase: {
           id?: string
           is_adaptive?: boolean
           recall_score?: number | null
+          skip_count?: number
           source_session_id?: string | null
           topic_id?: string
           updated_at?: string

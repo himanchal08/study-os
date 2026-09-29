@@ -7,6 +7,7 @@ import { GlobalTimer } from "@/features/study-timer/GlobalTimer";
 import { dayBoundaryAwareDate } from "@/lib/calculations";
 import { deduplicateSubjects, deduplicateTopics } from "@/lib/subject-utils";
 import { CommandPalette } from "@/components/ui/CommandPalette";
+import { RevisionNotificationBanner } from "@/features/revisions/RevisionNotificationBanner";
 
 export default async function DashboardLayout({
   children,
@@ -91,6 +92,7 @@ export default async function DashboardLayout({
           topics={topics ?? []}
           timezone={profile?.timezone ?? "Asia/Kolkata"}
         />
+        <RevisionNotificationBanner />
         <main
           id="main-content"
           className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6"

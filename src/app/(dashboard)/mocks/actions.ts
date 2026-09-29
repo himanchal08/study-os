@@ -28,6 +28,9 @@ export async function logMock(prevState: unknown, formData: FormData) {
 
     if (!name || !source || !mockDate) return { error: "Name, source and date are required." };
     if (isNaN(score) || isNaN(maxMarks) || maxMarks <= 0) return { error: "Invalid marks." };
+    if (correct + wrong !== attempted) {
+      return { error: "Correct + Wrong must equal Attempted." };
+    }
 
     const { error } = await supabase.from("mocks").insert({
       user_id: user.id,
