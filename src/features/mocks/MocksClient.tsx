@@ -73,7 +73,7 @@ function EditMockModal({ mock, onClose }: { mock: MockItem; onClose: () => void 
             onClick={onClose}
             className="text-neutral-600 hover:text-neutral-300 transition-colors text-lg leading-none"
           >
-            ?
+            ✕
           </button>
         </div>
 
@@ -245,7 +245,7 @@ function MockCard({ mock, sectionCount }: { mock: MockItem; sectionCount: number
                 href={`/mocks/${mock.id}`}
                 className="text-[10px] text-neutral-500 hover:text-neutral-300 transition-colors shrink-0"
               >
-                View ?
+                View →
               </Link>
             </div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -262,8 +262,8 @@ function MockCard({ mock, sectionCount }: { mock: MockItem; sectionCount: number
               )}
             </div>
             <div className="flex items-center gap-3 mt-2 text-xs text-neutral-500">
-              <span>? {mock.correct}</span>
-              <span>? {mock.wrong}</span>
+              <span>✓ {mock.correct}</span>
+              <span>✗ {mock.wrong}</span>
               <span>— {mock.unattempted}</span>
               <span className="text-neutral-600">·</span>
               <span>{accuracy}% acc</span>

@@ -131,6 +131,17 @@ export default async function QuestionsPage() {
         <p className="text-xs mt-1 text-neutral-500">Log batches, track accuracy over time.</p>
       </div>
 
+      <QuestionsClient
+        todayStats={todayStats}
+        weekStats={weekStats}
+        allStats={allStats}
+        subjectStats={subjectStats}
+        batches={[]}
+        todayStr={todayStr}
+        offsetMin={offsetMin}
+        timezone={timezone}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-2">
           <div className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
@@ -141,10 +152,10 @@ export default async function QuestionsPage() {
 
         <div className="lg:col-span-3">
           <QuestionsClient
-            todayStats={todayStats}
-            weekStats={weekStats}
-            allStats={allStats}
-            subjectStats={subjectStats}
+            todayStats={{ attempted: 0, correct: 0, accuracy: null }}
+            weekStats={{ attempted: 0, correct: 0, accuracy: null }}
+            allStats={{ attempted: 0, correct: 0, accuracy: null }}
+            subjectStats={[]}
             batches={batches.map(b => ({
               id: b.id,
               logged_at: b.logged_at,
@@ -159,6 +170,7 @@ export default async function QuestionsPage() {
             todayStr={todayStr}
             offsetMin={offsetMin}
             timezone={timezone}
+            hideStats
           />
         </div>
       </div>

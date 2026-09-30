@@ -44,6 +44,7 @@ interface Props {
   todayStr: string;
   offsetMin: number;
   timezone: string;
+  hideStats?: boolean;
 }
 
 type Tab = "today" | "week" | "all";
@@ -68,11 +69,11 @@ function EditBatchModal({ batch, onClose }: { batch: BatchItem; onClose: () => v
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto"
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
     >
       <div
-        className="w-full max-w-sm rounded-2xl p-5 space-y-4 relative"
+        className="w-full max-w-sm rounded-2xl p-5 space-y-4 relative my-8"
         style={{ background: "#0d0d0d", border: "1px solid #262626" }}
       >
         <div className="flex items-center justify-between">
@@ -279,7 +280,7 @@ function BatchCard({ batch, todayStr, offsetMin, timezone }: { batch: BatchItem;
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export function QuestionsClient({ todayStats, weekStats, allStats, subjectStats, batches, todayStr, offsetMin, timezone }: Props) {
+export function QuestionsClient({ todayStats, weekStats, allStats, subjectStats, batches, todayStr, offsetMin, timezone, hideStats }: Props) {
   const [tab, setTab] = useState<Tab>("today");
 
   const stats = tab === "today" ? todayStats : tab === "week" ? weekStats : allStats;
@@ -294,64 +295,68 @@ export function QuestionsClient({ todayStats, weekStats, allStats, subjectStats,
   return (
     <div className="space-y-4">
 
-      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-        {(["today", "week", "all"] as Tab[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-            style={{
-              background: tab === t ? "#1a1a1a" : "transparent",
-              color: tab === t ? "#ededed" : "#525252",
-              border: tab === t ? "1px solid #262626" : "1px solid transparent",
-            }}
-          >
-            {t === "today" ? "Today" : t === "week" ? "7 Days" : "All Time"}
-          </button>
-        ))}
-      </div>
-
-
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          {
-            label: "Attempted",
-            value: stats.attempted.toLocaleString(),
-            color: "#ededed",
-            empty: stats.attempted === 0,
-          },
-          {
-            label: "Correct",
-            value: stats.correct.toLocaleString(),
-            color: "#10b981",
-            empty: stats.attempted === 0,
-          },
-          {
-            label: "Accuracy",
-            value: stats.accuracy !== null ? `${stats.accuracy}%` : "—",
-            color: accColor,
-            empty: stats.accuracy === null,
-          },
-        ].map(({ label, value, color, empty }) => (
-          <div
-            key={label}
-            className="rounded-xl p-3 text-center"
-            style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
-          >
-            <p className="text-[9px] uppercase tracking-wider text-neutral-600 mb-1">{label}</p>
-            <p
-              className="text-lg font-bold tabular-nums"
-              style={{ color: empty ? "#333" : color }}
+      {!hideStats && (
+        <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+          {(["today", "week", "all"] as Tab[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={{
+                background: tab === t ? "#1a1a1a" : "transparent",
+                color: tab === t ? "#ededed" : "#525252",
+                border: tab === t ? "1px solid #262626" : "1px solid transparent",
+              }}
             >
-              {empty && label !== "Accuracy" ? "0" : value}
-            </p>
-            <p className="text-[9px] text-neutral-700 mt-0.5">{tabLabel}</p>
-          </div>
-        ))}
-      </div>
+              {t === "today" ? "Today" : t === "week" ? "7 Days" : "All Time"}
+            </button>
+          ))}
+        </div>
+      )}
 
 
-      {subjectStats.length > 0 && (
+      {!hideStats && (
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            {
+              label: "Attempted",
+              value: stats.attempted.toLocaleString(),
+              color: "#ededed",
+              empty: stats.attempted === 0,
+            },
+            {
+              label: "Correct",
+              value: stats.correct.toLocaleString(),
+              color: "#10b981",
+              empty: stats.attempted === 0,
+            },
+            {
+              label: "Accuracy",
+              value: stats.accuracy !== null ? `${stats.accuracy}%` : "—",
+              color: accColor,
+              empty: stats.accuracy === null,
+            },
+          ].map(({ label, value, color, empty }) => (
+            <div
+              key={label}
+              className="rounded-xl p-3 text-center"
+              style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
+            >
+              <p className="text-[9px] uppercase tracking-wider text-neutral-600 mb-1">{label}</p>
+              <p
+                className="text-lg font-bold tabular-nums"
+                style={{ color: empty ? "#333" : color }}
+              >
+                {empty && label !== "Accuracy" ? "0" : value}
+              </p>
+              <p className="text-[9px] text-neutral-700 mt-0.5">{tabLabel}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+
+      {!hideStats && subjectStats.length > 0 && (
         <div
           className="rounded-xl p-4 space-y-3"
           style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
@@ -432,8 +437,12 @@ export function QuestionsClient({ todayStats, weekStats, allStats, subjectStats,
         </div>
       )}
 
+      {hideStats && (
+        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recent Batches</p>
+      )}
+
       {/* Batch list with Edit/Delete */}
-      {batches.length > 0 && (
+      {batches.length > 0 ? (
         <div className="space-y-2">
           {batches.map(b => (
             <BatchCard
@@ -445,7 +454,11 @@ export function QuestionsClient({ todayStats, weekStats, allStats, subjectStats,
             />
           ))}
         </div>
-      )}
+      ) : hideStats ? (
+        <div className="rounded-xl p-8 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+          <p className="text-sm text-neutral-600">No batches yet — log your first set.</p>
+        </div>
+      ) : null}
     </div>
   );
 }
