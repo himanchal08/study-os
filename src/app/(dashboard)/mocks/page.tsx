@@ -72,9 +72,9 @@ export default async function MocksPage() {
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Total Mocks", value: allMocks.length || "—" },
-          { label: "Avg Score", value: avgScore !== null ? `${avgScore.toFixed(1)}%` : "—" },
-          { label: "Best Score", value: bestPct !== null ? `${bestPct.toFixed(1)}%` : "—" },
+          { label: "Total Mocks", value: allMocks.length || "â€”" },
+          { label: "Avg Score", value: avgScore !== null ? `${avgScore.toFixed(1)}%` : "â€”" },
+          { label: "Best Score", value: bestPct !== null ? `${bestPct.toFixed(1)}%` : "â€”" },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl p-4" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
             <p className="text-[10px] uppercase tracking-wider text-neutral-600 mb-1">{label}</p>

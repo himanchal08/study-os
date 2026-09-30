@@ -106,7 +106,7 @@ function EditMockModal({ mock, onClose }: { mock: MockItem; onClose: () => void 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Stage</label>
-              <input name="stage" type="text" defaultValue={mock.stage ?? ""} placeholder="Pre / Mains…" className={inputCls} style={inputStyle} />
+              <input name="stage" type="text" defaultValue={mock.stage ?? ""} placeholder="Pre / Mainsâ€¦" className={inputCls} style={inputStyle} />
             </div>
             <div>
               <label className={labelCls}>Date *</label>
@@ -210,7 +210,7 @@ function EditMockModal({ mock, onClose }: { mock: MockItem; onClose: () => void 
               className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40"
               style={{ background: "#ededed", color: "#0a0a0a" }}
             >
-              {isPending ? "Saving…" : "Save Changes"}
+              {isPending ? "Savingâ€¦" : "Save Changes"}
             </button>
           </div>
         </form>
@@ -264,8 +264,8 @@ function MockCard({ mock, sectionCount }: { mock: MockItem; sectionCount: number
             <div className="flex items-center gap-3 mt-2 text-xs text-neutral-500">
               <span>? {mock.correct}</span>
               <span>? {mock.wrong}</span>
-              <span>— {mock.unattempted}</span>
-              <span className="text-neutral-600">·</span>
+              <span>â€” {mock.unattempted}</span>
+              <span className="text-neutral-600">Â·</span>
               <span>{accuracy}% acc</span>
               {mock.percentile && <span className="text-emerald-400">{mock.percentile.toFixed(1)}%ile</span>}
             </div>
@@ -287,7 +287,7 @@ function MockCard({ mock, sectionCount }: { mock: MockItem; sectionCount: number
                 className="text-[10px] px-2 py-1 rounded-lg transition-colors font-medium"
                 style={{ background: "#1a0808", color: "#f87171", border: "1px solid #3f1515" }}
               >
-                {deleting ? "…" : "Del"}
+                {deleting ? "â€¦" : "Del"}
               </button>
             </div>
           </div>
