@@ -19,7 +19,7 @@ export default async function TasksPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("day_boundary_offset_minutes, timezone, daily_questions_cap, google_refresh_token, google_last_synced_at")
+    .select("day_boundary_offset_minutes, timezone, daily_questions_cap, google_refresh_token, google_last_synced_at, exam_targets")
     .eq("user_id", user.id)
     .single();
 
@@ -33,7 +33,15 @@ export default async function TasksPage() {
     .select("id, name, color, exam_type")
     .order("sort_order", { ascending: true });
 
-  const subjects = deduplicateSubjects(rawSubjects ?? []);
+  const allSubjects = deduplicateSubjects(rawSubjects ?? []);
+
+  // Filter subjects by exam_targets (mirrors syllabus page logic)
+  const examTargets: string[] = profile?.exam_targets ?? [];
+  const isBoth = examTargets.includes("both");
+  const subjects = isBoth || examTargets.length === 0
+    ? allSubjects
+    : allSubjects.filter(s => examTargets.some(target => s.exam_type === target || s.exam_type === "both"));
+
   const subjectIds = new Set(subjects.map(s => s.id));
 
   const { data: rawTopics } = await supabase

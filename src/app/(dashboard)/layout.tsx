@@ -33,6 +33,7 @@ export default async function DashboardLayout({
 
   const offsetMin = profile?.day_boundary_offset_minutes ?? 0;
   const timezone  = profile?.timezone ?? "Asia/Kolkata";
+  const examTargets: string[] = profile?.exam_targets ?? [];
   // eslint-disable-next-line react-hooks/purity
   const todayStr  = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
 
@@ -74,6 +75,14 @@ export default async function DashboardLayout({
   const subjectIds = new Set(subjects.map(s => s.id));
   const topics = deduplicateTopics(rawTopics ?? [], subjectIds);
 
+  // Filter subjects for the GlobalTimer by exam_targets (mirrors syllabus page logic)
+  const isBoth = examTargets.includes("both");
+  const timerSubjects = isBoth || examTargets.length === 0
+    ? subjects
+    : subjects.filter(s => examTargets.some(target => s.exam_type === target || s.exam_type === "both"));
+  const timerSubjectIds = new Set(timerSubjects.map(s => s.id));
+  const timerTopics = topics.filter(t => timerSubjectIds.has(t.subject_id));
+
   return (
     <div key={safeUser.id} className="flex h-dvh overflow-hidden" style={{ background: "var(--background)" }}>
       <Sidebar userEmail={safeUser.email ?? ""} pendingTaskCount={pendingTaskCount ?? 0} />
@@ -88,8 +97,8 @@ export default async function DashboardLayout({
         <GlobalTimer
           userId={safeUser.id}
           activeSession={activeSession}
-          subjects={subjects ?? []}
-          topics={topics ?? []}
+          subjects={timerSubjects ?? []}
+          topics={timerTopics ?? []}
           timezone={profile?.timezone ?? "Asia/Kolkata"}
         />
         <RevisionNotificationBanner />
