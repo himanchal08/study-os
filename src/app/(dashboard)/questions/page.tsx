@@ -45,7 +45,6 @@ export default async function QuestionsPage() {
       .gte("logged_at", batchWindowStart)
       .order("logged_at", { ascending: false })
       .limit(300),
-    // All-time stats (no date filter, just aggregate data)
     supabase
       .from("question_batches")
       .select("attempted, correct, subject_id, topic_id, subjects(name, color), topics(name)")
@@ -59,18 +58,15 @@ export default async function QuestionsPage() {
   const batches    = (batchesRaw ?? []) as unknown as BatchRow[];
   const allBatches = (allBatchesRaw ?? []) as unknown as BatchRow[];
 
-  // Today's stats
-  const todayBatches   = batches.filter(b =>
+  const todayBatches = batches.filter(b =>
     dayBoundaryAwareDate(new Date(b.logged_at).getTime(), offsetMin, timezone) === todayStr
   );
 
-  // Week stats (7 days)
   const weekStart = dayBoundaryAwareDate(nowMs - 6 * 86400000, offsetMin, timezone);
   const weekBatches = batches.filter(b =>
     dayBoundaryAwareDate(new Date(b.logged_at).getTime(), offsetMin, timezone) >= weekStart
   );
 
-  // All-time subject-wise breakdown
   type TopicStat = { name: string; attempted: number; correct: number };
   type SubjectStat = { name: string; color: string; attempted: number; correct: number; topics: TopicStat[] };
   const subjectMap = new Map<string, SubjectStat>();
@@ -79,7 +75,7 @@ export default async function QuestionsPage() {
   for (const b of allBatches) {
     const sub = b.subjects as { name: string; color: string | null } | null;
     const top = b.topics as { name: string } | null;
-    
+
     const key = b.subject_id ?? "__none__";
     const name = sub?.name ?? "No Subject";
     const color = sub?.color ?? "#52525b";
@@ -106,6 +102,7 @@ export default async function QuestionsPage() {
       tEntry.correct += b.correct;
     }
   }
+
   const subjectStats = Array.from(subjectMap.entries())
     .map(([key, stat]) => {
       stat.topics = Array.from(topicMapBySubject.get(key)!.values())
@@ -116,7 +113,6 @@ export default async function QuestionsPage() {
     .filter(s => s.attempted > 0)
     .sort((a, b) => b.attempted - a.attempted);
 
-  // Compute stats helper
   function computeStats(rows: BatchRow[]) {
     const attempted = rows.reduce((s, b) => s + b.attempted, 0);
     const correct   = rows.reduce((s, b) => s + b.correct, 0);
@@ -124,9 +120,9 @@ export default async function QuestionsPage() {
     return { attempted, correct, accuracy };
   }
 
-  const todayStats  = computeStats(todayBatches);
-  const weekStats   = computeStats(weekBatches);
-  const allStats    = computeStats(allBatches);
+  const todayStats = computeStats(todayBatches);
+  const weekStats  = computeStats(weekBatches);
+  const allStats   = computeStats(allBatches);
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
@@ -134,27 +130,6 @@ export default async function QuestionsPage() {
         <h1 className="text-xl font-semibold text-neutral-100 tracking-tight">Question Practice</h1>
         <p className="text-xs mt-1 text-neutral-500">Log batches, track accuracy over time.</p>
       </div>
-
-      <QuestionsClient
-        todayStats={todayStats}
-        weekStats={weekStats}
-        allStats={allStats}
-        subjectStats={subjectStats}
-        batches={batches.map(b => ({
-          id: b.id,
-          logged_at: b.logged_at,
-          attempted: b.attempted,
-          correct: b.correct,
-          source: b.source ?? null,
-          notes: b.notes ?? null,
-          duration_minutes: b.duration_minutes ?? null,
-          subject: b.subjects as { name: string; color: string | null } | null,
-          topic: b.topics as { name: string } | null,
-        }))}
-        todayStr={todayStr}
-        offsetMin={offsetMin}
-        timezone={timezone}
-      />
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-2">
@@ -164,69 +139,27 @@ export default async function QuestionsPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-3 space-y-2">
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recent Batches</p>
-
-          {batches.length === 0 ? (
-            <div className="rounded-xl p-8 text-center" style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-              <p className="text-sm text-neutral-600">No batches yet — log your first set above.</p>
-            </div>
-          ) : (
-            batches.map(b => {
-              const subject = b.subjects as { name: string; color: string | null } | null;
-              const topic   = b.topics   as { name: string } | null;
-              const isToday = dayBoundaryAwareDate(new Date(b.logged_at).getTime(), offsetMin, timezone) === todayStr;
-              const pct = b.attempted > 0 ? Math.round((b.correct / b.attempted) * 100) : 0;
-              const barColor = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
-              return (
-                <div
-                  key={b.id}
-                  className="rounded-xl p-3.5"
-                  style={{ background: "#0a0a0a", border: "1px solid #1a1a1a" }}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2.5">
-                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                      {subject && (
-                        <span
-                          className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                          style={{ background: `${subject.color ?? "#555"}20`, color: subject.color ?? "#aaa" }}
-                        >
-                          {subject.name}
-                        </span>
-                      )}
-                      {topic && <span className="text-[10px] text-neutral-500 truncate">{topic.name}</span>}
-                      {b.source && <span className="text-[10px] text-neutral-700">· {b.source}</span>}
-                      {isToday && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full text-emerald-400" style={{ background: "#10b98118" }}>
-                          today
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-baseline gap-1 shrink-0">
-                      <span className="text-base font-bold tabular-nums text-emerald-400">{b.correct}</span>
-                      <span className="text-neutral-700 text-xs">/</span>
-                      <span className="text-sm font-semibold tabular-nums text-neutral-300">{b.attempted}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#1a1a1a" }}>
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
-                    </div>
-                    <span className="text-xs tabular-nums shrink-0 font-medium" style={{ color: barColor }}>{pct}%</span>
-                  </div>
-
-                  {b.notes && <p className="text-xs text-neutral-600 mt-2 leading-relaxed">{b.notes}</p>}
-
-                  <p className="text-[10px] text-neutral-700 mt-2">
-                    {new Date(b.logged_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: timezone })}
-                    {b.duration_minutes ? ` · ${b.duration_minutes} min` : ""}
-                  </p>
-                </div>
-              );
-            })
-          )}
+        <div className="lg:col-span-3">
+          <QuestionsClient
+            todayStats={todayStats}
+            weekStats={weekStats}
+            allStats={allStats}
+            subjectStats={subjectStats}
+            batches={batches.map(b => ({
+              id: b.id,
+              logged_at: b.logged_at,
+              attempted: b.attempted,
+              correct: b.correct,
+              source: b.source ?? null,
+              notes: b.notes ?? null,
+              duration_minutes: b.duration_minutes ?? null,
+              subject: b.subjects as { name: string; color: string | null } | null,
+              topic: b.topics as { name: string } | null,
+            }))}
+            todayStr={todayStr}
+            offsetMin={offsetMin}
+            timezone={timezone}
+          />
         </div>
       </div>
     </div>

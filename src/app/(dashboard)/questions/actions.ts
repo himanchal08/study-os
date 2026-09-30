@@ -76,3 +76,51 @@ export async function deleteQuestionBatch(id: string) {
   revalidatePath("/questions");
   revalidatePath("/");
 }
+
+export async function updateQuestionBatch(prevState: unknown, formData: FormData) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Unauthorized" };
+
+    const id = formData.get("id") as string;
+    const attempted = Number(formData.get("attempted"));
+    const correct = Number(formData.get("correct"));
+    const wrong = Number(formData.get("wrong"));
+    const skipped = Number(formData.get("skipped"));
+    const subjectId = (formData.get("subject_id") as string) || null;
+    const topicId = (formData.get("topic_id") as string) || null;
+    const source = (formData.get("source") as string)?.trim() || null;
+    const durationMinutes = formData.get("duration_minutes") ? Number(formData.get("duration_minutes")) : null;
+    const notes = (formData.get("notes") as string)?.trim() || null;
+
+    if (!id) return { error: "Missing batch id" };
+    if (isNaN(attempted) || attempted <= 0) return { error: "Attempted must be > 0" };
+    if (correct + wrong + skipped > attempted) return { error: "Correct + wrong + skipped cannot exceed attempted" };
+
+    const { error } = await supabase
+      .from("question_batches")
+      .update({
+        subject_id: subjectId || null,
+        topic_id: topicId || null,
+        attempted,
+        correct,
+        wrong,
+        skipped,
+        source,
+        duration_minutes: durationMinutes,
+        notes,
+      })
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) return { error: error.message };
+
+    revalidatePath("/questions");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { error: "Unexpected error" };
+  }
+}
