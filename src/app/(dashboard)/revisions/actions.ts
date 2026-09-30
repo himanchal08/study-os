@@ -62,7 +62,7 @@ export async function markRevisionDone(id: string, recallScore: number) {
 
   if (error) return { error: error.message };
 
-  if (revision) {
+  if (revision && revision.cycle_type === "monthly") {
     const intervalDays = ADAPTIVE_INTERVALS[recallScore] ?? 7;
     const nextDueDate = addDays(now, intervalDays);
 

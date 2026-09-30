@@ -73,6 +73,14 @@ export async function startSession(params: {
   return { session: data };
 }
 
+function nextSundayStr(from: Date): string {
+  const d = new Date(from);
+  const day = d.getUTCDay(); // 0 = Sun
+  const daysUntilSunday = day === 0 ? 7 : 7 - day;
+  d.setUTCDate(d.getUTCDate() + daysUntilSunday);
+  return d.toISOString().split("T")[0];
+}
+
 export async function stopSession(params: {
   sessionId: string;
   userId: string;
@@ -156,22 +164,25 @@ export async function stopSession(params: {
 
       const revisionsToInsert: Database["public"]["Tables"]["revisions"]["Insert"][] = [
         {
+          // Daily: due the same day the session ends — shown after 8 PM that night
           user_id: userId,
           topic_id: data.topic_id,
           source_session_id: data.id,
           cycle_type: "daily",
-          due_date: toUserDateStr(1 * 86400000),
+          due_date: toUserDateStr(0),
           client_generated_id: randomUUID(),
         },
         {
+          // Weekly: due the coming Sunday — shown only on Sundays
           user_id: userId,
           topic_id: data.topic_id,
           source_session_id: data.id,
           cycle_type: "weekly",
-          due_date: toUserDateStr(7 * 86400000),
+          due_date: nextSundayStr(new Date(resolvedEnd)),
           client_generated_id: randomUUID(),
         },
         {
+          // Monthly: due 30 days later
           user_id: userId,
           topic_id: data.topic_id,
           source_session_id: data.id,
