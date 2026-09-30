@@ -32,10 +32,16 @@ export async function createTask(
   const plannedDate = formData.get("planned_date") as string;
   const dueDate = (formData.get("due_date") as string) || null;
   const estimatedMinutesStr = formData.get("estimated_minutes") as string;
-  const recurrencePattern = (formData.get("recurrence_pattern") as string) || "none";
   const activityType = (formData.get("activity_type") as string) || "practice";
   const questionsCountStr = formData.get("questions_count") as string;
   const questionsCount = questionsCountStr ? parseInt(questionsCountStr, 10) : null;
+  const dppQuestionsCountStr = formData.get("dpp_questions_count") as string;
+  const dppQuestionsCount = dppQuestionsCountStr ? parseInt(dppQuestionsCountStr, 10) : 20;
+  const customRepeatDatesStr = formData.get("custom_repeat_dates") as string;
+  let customRepeatDates: string[] = [];
+  if (customRepeatDatesStr) {
+    try { customRepeatDates = JSON.parse(customRepeatDatesStr); } catch {}
+  }
   
   const checklistStr = formData.get("checklist") as string;
   let checklist = null;
@@ -59,46 +65,15 @@ export async function createTask(
   }
 
   const estimatedMinutes = estimatedMinutesStr ? parseInt(estimatedMinutesStr, 10) : null;
-  const isRecurring = recurrencePattern !== "none";
+  // Use calendar-picked dates if provided, otherwise just the planned date
+  const isRecurring = customRepeatDates.length > 0;
   const parentTaskId = randomUUID();
 
-  const datesToInsert: string[] = [plannedDate];
-
-  if (isRecurring) {
-    const baseDate = new Date(plannedDate + "T00:00:00Z");
-    if (recurrencePattern === "daily") {
-      for (let i = 1; i <= 7; i++) {
-        const next = new Date(baseDate);
-        next.setUTCDate(baseDate.getUTCDate() + i);
-        datesToInsert.push(next.toISOString().split("T")[0]);
-      }
-    } else if (recurrencePattern === "weekdays") {
-      let count = 0;
-      let i = 1;
-      while (count < 5 && i < 14) {
-        const next = new Date(baseDate);
-        next.setUTCDate(baseDate.getUTCDate() + i);
-        const day = next.getUTCDay();
-        if (day >= 1 && day <= 5) {
-          datesToInsert.push(next.toISOString().split("T")[0]);
-          count++;
-        }
-        i++;
-      }
-    } else if (recurrencePattern === "weekly") {
-      for (let i = 1; i <= 3; i++) {
-        const next = new Date(baseDate);
-        next.setUTCDate(baseDate.getUTCDate() + i * 7);
-        datesToInsert.push(next.toISOString().split("T")[0]);
-      }
-    } else if (recurrencePattern === "monthly") {
-      for (let i = 1; i <= 2; i++) {
-        const next = new Date(baseDate);
-        next.setUTCMonth(baseDate.getUTCMonth() + i);
-        datesToInsert.push(next.toISOString().split("T")[0]);
-      }
-    }
-  }
+  // Always include the planned date first, then any additional calendar-selected dates
+  const datesToInsert: string[] = [
+    plannedDate,
+    ...customRepeatDates.filter(d => d !== plannedDate).sort(),
+  ];
 
   let finalTitle = title;
   if (activityType === "lecture") finalTitle = `[Lecture] ${title}`;
@@ -116,7 +91,7 @@ export async function createTask(
     due_date: idx === 0 ? dueDate : null,
     estimated_minutes: estimatedMinutes,
     is_recurring: isRecurring,
-    recurrence_pattern: isRecurring ? recurrencePattern : null,
+    recurrence_pattern: isRecurring ? "custom" : null,
     parent_task_id: idx === 0 ? null : parentTaskId,
     client_generated_id: randomUUID(),
     source_client: "web" as const,
@@ -134,13 +109,13 @@ export async function createTask(
         topic_id: topicId,
         planned_date: date,
         due_date: null,
-        estimated_minutes: estimatedMinutes,
+        estimated_minutes: null,
         is_recurring: isRecurring,
-        recurrence_pattern: isRecurring ? recurrencePattern : null,
+        recurrence_pattern: isRecurring ? "custom" : null,
         parent_task_id: null,
         client_generated_id: randomUUID(),
         source_client: "web" as const,
-        questions_count: null,
+        questions_count: dppQuestionsCount,
         checklist: null,
       });
     });
