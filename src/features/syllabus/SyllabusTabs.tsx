@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { SubjectCard } from "./SubjectCard";
-import { updateExamTargets } from "@/app/(dashboard)/syllabus/actions";
+import { updateExamTargets, seedSyllabus } from "@/app/(dashboard)/syllabus/actions";
 
 type ExamTab = "all" | "banking" | "ssc";
 
@@ -167,14 +167,18 @@ export function SyllabusTabs({ subjects, initialExamTargets }: { subjects: Subje
             <button
               onClick={() => {
                 startTransition(() => {
-                  import("@/app/(dashboard)/syllabus/actions").then((a) => a.seedSyllabus());
+                  seedSyllabus();
                 });
               }}
               disabled={isPending}
               className="px-4 py-2 bg-white text-black font-semibold text-sm rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50"
             >
-              Seed Canonical Syllabus
+              {isPending ? "Seeding…" : "Seed Canonical Syllabus"}
             </button>
+            <p className="text-neutral-600 text-xs mt-1">
+              To see the syllabus, select this exam in{" "}
+              <a href="/settings" className="text-neutral-400 underline underline-offset-2 hover:text-white transition-colors">Settings</a>.
+            </p>
           </div>
         ) : (
           filtered.map(s => <SubjectCard key={s.id} subject={s as React.ComponentProps<typeof SubjectCard>["subject"]} allSubjects={subjects} />)
