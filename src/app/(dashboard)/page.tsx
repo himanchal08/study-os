@@ -94,7 +94,7 @@ export default async function HomePage() {
       .is("deleted_at", null),
     supabase
       .from("revisions")
-      .select("id")
+      .select("id, cycle_type, due_date")
       .eq("user_id", user.id)
       .lte("due_date", todayStr)
       .is("completed_at", null),
@@ -134,7 +134,21 @@ export default async function HomePage() {
   const targetLabel = `${Math.round(targetMinutes / 60)}h target`;
 
   const overdueCount = overdueCountRaw ?? 0;
-  const revisionsCount = revisionsDue?.length ?? 0;
+
+  // Match the same time-aware rules as the revisions page:
+  // - Monthly: always shown
+  // - Daily: only after 8 PM
+  // - Weekly: only on Sundays
+  const nowHour = new Date().getHours();
+  const nowDayOfWeek = new Date().getDay(); // 0 = Sunday
+  const isAfter8PM = nowHour >= 20;
+  const isSunday = nowDayOfWeek === 0;
+  const revisionsCount = (revisionsDue ?? []).filter((r) => {
+    if (r.cycle_type === "monthly") return true;
+    if (r.cycle_type === "daily" && isAfter8PM && r.due_date === todayStr) return true;
+    if (r.cycle_type === "weekly" && isSunday && r.due_date === todayStr) return true;
+    return false;
+  }).length;
   const todayTasks = ((todayTasksRaw ?? []) as unknown as TaskItem[]).sort((a, b) => {
     if (a.status === "completed" && b.status !== "completed") return 1;
     if (a.status !== "completed" && b.status === "completed") return -1;

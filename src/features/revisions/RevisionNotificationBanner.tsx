@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { skipRevision, deleteWeeklyRevisionWithFollowup } from "@/app/(dashboard)/revisions/actions";
 
@@ -239,6 +240,7 @@ function RevisionRow({
 const DISMISSED_KEY = "revision-banner-dismissed";
 
 export function RevisionNotificationBanner() {
+  const pathname = usePathname();
   const [data, setData] = useState<NotificationData | null>(null);
   const [dismissed, setDismissed] = useState(true); // start hidden until we check time
   const [weeklyDeleteTarget, setWeeklyDeleteTarget] = useState<RevisionInfo | null>(null);
@@ -295,6 +297,9 @@ export function RevisionNotificationBanner() {
       fetchData();
     });
   };
+
+  // Don't show the notification banner on the revisions page itself
+  if (pathname === "/revisions") return null;
 
   if (dismissed || !data) return null;
 
