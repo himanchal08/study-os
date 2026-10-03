@@ -36,10 +36,10 @@ export function RecoveryBanner({ todayStr, stuckCount }: RecoveryBannerProps) {
     >
       <div>
         <p className="text-sm font-semibold text-amber-400">
-          ⚠️ {stuckCount} task{stuckCount > 1 ? "s" : ""} stuck from a previous bug
+          ⚠️ {stuckCount} task{stuckCount > 1 ? "s" : ""} not showing in Today
         </p>
         <p className="text-xs text-amber-400/60 mt-0.5">
-          These were marked cancelled/postponed incorrectly. Click to restore them to today.
+          Found tasks with cancelled/postponed status on past dates. Click to restore them to today.
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -49,7 +49,7 @@ export function RecoveryBanner({ todayStr, stuckCount }: RecoveryBannerProps) {
           className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
           style={{ background: "#f59e0b", color: "#000" }}
         >
-          {isPending ? "Recovering…" : "Recover Tasks"}
+          {isPending ? "Restoring..." : "Restore to Today"}
         </button>
         <button
           onClick={() => setVisible(false)}

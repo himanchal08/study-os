@@ -400,12 +400,13 @@ export async function recoverStuckTasks(todayStr: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
+  // Catch all: today OR past dates with cancelled/postponed status
   const { data: stuck } = await supabase
     .from("tasks")
     .select("id")
     .eq("user_id", user.id)
     .is("deleted_at", null)
-    .eq("planned_date", todayStr)          // Only today — the exact bug fingerprint
+    .lte("planned_date", todayStr)
     .or("status.eq.cancelled,status.eq.postponed");
 
   if (!stuck || stuck.length === 0) return { success: true, recovered: 0 };
@@ -413,7 +414,7 @@ export async function recoverStuckTasks(todayStr: string) {
   const ids = stuck.map((t) => t.id);
   const { error } = await supabase
     .from("tasks")
-    .update({ status: "pending" })         // Reset status; planned_date is already today
+    .update({ status: "pending", planned_date: todayStr })
     .in("id", ids)
     .eq("user_id", user.id);
 

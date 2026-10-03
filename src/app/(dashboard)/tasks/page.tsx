@@ -76,7 +76,7 @@ export default async function TasksPage() {
     .select("id", { count: "exact" })
     .eq("user_id", user.id)
     .is("deleted_at", null)
-    .eq("planned_date", todayDate)
+    .lte("planned_date", todayDate)
     .or("status.eq.cancelled,status.eq.postponed");
 
   // Overdue: past-date tasks that are still pending (never rolled over)
