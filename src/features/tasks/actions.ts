@@ -400,10 +400,11 @@ export async function recoverStuckTasks(todayStr: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
-  // Catch all: today OR past dates with cancelled/postponed status
+  // Fetch stuck tasks with their due_date so we can handle the
+  // tasks_check constraint (planned_date <= due_date)
   const { data: stuck } = await supabase
     .from("tasks")
-    .select("id")
+    .select("id, due_date")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .lte("planned_date", todayStr)
@@ -411,16 +412,35 @@ export async function recoverStuckTasks(todayStr: string) {
 
   if (!stuck || stuck.length === 0) return { success: true, recovered: 0 };
 
-  const ids = stuck.map((t) => t.id);
-  const { error } = await supabase
-    .from("tasks")
-    .update({ status: "pending", planned_date: todayStr })
-    .in("id", ids)
-    .eq("user_id", user.id);
+  // Split into two groups:
+  // - Tasks with due_date in the past (or today): clear due_date to null to avoid constraint
+  // - Tasks with future due_date or no due_date: safe to just update planned_date
+  const pastDueIds  = stuck.filter(t => t.due_date && t.due_date <= todayStr).map(t => t.id);
+  const safeDueIds  = stuck.filter(t => !t.due_date || t.due_date > todayStr).map(t => t.id);
 
-  if (error) return { error: error.message };
+  const errors: string[] = [];
+
+  if (pastDueIds.length > 0) {
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: "pending", planned_date: todayStr, due_date: null })
+      .in("id", pastDueIds)
+      .eq("user_id", user.id);
+    if (error) errors.push(error.message);
+  }
+
+  if (safeDueIds.length > 0) {
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: "pending", planned_date: todayStr })
+      .in("id", safeDueIds)
+      .eq("user_id", user.id);
+    if (error) errors.push(error.message);
+  }
+
+  if (errors.length > 0) return { error: errors.join("; ") };
 
   revalidatePath("/tasks");
   revalidatePath("/");
-  return { success: true, recovered: ids.length };
+  return { success: true, recovered: stuck.length };
 }
