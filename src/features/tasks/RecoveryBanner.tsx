@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { recoverStuckTasks } from "@/features/tasks/actions";
 
 interface RecoveryBannerProps {
@@ -10,22 +9,25 @@ interface RecoveryBannerProps {
 }
 
 export function RecoveryBanner({ todayStr, stuckCount }: RecoveryBannerProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [done, setDone] = useState(false);
   const [visible, setVisible] = useState(stuckCount > 0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setVisible(stuckCount > 0);
   }, [stuckCount]);
 
-  if (!visible || done) return null;
+  if (!visible) return null;
 
   function handleRecover() {
     startTransition(async () => {
-      await recoverStuckTasks(todayStr);
-      setDone(true);
-      router.refresh();
+      const res = await recoverStuckTasks(todayStr);
+      if (res && "error" in res) {
+        setError(res.error as string);
+        return;
+      }
+      // Hard reload so the server component fully re-fetches
+      window.location.reload();
     });
   }
 
@@ -39,7 +41,9 @@ export function RecoveryBanner({ todayStr, stuckCount }: RecoveryBannerProps) {
           ⚠️ {stuckCount} task{stuckCount > 1 ? "s" : ""} not showing in Today
         </p>
         <p className="text-xs text-amber-400/60 mt-0.5">
-          Found tasks with cancelled/postponed status on past dates. Click to restore them to today.
+          {error
+            ? `Error: ${error}`
+            : "Found tasks with cancelled/postponed status on past dates. Click to restore them to today."}
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -53,6 +57,7 @@ export function RecoveryBanner({ todayStr, stuckCount }: RecoveryBannerProps) {
         </button>
         <button
           onClick={() => setVisible(false)}
+          disabled={isPending}
           className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
           style={{ background: "transparent", color: "#92400e", border: "1px solid #78350f" }}
         >
