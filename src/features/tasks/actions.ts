@@ -319,13 +319,14 @@ export async function handleOverdueTasks(action: "rollover" | "delete" | "dismis
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
-  // First, get overdue tasks
   const { data: overdue } = await supabase
     .from("tasks")
     .select("id, title, subject_id, topic_id")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .neq("status", "completed")
+    .neq("status", "cancelled")
+    .neq("status", "postponed")
     .lt("planned_date", todayStr);
 
   if (!overdue || overdue.length === 0) return { success: true };
@@ -367,7 +368,7 @@ export async function handleOverdueTasks(action: "rollover" | "delete" | "dismis
       await supabase.from("tasks").update({ deleted_at: new Date().toISOString() }).in("id", toDelete);
     }
     if (toRollover.length > 0) {
-      await supabase.from("tasks").update({ planned_date: todayStr }).in("id", toRollover);
+      await supabase.from("tasks").update({ planned_date: todayStr, status: "pending" }).in("id", toRollover);
     }
   }
 

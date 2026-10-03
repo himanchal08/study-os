@@ -116,6 +116,8 @@ export default async function HomePage() {
       .eq("user_id", user.id)
       .is("deleted_at", null)
       .neq("status", "completed")
+      .neq("status", "cancelled")
+      .neq("status", "postponed")
       .lt("planned_date", todayStr),
     supabase
       .from("question_batches")
