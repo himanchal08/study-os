@@ -395,11 +395,6 @@ export async function updateTaskChecklist(taskId: string, checklist: { id: strin
   return { success: true };
 }
 
-/**
- * One-time recovery: finds tasks that were stuck by the old rollover bug
- * (status = cancelled/postponed but should be active) and resets them to pending
- * on today's date. Only touches tasks on or before today that are not deleted.
- */
 export async function recoverStuckTasks(todayStr: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -410,7 +405,7 @@ export async function recoverStuckTasks(todayStr: string) {
     .select("id")
     .eq("user_id", user.id)
     .is("deleted_at", null)
-    .lte("planned_date", todayStr)
+    .eq("planned_date", todayStr)          // Only today — the exact bug fingerprint
     .or("status.eq.cancelled,status.eq.postponed");
 
   if (!stuck || stuck.length === 0) return { success: true, recovered: 0 };
@@ -418,7 +413,7 @@ export async function recoverStuckTasks(todayStr: string) {
   const ids = stuck.map((t) => t.id);
   const { error } = await supabase
     .from("tasks")
-    .update({ status: "pending", planned_date: todayStr })
+    .update({ status: "pending" })         // Reset status; planned_date is already today
     .in("id", ids)
     .eq("user_id", user.id);
 

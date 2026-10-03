@@ -70,13 +70,12 @@ export default async function TasksPage() {
     .order("planned_date", { ascending: true })
     .order("created_at", { ascending: true });
 
-  // Count tasks stuck by the old rollover bug (cancelled/postponed but not deleted, on or before today)
   const { count: stuckCountRaw } = await supabase
     .from("tasks")
     .select("id", { count: "exact" })
     .eq("user_id", user.id)
     .is("deleted_at", null)
-    .lte("planned_date", todayDate)
+    .eq("planned_date", todayDate)
     .or("status.eq.cancelled,status.eq.postponed");
 
   const stuckCount = stuckCountRaw ?? 0;
