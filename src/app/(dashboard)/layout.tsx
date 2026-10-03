@@ -68,6 +68,8 @@ export default async function DashboardLayout({
       .eq("user_id", safeUser.id)
       .eq("planned_date", todayStr)
       .neq("status", "completed")
+      .neq("status", "cancelled")
+      .neq("status", "postponed")
       .is("deleted_at", null),
   ]);
 

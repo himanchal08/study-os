@@ -76,6 +76,7 @@ export default async function AnalyticsPage() {
     const date = t.planned_date;
     if (!tasksMap.has(date)) tasksMap.set(date, { total: 0, completed: 0 });
     const item = tasksMap.get(date)!;
+    if (t.status === "cancelled" || t.status === "postponed") return; // don't count dismissed tasks
     item.total++;
     if (t.status === "completed") item.completed++;
   });
