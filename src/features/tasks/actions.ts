@@ -209,19 +209,21 @@ export async function postponeTask(
 
   const { data: current } = await supabase
     .from("tasks")
-    .select("postpone_count")
+    .select("postpone_count, due_date")
     .eq("id", taskId)
     .eq("user_id", user.id)
     .single();
 
   const currentCount = current?.postpone_count ?? 0;
+  // Preserve the original hard deadline; don't overwrite it with the postponed date
+  const existingDueDate = current?.due_date ?? null;
 
   const { error } = await supabase
     .from("tasks")
     .update({
       status:         "postponed",
       planned_date:   newPlannedDate,
-      due_date:       newPlannedDate,
+      due_date:       existingDueDate,
       postpone_count: currentCount + 1,
       failure_reason: failureReason ?? null,
     })
@@ -311,7 +313,7 @@ export async function cleanupDuplicates() {
       .eq("user_id", user.id);
   }
 
-  return { success: true };
+  return { success: true, deleted: toDelete.length };
 }
 
 export async function handleOverdueTasks(action: "rollover" | "delete" | "dismiss", todayStr: string) {
@@ -391,4 +393,38 @@ export async function updateTaskChecklist(taskId: string, checklist: { id: strin
   if (error) return { error: error.message };
   revalidatePath("/tasks");
   return { success: true };
+}
+
+/**
+ * One-time recovery: finds tasks that were stuck by the old rollover bug
+ * (status = cancelled/postponed but should be active) and resets them to pending
+ * on today's date. Only touches tasks on or before today that are not deleted.
+ */
+export async function recoverStuckTasks(todayStr: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { data: stuck } = await supabase
+    .from("tasks")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .lte("planned_date", todayStr)
+    .or("status.eq.cancelled,status.eq.postponed");
+
+  if (!stuck || stuck.length === 0) return { success: true, recovered: 0 };
+
+  const ids = stuck.map((t) => t.id);
+  const { error } = await supabase
+    .from("tasks")
+    .update({ status: "pending", planned_date: todayStr })
+    .in("id", ids)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/tasks");
+  revalidatePath("/");
+  return { success: true, recovered: ids.length };
 }

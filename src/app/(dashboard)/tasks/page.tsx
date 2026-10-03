@@ -4,6 +4,7 @@ import { dayBoundaryAwareDate } from "@/lib/calculations";
 import { TaskList } from "@/features/tasks/TaskList";
 import type { TaskItem } from "@/features/tasks/TaskCard";
 import { PlannerAddSheet } from "@/features/tasks/PlannerAddSheet";
+import { RecoveryBanner } from "@/features/tasks/RecoveryBanner";
 import { GoogleCalendarPanel } from "../settings/GoogleCalendarPanel";
 import { deduplicateSubjects, deduplicateTopics } from "@/lib/subject-utils";
 
@@ -69,10 +70,22 @@ export default async function TasksPage() {
     .order("planned_date", { ascending: true })
     .order("created_at", { ascending: true });
 
+  // Count tasks stuck by the old rollover bug (cancelled/postponed but not deleted, on or before today)
+  const { count: stuckCountRaw } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact" })
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .lte("planned_date", todayDate)
+    .or("status.eq.cancelled,status.eq.postponed");
+
+  const stuckCount = stuckCountRaw ?? 0;
+
   const tasks: TaskItem[] = (rawTasks ?? []) as unknown as TaskItem[];
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
+      <RecoveryBanner todayStr={todayDate} stuckCount={stuckCount} />
       <div>
         <h1 className="text-xl font-semibold text-neutral-100 tracking-tight">Daily Planner</h1>
         <p className="text-xs mt-1 text-neutral-500">Plan your day and track execution.</p>

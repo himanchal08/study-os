@@ -12,7 +12,7 @@ export function DeduplicationRunner() {
     if (!runOnce.current) {
       runOnce.current = true;
       cleanupDuplicates().then((res) => {
-        if (res.success) {
+        if (res && "deleted" in res && (res.deleted ?? 0) > 0) {
           router.refresh();
         }
       });

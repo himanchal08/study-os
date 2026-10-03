@@ -68,8 +68,8 @@ export function computeStreaks(
   
   const todayStr = dayBoundaryAwareDate(Date.now(), offsetMin, timezone);
   const yesterdayStr = (() => {
-    const d = new Date(todayStr);
-    d.setDate(d.getDate() - 1);
+    const d = new Date(todayStr + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() - 1);
     return d.toISOString().split("T")[0];
   })();
 

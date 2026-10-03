@@ -112,7 +112,7 @@ export default async function RevisionsPage() {
         .gte(
           "completed_at",
           new Date(
-            new Date(todayStr + "T00:00:00.000Z").getTime() -
+            new Date(todayStr + "T00:00:00.000Z").getTime() +
               offsetMin * 60 * 1000,
           ).toISOString(),
         )

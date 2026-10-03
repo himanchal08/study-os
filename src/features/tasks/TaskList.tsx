@@ -35,7 +35,14 @@ export function TaskList({ tasks, todayDate, subjects, timezone }: TaskListProps
   const [searchQuery, setSearchQuery] = useState("");
 
   const todayTasks = useMemo(
-    () => tasks.filter((t) => t.planned_date === todayDate && t.status !== "completed"),
+    () =>
+      tasks.filter(
+        (t) =>
+          t.planned_date === todayDate &&
+          t.status !== "completed" &&
+          t.status !== "cancelled" &&
+          t.status !== "postponed"
+      ),
     [tasks, todayDate]
   );
   const completedTasks = useMemo(
@@ -80,7 +87,12 @@ export function TaskList({ tasks, todayDate, subjects, timezone }: TaskListProps
     return list;
   }, [activeTab, selectedSubject, searchQuery, todayTasks, upcomingTasks, completedTasks, tasks]);
 
-  const totalPlannedToday   = tasks.filter((t) => t.planned_date === todayDate).length;
+  const totalPlannedToday = tasks.filter(
+    (t) =>
+      t.planned_date === todayDate &&
+      t.status !== "cancelled" &&
+      t.status !== "postponed"
+  ).length;
   const totalCompletedToday = completedTasks.length;
   const completionRate = taskCompletionRate(totalCompletedToday, totalPlannedToday);
 
