@@ -5,6 +5,7 @@ import { TaskList } from "@/features/tasks/TaskList";
 import type { TaskItem } from "@/features/tasks/TaskCard";
 import { PlannerAddSheet } from "@/features/tasks/PlannerAddSheet";
 import { RecoveryBanner } from "@/features/tasks/RecoveryBanner";
+import { OverdueManager } from "@/features/tasks/OverdueManager";
 import { GoogleCalendarPanel } from "../settings/GoogleCalendarPanel";
 import { deduplicateSubjects, deduplicateTopics } from "@/lib/subject-utils";
 
@@ -78,12 +79,25 @@ export default async function TasksPage() {
     .eq("planned_date", todayDate)
     .or("status.eq.cancelled,status.eq.postponed");
 
+  // Overdue: past-date tasks that are still pending (never rolled over)
+  const { count: overdueCountRaw } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact" })
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .neq("status", "completed")
+    .neq("status", "cancelled")
+    .neq("status", "postponed")
+    .lt("planned_date", todayDate);
+
   const stuckCount = stuckCountRaw ?? 0;
+  const overdueCount = overdueCountRaw ?? 0;
 
   const tasks: TaskItem[] = (rawTasks ?? []) as unknown as TaskItem[];
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
+      <OverdueManager overdueCount={overdueCount} todayStr={todayDate} />
       <RecoveryBanner todayStr={todayDate} stuckCount={stuckCount} />
       <div>
         <h1 className="text-xl font-semibold text-neutral-100 tracking-tight">Daily Planner</h1>
