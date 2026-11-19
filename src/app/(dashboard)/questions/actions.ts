@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 export async function logQuestionBatch(prevState: unknown, formData: FormData) {
   try {
@@ -56,6 +56,7 @@ export async function logQuestionBatch(prevState: unknown, formData: FormData) {
     }
 
     revalidatePath("/questions");
+    updateTag("kpi");
     revalidatePath("/");
     return { success: true };
   } catch (err) {
@@ -74,6 +75,7 @@ export async function deleteQuestionBatch(id: string) {
     .eq("id", id)
     .eq("user_id", user.id);
   revalidatePath("/questions");
+    updateTag("kpi");
   revalidatePath("/");
 }
 
@@ -117,6 +119,7 @@ export async function updateQuestionBatch(prevState: unknown, formData: FormData
     if (error) return { error: error.message };
 
     revalidatePath("/questions");
+    updateTag("kpi");
     revalidatePath("/");
     return { success: true };
   } catch (err) {
@@ -124,3 +127,4 @@ export async function updateQuestionBatch(prevState: unknown, formData: FormData
     return { error: "Unexpected error" };
   }
 }
+

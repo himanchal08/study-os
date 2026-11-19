@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
 import {
   studyDurationSeconds,
   secondsToHours,
@@ -63,21 +64,88 @@ const kpiConfig = [
   },
 ];
 
+async function fetchKpiData(
+  userId: string,
+  todayStr: string,
+  dayBoundaryOffsetMin: number,
+) {
+  const supabase = await createClient();
+
+  const [
+    { data: sessions },
+    { data: distractions },
+    { data: phoneEvents },
+    { data: tasks },
+    { data: batches },
+    { count: pendingCount },
+    { count: completedCount },
+  ] = await Promise.all([
+    supabase
+      .from("study_sessions")
+      .select("start_timestamp, end_timestamp, pause_duration_seconds, pomodoro_breaks_count, pomodoro_breaks_time_seconds")
+      .eq("user_id", userId)
+      .gte("start_timestamp", `${todayStr}T00:00:00`)
+      .is("deleted_at", null),
+    supabase
+      .from("browser_events")
+      .select("duration_seconds")
+      .eq("user_id", userId)
+      .gte("timestamp", `${todayStr}T00:00:00`),
+    supabase
+      .from("phone_events")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("event_type", "distraction_start")
+      .gte("timestamp", `${todayStr}T00:00:00`),
+    supabase
+      .from("tasks")
+      .select("status")
+      .eq("user_id", userId)
+      .eq("planned_date", todayStr)
+      .is("deleted_at", null),
+    supabase
+      .from("question_batches")
+      .select("attempted, correct")
+      .eq("user_id", userId)
+      .gte("logged_at", `${todayStr}T00:00:00`)
+      .is("deleted_at", null),
+    supabase
+      .from("revisions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .lte("due_date", todayStr)
+      .is("completed_at", null),
+    supabase
+      .from("revisions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .not("completed_at", "is", null)
+      .gte(
+        "completed_at",
+        new Date(new Date(`${todayStr}T00:00:00`).getTime() - dayBoundaryOffsetMin * 60000).toISOString()
+      ),
+  ]);
+
+  return { sessions, distractions, phoneEvents, tasks, batches, pendingCount, completedCount };
+}
+
 export async function KpiStrip({
   userId,
   dailyTargetHours,
   dayBoundaryOffsetMin,
   timezone,
 }: KpiStripProps) {
-  const supabase = await createClient();
   const todayStr = dayBoundaryAwareDate(new Date().getTime(), dayBoundaryOffsetMin, timezone);
 
-  const { data: sessions } = await supabase
-    .from("study_sessions")
-    .select("start_timestamp, end_timestamp, pause_duration_seconds, pomodoro_breaks_count, pomodoro_breaks_time_seconds")
-    .eq("user_id", userId)
-    .gte("start_timestamp", `${todayStr}T00:00:00`)
-    .is("deleted_at", null);
+  // Cache KPI data for 60 s, tagged so mutations can bust it via revalidateTag("kpi")
+  const getCachedKpiData = unstable_cache(
+    () => fetchKpiData(userId, todayStr, dayBoundaryOffsetMin),
+    [`kpi-${userId}-${todayStr}`],
+    { tags: [`kpi-${userId}`, "kpi"], revalidate: 60 }
+  );
+
+  const { sessions, distractions, phoneEvents, tasks, batches, pendingCount, completedCount } =
+    await getCachedKpiData();
 
   const totalHours = (sessions ?? []).reduce((sum, s) => {
     const secs = studyDurationSeconds(
@@ -87,69 +155,26 @@ export async function KpiStrip({
     );
     return sum + secondsToHours(secs);
   }, 0);
-  
+
   const totalStudySeconds = totalHours * 3600;
 
   const totalPomodoroBreaks = (sessions ?? []).reduce((sum, s) => sum + (s.pomodoro_breaks_count || 0), 0);
   const totalPomodoroBreakTime = (sessions ?? []).reduce((sum, s) => sum + (s.pomodoro_breaks_time_seconds || 0), 0);
 
-  const { data: distractions } = await supabase
-    .from("browser_events")
-    .select("duration_seconds")
-    .eq("user_id", userId)
-    .gte("timestamp", `${todayStr}T00:00:00`);
-
   const totalDistractionSeconds = distractions?.reduce((sum, d) => sum + (d.duration_seconds || 10), 0) ?? 0;
-  
-  const { data: phoneEvents } = await supabase
-    .from("phone_events")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("event_type", "distraction_start")
-    .gte("timestamp", `${todayStr}T00:00:00`);
-
   const phonePickups = phoneEvents?.length ?? 0;
 
-  const focusScore = totalStudySeconds > 0 
+  const focusScore = totalStudySeconds > 0
     ? Math.max(0, ((totalStudySeconds - totalDistractionSeconds) / totalStudySeconds) * 100)
     : 100;
 
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("status")
-    .eq("user_id", userId)
-    .eq("planned_date", todayStr)
-    .is("deleted_at", null);
-
   const totalTasks = tasks?.length ?? 0;
   const completedTasks = tasks?.filter((t) => t.status === "completed").length ?? 0;
-
-  const { data: batches } = await supabase
-    .from("question_batches")
-    .select("attempted, correct")
-    .eq("user_id", userId)
-    .gte("logged_at", `${todayStr}T00:00:00`)
-    .is("deleted_at", null);
 
   const totalAttempted = batches?.reduce((s, b) => s + b.attempted, 0) ?? 0;
   const totalCorrect = batches?.reduce((s, b) => s + b.correct, 0) ?? 0;
   const todayAccuracy =
     totalAttempted > 0 ? (totalCorrect / totalAttempted) * 100 : null;
-
-  const { count: pendingCount } = await supabase
-    .from("revisions")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .lte("due_date", todayStr)
-    .is("completed_at", null);
-
-  const localStartOfDayMs = new Date(`${todayStr}T00:00:00`).getTime();
-  const { count: completedCount } = await supabase
-    .from("revisions")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .not("completed_at", "is", null)
-    .gte("completed_at", new Date(localStartOfDayMs - (dayBoundaryOffsetMin * 60000)).toISOString());
 
   const completedRevisions = completedCount ?? 0;
   const totalRevisionsDue = (pendingCount ?? 0) + completedRevisions;

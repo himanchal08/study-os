@@ -1,10 +1,18 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { randomUUID } from "crypto";
 import { validateTask } from "@/lib/calculations";
 import type { Database } from "@/types/database";
+
+/** Invalidate all task-related caches (pages + unstable_cache tags) in one call */
+function revalidateTasks() {
+  revalidatePath("/tasks");
+  revalidatePath("/");
+  updateTag("tasks");
+  updateTag("kpi");
+}
 
 export type TaskStatus = Database["public"]["Enums"]["task_status_enum"];
 
@@ -141,8 +149,7 @@ export async function createTask(
     if (evtError) console.error("task_events insert failed:", evtError.message);
   }
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
+  revalidateTasks();
   return { success: true };
 }
 
@@ -190,8 +197,7 @@ export async function updateTaskStatus(
   });
   if (eventError) console.error("task_events insert failed:", eventError.message);
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
+  revalidateTasks();
   return { success: true };
 }
 
@@ -242,8 +248,7 @@ export async function postponeTask(
   });
   if (eventError2) console.error("task_events insert failed:", eventError2.message);
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
+  revalidateTasks();
   return { success: true };
 }
 
@@ -273,8 +278,7 @@ export async function deleteTask(taskId: string) {
   });
   if (eventError3) console.error("task_events insert failed:", eventError3.message);
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
+  revalidateTasks();
   return { success: true };
 }
 
@@ -374,8 +378,7 @@ export async function handleOverdueTasks(action: "rollover" | "delete" | "dismis
     }
   }
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
+  revalidateTasks();
   return { success: true };
 }
 
@@ -391,7 +394,7 @@ export async function updateTaskChecklist(taskId: string, checklist: { id: strin
     .eq("user_id", user.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/tasks");
+  revalidateTasks();
   return { success: true };
 }
 
@@ -440,7 +443,8 @@ export async function recoverStuckTasks(todayStr: string) {
 
   if (errors.length > 0) return { error: errors.join("; ") };
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
+  revalidateTasks();
   return { success: true, recovered: stuck.length };
 }
+
+

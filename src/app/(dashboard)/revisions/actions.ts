@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 function nextSunday(from: Date): string {
   const d = new Date(from);
@@ -82,6 +82,7 @@ export async function markRevisionDone(id: string, recallScore: number) {
   }
 
   revalidatePath("/revisions");
+  updateTag("kpi");
   revalidatePath("/");
   return { success: true };
 }
@@ -103,6 +104,7 @@ export async function undoRevision(id: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/revisions");
+  updateTag("kpi");
   revalidatePath("/");
   return { success: true };
 }
@@ -132,6 +134,7 @@ export async function scheduleRevision(prevState: unknown, formData: FormData) {
   if (error) return { error: error.message };
 
   revalidatePath("/revisions");
+  updateTag("kpi");
   revalidatePath("/");
   return { success: true };
 }
@@ -150,6 +153,7 @@ export async function deleteRevision(id: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/revisions");
+  updateTag("kpi");
   revalidatePath("/");
   return { success: true };
 }
@@ -188,7 +192,8 @@ export async function skipRevision(id: string) {
       { onConflict: "user_id,topic_id,cycle_type,due_date", ignoreDuplicates: true },
     );
 
-    revalidatePath("/revisions");
+  revalidatePath("/revisions");
+  updateTag("kpi");
     revalidatePath("/");
     return { success: true, escalated: true };
   }
@@ -204,6 +209,7 @@ export async function skipRevision(id: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/revisions");
+  updateTag("kpi");
   revalidatePath("/");
   return { success: true, escalated: false };
 }
@@ -243,6 +249,7 @@ export async function deleteWeeklyRevisionWithFollowup(id: string) {
   }
 
   revalidatePath("/revisions");
+  updateTag("kpi");
   revalidatePath("/");
   return { success: true };
 }
@@ -261,6 +268,9 @@ export async function deleteTopicRevisions(topicId: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/revisions");
+  updateTag("kpi");
   revalidatePath("/");
   return { success: true };
 }
+
+

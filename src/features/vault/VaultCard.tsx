@@ -1,10 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useTransition, useOptimistic } from "react";
+import { deleteVaultItem } from "./actions";
 import Image from "next/image";
 import { format } from "date-fns";
+import { createClient } from "@/lib/supabase/client";
 
 const ERROR_COLORS: Record<string, string> = {
   "Concept gap":       "#ef4444",
@@ -37,19 +37,11 @@ export function VaultCard({
   createdAt,
 }: VaultCardProps) {
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
+  const [isDeleted, setDeleted] = useOptimistic(false);
 
   const errColor = errorCategory ? (ERROR_COLORS[errorCategory] ?? "#52525b") : "#52525b";
 
-  const handleDelete = () => {
-    if (!confirm("Remove from vault?")) return;
-    startTransition(async () => {
-      const supabase = createClient();
-      await supabase.from("saved_questions").update({ deleted_at: new Date().toISOString() }).eq("id", id);
-      router.refresh();
-    });
-  };
-
+  // Public URL is derived synchronously from the path — no DB call needed.
   let imageUrl: string | null = null;
   if (imagePath) {
     const supabase = createClient();
@@ -57,10 +49,26 @@ export function VaultCard({
     imageUrl = data.publicUrl;
   }
 
+  const handleDelete = () => {
+    if (!confirm("Remove from vault?")) return;
+    startTransition(async () => {
+      setDeleted(true);
+      const result = await deleteVaultItem(id);
+      if (result?.error) {
+        // The optimistic update will be reverted by React automatically
+        // when the transition ends without the server confirming success.
+        // Show a toast-style alert since we have no toast lib.
+        alert(`Failed to delete: ${result.error}`);
+      }
+    });
+  };
+
+  if (isDeleted) return null;
+
   return (
     <div
       className="rounded-xl overflow-hidden flex flex-col group"
-      style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderTop: `3px solid ${errColor}` }}
+      style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderTop: `3px solid ${errColor}`, opacity: isPending ? 0.5 : 1, transition: "opacity 0.15s" }}
     >
       {imageUrl && (
         <div className="w-full aspect-video relative overflow-hidden bg-neutral-900">
@@ -83,6 +91,7 @@ export function VaultCard({
           <button
             onClick={handleDelete}
             disabled={isPending}
+            aria-label="Remove from vault"
             className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-neutral-600 hover:text-red-400 transition-all shrink-0"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

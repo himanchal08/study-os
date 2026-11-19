@@ -1,4 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+
+async function fetchTaskAnalytics(userId: string, fourteenDaysAgoStr: string) {
+  const supabase = await createClient();
+  const { data: tasks } = await supabase
+    .from("tasks")
+    .select("status, planned_date, updated_at, questions_count, actual_questions_count")
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .not("planned_date", "is", null)
+    .gte("planned_date", fourteenDaysAgoStr);
+  return tasks;
+}
 
 export async function TaskPlanningAnalytics() {
   const supabase = await createClient();
@@ -22,13 +35,13 @@ export async function TaskPlanningAnalytics() {
   const sevenDaysAgoStr = toUserYYYYMMDD(sevenDaysAgo);
   const fourteenDaysAgoStr = toUserYYYYMMDD(fourteenDaysAgo);
 
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("status, planned_date, updated_at, questions_count, actual_questions_count")
-    .eq("user_id", user.id)
-    .is("deleted_at", null)
-    .not("planned_date", "is", null)
-    .gte("planned_date", fourteenDaysAgoStr);
+  // Cache task analytics for 5 minutes — this data doesn't need to be real-time
+  const getCachedTasks = unstable_cache(
+    () => fetchTaskAnalytics(user.id, fourteenDaysAgoStr),
+    [`task-analytics-${user.id}-${fourteenDaysAgoStr}`],
+    { tags: [`tasks-${user.id}`, "tasks"], revalidate: 300 }
+  );
+  const tasks = await getCachedTasks();
 
   const validTasks = tasks ?? [];
 

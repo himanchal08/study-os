@@ -1,20 +1,17 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useActionState, useState, useRef } from "react";
+import { saveVaultItem } from "./actions";
 import { SubjectOptions } from "@/components/ui/SubjectOptions";
 
-type ErrorCategory = "concept" | "calculation" | "silly" | "time" | "reading" | "other";
-
-const ERROR_LABELS: { value: ErrorCategory; label: string }[] = [
+const ERROR_LABELS = [
   { value: "concept",     label: "Concept gap" },
   { value: "calculation", label: "Calculation error" },
   { value: "silly",       label: "Silly mistake" },
   { value: "time",        label: "Time pressure" },
   { value: "reading",     label: "Reading error" },
   { value: "other",       label: "Other" },
-];
+] as const;
 
 interface Subject { id: string; name: string; }
 interface Topic   { id: string; name: string; subject_id: string; }
@@ -22,60 +19,42 @@ interface Topic   { id: string; name: string; subject_id: string; }
 export function VaultUploadForm({
   subjects,
   topics,
-  userId,
 }: {
   subjects: Subject[];
   topics: Topic[];
-  userId: string;
+  /** @deprecated userId is now resolved server-side in the action */
+  userId?: string;
 }) {
-  const [isPending, startTransition] = useTransition();
+  const [state, formAction, isPending] = useActionState(saveVaultItem, null);
   const [selSubject, setSelSubject] = useState("");
-  const router  = useRouter();
+  const [fileName, setFileName] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const filteredTopics = topics.filter(t => t.subject_id === selSubject);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd   = new FormData(e.currentTarget);
-    const file = fileRef.current?.files?.[0];
-
-    startTransition(async () => {
-      const supabase = createClient();
-      let imagePath: string | null = null;
-
-      if (file) {
-        const ext  = file.name.split(".").pop();
-        const path = `${userId}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("vault-images")
-          .upload(path, file, { upsert: true });
-        if (!upErr) imagePath = path;
-      }
-
-      const rawCat = (fd.get("error_category") as string) || null;
-      const errorCategory = rawCat as ErrorCategory | null;
-
-      await supabase.from("saved_questions").insert({
-        user_id:        userId,
-        subject_id:     (fd.get("subject_id")  as string) || null,
-        topic_id:       (fd.get("topic_id")    as string) || null,
-        source:         (fd.get("source")      as string) || null,
-        error_category: errorCategory,
-        explanation:    (fd.get("explanation") as string) || null,
-        image_path:     imagePath,
-      });
-
-      (e.target as HTMLFormElement).reset();
-      setSelSubject("");
-      router.refresh();
-    });
-  }
-
   const inputStyle = { background: "#0f0f0f", border: "1px solid #1e1e1e", color: "#ededed" };
 
+  // Reset form after successful submission
+  if (state?.success && formRef.current) {
+    formRef.current.reset();
+    setSelSubject("");
+    setFileName(null);
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form ref={formRef} action={formAction} className="space-y-3">
+      {state?.error && (
+        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+          {state.error}
+        </p>
+      )}
+      {state?.success && (
+        <p className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+          Saved to vault!
+        </p>
+      )}
+
       <select
         name="subject_id"
         value={selSubject}
@@ -115,14 +94,24 @@ export function VaultUploadForm({
         style={inputStyle}
       />
 
-      <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs cursor-pointer" style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: "#555" }}>
+      <label
+        className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs cursor-pointer"
+        style={{ background: "#0f0f0f", border: "1px solid #1e1e1e", color: fileName ? "#ededed" : "#555" }}
+      >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="17 8 12 3 7 8"/>
           <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
-        Attach screenshot
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" />
+        {fileName ?? "Attach screenshot"}
+        <input
+          ref={fileRef}
+          name="image"
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => setFileName(e.target.files?.[0]?.name ?? null)}
+        />
       </label>
 
       <button

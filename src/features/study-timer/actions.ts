@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { randomUUID } from "crypto";
 import type { Tables, Database } from "@/types/database";
 
@@ -70,6 +70,7 @@ export async function startSession(params: {
   }
 
   revalidatePath("/", "layout");
+  updateTag("kpi");
   return { session: data };
 }
 
@@ -252,6 +253,7 @@ export async function stopSession(params: {
   }
 
   revalidatePath("/", "layout");
+  updateTag("kpi");
   return { session: data };
 }
 
@@ -283,6 +285,7 @@ export async function deleteStudySession(sessionId: string) {
     .is("completed_at", null);
 
   revalidatePath("/", "layout");
+  updateTag("kpi");
   return { success: true };
 }
 
@@ -325,3 +328,4 @@ export async function updateSessionTimes(params: {
   revalidatePath("/history");
   return { success: true };
 }
+
