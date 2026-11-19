@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { unstable_cache } from "next/cache";
 import {
   studyDurationSeconds,
   secondsToHours,
@@ -25,7 +24,7 @@ const kpiConfig = [
   {
     id: "kpi-tasks",
     label: "Tasks Done",
-    icon: "✓",
+    icon: "✔",
     accentColor: "#34d399",
     glowColor: "rgba(52,211,153,0.12)",
     borderColor: "rgba(52,211,153,0.18)",
@@ -64,13 +63,16 @@ const kpiConfig = [
   },
 ];
 
-async function fetchKpiData(
-  userId: string,
-  todayStr: string,
-  dayBoundaryOffsetMin: number,
-) {
+export async function KpiStrip({
+  userId,
+  dailyTargetHours,
+  dayBoundaryOffsetMin,
+  timezone,
+}: KpiStripProps) {
   const supabase = await createClient();
+  const todayStr = dayBoundaryAwareDate(new Date().getTime(), dayBoundaryOffsetMin, timezone);
 
+  // Run all 7 queries in parallel — the main perf win
   const [
     { data: sessions },
     { data: distractions },
@@ -125,27 +127,6 @@ async function fetchKpiData(
         new Date(new Date(`${todayStr}T00:00:00`).getTime() - dayBoundaryOffsetMin * 60000).toISOString()
       ),
   ]);
-
-  return { sessions, distractions, phoneEvents, tasks, batches, pendingCount, completedCount };
-}
-
-export async function KpiStrip({
-  userId,
-  dailyTargetHours,
-  dayBoundaryOffsetMin,
-  timezone,
-}: KpiStripProps) {
-  const todayStr = dayBoundaryAwareDate(new Date().getTime(), dayBoundaryOffsetMin, timezone);
-
-  // Cache KPI data for 60 s, tagged so mutations can bust it via revalidateTag("kpi")
-  const getCachedKpiData = unstable_cache(
-    () => fetchKpiData(userId, todayStr, dayBoundaryOffsetMin),
-    [`kpi-${userId}-${todayStr}`],
-    { tags: [`kpi-${userId}`, "kpi"], revalidate: 60 }
-  );
-
-  const { sessions, distractions, phoneEvents, tasks, batches, pendingCount, completedCount } =
-    await getCachedKpiData();
 
   const totalHours = (sessions ?? []).reduce((sum, s) => {
     const secs = studyDurationSeconds(
@@ -211,8 +192,8 @@ export async function KpiStrip({
     {
       ...kpiConfig[4],
       value: totalStudySeconds > 0 ? `${focusScore.toFixed(0)}%` : "—",
-      sub: totalDistractionSeconds > 0 
-        ? `${Math.floor(totalDistractionSeconds/60)}m lost · ${phonePickups} pickups` 
+      sub: totalDistractionSeconds > 0
+        ? `${Math.floor(totalDistractionSeconds/60)}m lost · ${phonePickups} pickups`
         : (phonePickups > 0 ? `${phonePickups} phone pickups` : "100% focused"),
       progress: focusScore,
     },
@@ -237,7 +218,6 @@ export async function KpiStrip({
             border: "1px solid var(--border)",
           }}
         >
-          
           <div
             className="absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-700"
             style={{
@@ -247,7 +227,6 @@ export async function KpiStrip({
             aria-hidden="true"
           />
 
-          
           <div
             className="inline-flex items-center justify-center w-8 h-8 rounded-lg mb-3 text-base font-bold"
             style={{

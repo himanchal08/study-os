@@ -1,27 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
-import { unstable_cache } from "next/cache";
-
-async function fetchTaskAnalytics(userId: string, fourteenDaysAgoStr: string) {
-  const supabase = await createClient();
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("status, planned_date, updated_at, questions_count, actual_questions_count")
-    .eq("user_id", userId)
-    .is("deleted_at", null)
-    .not("planned_date", "is", null)
-    .gte("planned_date", fourteenDaysAgoStr);
-  return tasks;
-}
 
 export async function TaskPlanningAnalytics() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase.from("profiles").select("timezone, daily_questions_cap").eq("user_id", user.id).single();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("timezone, daily_questions_cap")
+    .eq("user_id", user.id)
+    .single();
+
   const tz = profile?.timezone || "Asia/Kolkata";
   const dailyQuestionsCap = profile?.daily_questions_cap ?? 250;
-  
+
   const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
   const toUserYYYYMMDD = (d: Date) => {
     const parts = formatter.formatToParts(d);
@@ -29,54 +21,54 @@ export async function TaskPlanningAnalytics() {
   };
 
   const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo   = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  
-  const sevenDaysAgoStr = toUserYYYYMMDD(sevenDaysAgo);
+
+  const sevenDaysAgoStr    = toUserYYYYMMDD(sevenDaysAgo);
   const fourteenDaysAgoStr = toUserYYYYMMDD(fourteenDaysAgo);
 
-  // Cache task analytics for 5 minutes — this data doesn't need to be real-time
-  const getCachedTasks = unstable_cache(
-    () => fetchTaskAnalytics(user.id, fourteenDaysAgoStr),
-    [`task-analytics-${user.id}-${fourteenDaysAgoStr}`],
-    { tags: [`tasks-${user.id}`, "tasks"], revalidate: 300 }
-  );
-  const tasks = await getCachedTasks();
+  const { data: tasks } = await supabase
+    .from("tasks")
+    .select("status, planned_date, updated_at, questions_count, actual_questions_count")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .not("planned_date", "is", null)
+    .gte("planned_date", fourteenDaysAgoStr);
 
   const validTasks = tasks ?? [];
 
-  
-  const currentTasks = validTasks.filter(t => t.planned_date! >= sevenDaysAgoStr);
-  const currentPlanned = currentTasks.length;
-  const currentCompleted = currentTasks.filter(t => t.status === "completed").length;
-  const currentPostponed = currentTasks.filter(t => t.status === "postponed").length;
-  const currentTotalQuestions = currentTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
+  // Current week (last 7 days)
+  const currentTasks    = validTasks.filter(t => t.planned_date! >= sevenDaysAgoStr);
+  const currentPlanned  = currentTasks.length;
+  const currentCompleted  = currentTasks.filter(t => t.status === "completed").length;
+  const currentPostponed  = currentTasks.filter(t => t.status === "postponed").length;
+  const currentTotalQuestions       = currentTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
   const currentTotalActualQuestions = currentTasks.reduce((sum, t) => sum + (t.actual_questions_count || 0), 0);
 
-  const currentCompletionRate = currentPlanned > 0 ? (currentCompleted / currentPlanned) * 100 : null;
+  const currentCompletionRate   = currentPlanned > 0 ? (currentCompleted / currentPlanned) * 100 : null;
   const currentPostponementRate = currentPlanned > 0 ? (currentPostponed / currentPlanned) * 100 : null;
-  const currentDailyQuestionsAvg = Math.round(currentTotalQuestions / 7);
+  const currentDailyQuestionsAvg       = Math.round(currentTotalQuestions / 7);
   const currentDailyActualQuestionsAvg = Math.round(currentTotalActualQuestions / 7);
 
-  
-  const pastTasks = validTasks.filter(t => t.planned_date! >= fourteenDaysAgoStr && t.planned_date! < sevenDaysAgoStr);
-  const pastPlanned = pastTasks.length;
+  // Previous week (7–14 days ago)
+  const pastTasks     = validTasks.filter(t => t.planned_date! >= fourteenDaysAgoStr && t.planned_date! < sevenDaysAgoStr);
+  const pastPlanned   = pastTasks.length;
   const pastCompleted = pastTasks.filter(t => t.status === "completed").length;
   const pastPostponed = pastTasks.filter(t => t.status === "postponed").length;
   const pastTotalQuestions = pastTasks.reduce((sum, t) => sum + (t.questions_count || 0), 0);
 
-  const pastCompletionRate = pastPlanned > 0 ? (pastCompleted / pastPlanned) * 100 : null;
+  const pastCompletionRate   = pastPlanned > 0 ? (pastCompleted / pastPlanned) * 100 : null;
   const pastPostponementRate = pastPlanned > 0 ? (pastPostponed / pastPlanned) * 100 : null;
   const pastDailyQuestionsAvg = Math.round(pastTotalQuestions / 7);
 
-  const compDiff = currentCompletionRate !== null && pastCompletionRate !== null ? currentCompletionRate - pastCompletionRate : 0;
-  const postDiff = currentPostponementRate !== null && pastPostponementRate !== null ? currentPostponementRate - pastPostponementRate : 0;
+  const compDiff      = currentCompletionRate   !== null && pastCompletionRate   !== null ? currentCompletionRate   - pastCompletionRate   : 0;
+  const postDiff      = currentPostponementRate !== null && pastPostponementRate !== null ? currentPostponementRate - pastPostponementRate : 0;
   const questionsDiff = currentDailyQuestionsAvg - pastDailyQuestionsAvg;
 
   return (
     <div className="glass rounded-2xl p-5 mt-6">
       <div className="mb-4">
-        <h2 className="text-sm font-semibold" style={{ color: "rgba(232,232,240,0.85)" }}>Task & Planning Analytics</h2>
+        <h2 className="text-sm font-semibold" style={{ color: "rgba(232,232,240,0.85)" }}>Task &amp; Planning Analytics</h2>
         <p className="text-xs mt-0.5" style={{ color: "rgba(232,232,240,0.35)" }}>Are you over-planning your days?</p>
       </div>
 
